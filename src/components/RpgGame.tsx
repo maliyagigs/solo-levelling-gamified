@@ -56,36 +56,38 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure starting user has zero gold if save in bad state or enforce started users
+        return parsed;
       } catch (e) {
         // Fallback
       }
     }
 
-    // Default starting state
+    // Default starting state (No gold, base stats at 5, only rusty dagger, self development focus)
     return {
       level: 1,
       exp: 0,
       maxExp: 150,
-      gold: 1500, // Starts with a small reward
-      statPoints: 5,
+      gold: 0, // Starts at zero as requested
+      statPoints: 5, // Exactly 5 starting points to allocate as requested
       baseStats: {
-        strength: 12,
-        agility: 10,
-        vitality: 12,
-        intelligence: 10,
-        perception: 10
+        strength: 5,
+        agility: 5,
+        vitality: 5,
+        intelligence: 5,
+        perception: 5
       },
       job: "Fledgling Player",
       rank: "E-Rank",
-      inventory: [...WEAPONS_DATABASE.map(w => ({ ...w, equipped: w.id === "rusty_dagger" }))],
+      inventory: [{ ...WEAPONS_DATABASE[0], equipped: true }], // Only start with rusty dagger
       shadows: [...SHADOWS_LIST],
       skills: [...SKILLS_LIST],
       quests: [
-        { id: "quest_pushup", name: "Daily Push-ups", description: "Complete physical chest press sets", target: 100, current: 0, rewardExp: 50, rewardGold: 200, completed: false, type: "Daily" },
-        { id: "quest_situp", name: "Daily Sit-ups", description: "Complete physical core contractions", target: 100, current: 0, rewardExp: 50, rewardGold: 200, completed: false, type: "Daily" },
-        { id: "quest_squat", name: "Daily Squats", description: "Complete quad hyper-trophy contractions", target: 100, current: 0, rewardExp: 50, rewardGold: 200, completed: false, type: "Daily" },
-        { id: "quest_run", name: "Daily Agility Run", description: "Execute road running cardiovascular card", target: 10, current: 0, rewardExp: 80, rewardGold: 300, completed: false, type: "Daily" }
+        { id: "quest_physical", name: "Sovereign Physical Grind", description: "Complete physical training checks (e.g. 40 push-ups, squats, or planks)", target: 40, current: 0, rewardExp: 40, rewardGold: 100, completed: false, type: "Daily" },
+        { id: "quest_intellect", name: "Sovereign Intellect Gate", description: "Study complex skills, write code, or read 15 pages of literature", target: 15, current: 0, rewardExp: 60, rewardGold: 150, completed: false, type: "Daily" },
+        { id: "quest_serenity", name: "Abyssal Meditation & Breath", description: "Complete 15 minutes of uninterrupted mindful breathing/restoring", target: 15, current: 0, rewardExp: 50, rewardGold: 120, completed: false, type: "Daily" },
+        { id: "quest_hydration", name: "Hydration & Vitality Calibration", description: "Consume 3 liters of water & log 7+ hours of deep, structured sleep", target: 3, current: 0, rewardExp: 30, rewardGold: 80, completed: false, type: "Daily" }
       ],
       storyStep: 1
     };
@@ -103,6 +105,23 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [earnedLoot, setEarnedLoot] = useState<any>(null);
 
   const battleLogEndRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic Custom UI State hooks
+  const [levelUpOverlay, setLevelUpOverlay] = useState<{ prevLevel: number; newLevel: number; statPointsEarned: number } | null>(null);
+  const [showProfileDrawer, setShowProfileDrawer] = useState<boolean>(false);
+  const [selectedWeaponDetails, setSelectedWeaponDetails] = useState<any>(null);
+  const [isDailyAllocationClaimed, setIsDailyAllocationClaimed] = useState<boolean>(() => {
+    return localStorage.getItem(`monarch_daily_claim_${playerName}`) === new Date().toDateString();
+  });
+  const [shadowSpellEffect, setShadowSpellEffect] = useState<string | null>(null);
+  const [systemToast, setSystemToast] = useState<string | null>(null);
+
+  const triggerSystemToast = (msg: string) => {
+    setSystemToast(msg);
+    setTimeout(() => {
+      setSystemToast(prev => prev === msg ? null : prev);
+    }, 4500);
+  };
 
   // Auto-save whenever gameState changes
   useEffect(() => {
@@ -223,9 +242,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   const powerScaling = getPowerScaling(gameState.level);
 
-  // Exp progression
+  // Exp progression with dynamic high impact Level Up cinematic triggers
   const addExp = (amt: number) => {
+    let leveledUp = false;
+    let oldLevel = 1;
+    let finalNewLevel = 1;
+
     setGameState(prev => {
+      oldLevel = prev.level;
       let newExp = prev.exp + amt;
       let newLevel = prev.level;
       let max = prev.maxExp;
@@ -234,13 +258,21 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       while (newExp >= max) {
         newExp -= max;
         newLevel += 1;
-        statPoints += 5; // 5 stat points per level!
+        statPoints += 5; // Exactly 5 more stat points to allocate per level as requested
         max = newLevel * 105 + 80;
-        
-        // play level up sound
+        leveledUp = true;
+      }
+      finalNewLevel = newLevel;
+
+      if (leveledUp) {
         setTimeout(() => {
           playLevelUpSound();
-        }, 100);
+          setLevelUpOverlay({
+            prevLevel: oldLevel,
+            newLevel: finalNewLevel,
+            statPointsEarned: (finalNewLevel - oldLevel) * 5
+          });
+        }, 120);
       }
 
       return {
@@ -273,16 +305,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
   };
 
-  const claimQuestReward = (quest: Quest) => {
-    if (!quest.completed) return;
+  const claimQuestReward = (quest: any) => {
+    if (!quest.completed || quest.claimed) return;
     playLootSound();
     
     // Add reward
     addExp(quest.rewardExp);
     setGameState(prev => {
-      const list = prev.quests.map(q => {
+      const list = prev.quests.map((q: any) => {
         if (q.id === quest.id) {
-          return { ...q, current: 0, completed: false }; // reset for next day
+          return { ...q, claimed: true }; 
         }
         return q;
       });
@@ -290,6 +322,41 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         ...prev,
         gold: prev.gold + quest.rewardGold,
         quests: list
+      };
+    });
+  };
+
+  // Main Daily System Allocation Bounty (500 CG and 200 XP)
+  const claimDailyAllocation = () => {
+    const allCompleted = gameState.quests.every((q: any) => q.current >= q.target);
+    if (!allCompleted || isDailyAllocationClaimed) return;
+
+    playLootSound();
+    setIsDailyAllocationClaimed(true);
+    localStorage.setItem(`monarch_daily_claim_${playerName}`, new Date().toDateString());
+
+    addExp(200);
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + 500
+    }));
+  };
+
+  // Force system reset for next daily challenge sequence
+  const resetDailyMatrix = () => {
+    playSelectSound();
+    setIsDailyAllocationClaimed(false);
+    localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+    setGameState(prev => {
+      const refreshedQuests = prev.quests.map((q: any) => ({
+        ...q,
+        current: 0,
+        completed: false,
+        claimed: false
+      }));
+      return {
+        ...prev,
+        quests: refreshedQuests
       };
     });
   };
@@ -328,6 +395,93 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         ...prev,
         gold: prev.gold - skill.cost,
         skills: updatedS
+      };
+    });
+  };
+
+  // System weapon store parameters with costs and level gateways
+  const WEAPON_SHOP_DETAILS: Record<string, { cost: number, levelReq: number }> = {
+    rusty_dagger: { cost: 0, levelReq: 1 },
+    kasaka_fang: { cost: 1500, levelReq: 10 },
+    igris_sword: { cost: 4800, levelReq: 25 },
+    demon_dagger: { cost: 12000, levelReq: 50 },
+    kamish_fang: { cost: 35000, levelReq: 75 },
+    sovereigns_wrath: { cost: 80000, levelReq: 90 },
+  };
+
+  // High quality vector contour neon renderings for weapon previews
+  const renderNeonWeaponPreview = (itemId: string, animate = false) => {
+    let paths = "";
+    let glowColor = "rgb(34, 211, 238)"; // cyan neon
+    
+    switch (itemId) {
+      case "rusty_dagger":
+        // Jagged primitive outline glowing warm yellow
+        paths = "M 15,65 L 40,40 L 45,35 L 43,28 L 52,18 L 58,24 L 48,34 L 68,14 L 72,18 L 52,38 L 56,44 L 46,48 Z";
+        glowColor = "rgb(234, 179, 8)";
+        break;
+      case "kasaka_fang":
+        // Curved sleek venom fangs glowing cyan
+        paths = "M 15,65 L 26,54 M 26,54 S 32,41 36,28 S 54,11 76,5 C 66,25 46,44 38,48 C 30,51 26,54 26,54";
+        glowColor = "rgb(6, 182, 212)";
+        break;
+      case "igris_sword":
+        // Straight double-sided royal steel glowing deep crimson
+        paths = "M 15,65 L 28,52 M 22,48 L 32,58 M 28,52 L 72,8";
+        glowColor = "rgb(244, 63, 94)";
+        break;
+      case "demon_dagger":
+        // Brutalist spiked dual daggers glowing electric violet
+        paths = "M 12,68 L 24,56 M 24,56 L 34,58 L 48,36 L 45,28 L 68,10 C 58,20 44,30 36,33 L 34,45 Z";
+        glowColor = "rgb(99, 102, 241)";
+        break;
+      case "kamish_fang":
+        // Spiked bone fragment curved dragon weapon glowing fuchsia
+        paths = "M 12,68 L 24,56 M 24,56 C 29,51 28,36 36,24 C 44,12 70,4 76,2 C 66,14 54,24 44,31 C 34,38 24,56 24,56";
+        glowColor = "rgb(168, 85, 247)";
+        break;
+      case "sovereigns_wrath":
+        // Ethereal Monarch dual celestial sabers radiating pink astral aura
+        paths = "M 5,65 L 18,52 L 50,20 L 55,25 L 22,58 Z M 25,75 L 38,62 L 70,30 L 75,35 L 42,68 Z";
+        glowColor = "rgb(236, 72, 153)";
+        break;
+      default:
+        paths = "M 15,65 L 65,15";
+    }
+
+    return (
+      <svg 
+        viewBox="0 0 80 80" 
+        className={`w-16 h-16 pointer-events-none mx-auto opacity-90 transition-all duration-300 ${animate ? "animate-pulse" : ""}`}
+      >
+        <g stroke={glowColor} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0px 0px 5px " + glowColor + ")" }}>
+          <path d={paths} />
+        </g>
+      </svg>
+    );
+  };
+
+  // Weapon buy function
+  const buyWeapon = (itemId: string) => {
+    const shopMeta = WEAPON_SHOP_DETAILS[itemId];
+    if (!shopMeta) return;
+
+    if (gameState.level < shopMeta.levelReq || gameState.gold < shopMeta.cost) {
+      return; 
+    }
+
+    const template = WEAPONS_DATABASE.find(w => w.id === itemId);
+    if (!template) return;
+
+    playSelectSound();
+    setGameState(prev => {
+      if (prev.inventory.some(i => i.id === itemId)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        gold: prev.gold - shopMeta.cost,
+        inventory: [...prev.inventory, { ...template, equipped: false }]
       };
     });
   };
@@ -374,7 +528,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const startCombat = (dungeon: any) => {
     playSelectSound();
     if (gameState.level < dungeon.minLevel) {
-      alert(`Access Restricted. Level ${dungeon.minLevel} required for this gate.`);
+      triggerSystemToast(`⚠️ SYSTEM RESTRICTION: Level ${dungeon.minLevel} required for this dimensional gate.`);
       return;
     }
 
@@ -552,7 +706,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         inventory: [...prev.inventory, wrath]
       };
     });
-    alert("🌌 Cosmic resonance detected! Sovereign's Wrath dual ethereal blades placed in secure inventory slot.");
+    triggerSystemToast("🌌 COSMIC RESONANCE DETECTED! Ethereal twin-blades 'Sovereign's Wrath' integrated into Backpack Arsenal!");
   };
 
   return (
@@ -585,11 +739,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           </div>
 
           <button 
-            id="btn_logout"
-            className="p-2.5 bg-slate-900 hover:bg-red-950 hover:text-red-400 rounded-xl text-slate-400 cursor-pointer transition-colors border border-slate-800"
-            onClick={onLogout}
+            id="btn_profile_trigger"
+            className="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 rounded-xl cursor-pointer transition-colors border border-slate-800 flex items-center gap-1.5 font-mono text-xs font-bold"
+            onClick={() => setShowProfileDrawer(true)}
           >
-            <LogOut className="w-4 h-4" />
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">PROFILE</span>
           </button>
         </div>
       </header>
@@ -614,59 +769,135 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </span>
             </div>
 
-            {/* Simulated abstract visual representation wrapper */}
-            {/* Visual mutations based on level */}
+            {/* Animated High Impact Fire Evolution Flame */}
             <div className="my-8 flex justify-center relative">
-              
-              <div className={`w-40 h-40 rounded-full border flex items-center justify-center relative overflow-hidden transition-all duration-700 ${currentTier.graphics}`}>
+              <div className={`w-40 h-40 rounded-full border border-slate-900/60 flex items-center justify-center relative overflow-visible transition-all duration-700 bg-slate-950/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]`}>
                 
-                {gameState.level <= 14 && (
-                  <div className="text-center">
-                    <Skull className="w-16 h-16 text-slate-600 animate-bounce" />
-                    <span className="text-[8px] font-mono text-slate-500 tracking-widest block uppercase mt-2">Bandaged</span>
-                  </div>
-                )}
+                {/* Embedded animated flame elements */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {/* Rotating portal circles behind */}
+                  <div className="absolute inset-0 rounded-full border border-dashed border-cyan-500/10 animate-spin" style={{ animationDuration: "35s" }} />
+                  <div className="absolute inset-2 rounded-full border border-dotted border-purple-500/10 animate-spin" style={{ animationDuration: "12s" }} />
 
-                {gameState.level >= 15 && gameState.level <= 29 && (
-                  <div className="text-center relative">
-                    <Activity className="w-16 h-16 text-blue-400 animate-pulse" />
-                    <div className="absolute top-4 left-5 w-3 h-3 bg-cyan-400 rounded-full filter blur animate-ping" />
-                    <span className="text-[8px] font-mono text-cyan-400 tracking-widest block uppercase mt-2 font-bold">Awakened Glow</span>
-                  </div>
-                )}
+                  {/* Flame columns */}
+                  <div className="absolute bottom-4 flex items-end justify-center w-32 h-32 gap-1 overflow-visible">
+                    {/* Flame Core Left */}
+                    <motion.div 
+                      animate={{ 
+                        scaleY: [1, 1.25, 0.9, 1.15, 1],
+                        skewX: [-4, 6, -5, 4, -4],
+                        y: [0, -3, 1, -2, 0]
+                      }}
+                      transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                      className={`w-6 h-20 bg-gradient-to-t ${
+                        gameState.level <= 14 ? "from-yellow-500 via-amber-500 to-red-600" :
+                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
+                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
+                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
+                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
+                        "from-purple-600 via-fuchsia-600 to-cyan-500"
+                      } rounded-t-full rounded-b-lg opacity-80 blur-[0.6px] origin-bottom`}
+                    />
+                    
+                    {/* Flame Core Mid */}
+                    <motion.div 
+                      animate={{ 
+                        scaleY: [1.1, 1.45, 1.15, 1.35, 1.1],
+                        skewX: [2, -5, 3, -2, 2],
+                        y: [0, -5, 2, -3, 0]
+                      }}
+                      transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+                      className={`w-10 h-26 bg-gradient-to-t ${
+                        gameState.level <= 14 ? "from-yellow-400 via-amber-500 to-red-600" :
+                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
+                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
+                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
+                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
+                        "from-purple-600 via-fuchsia-600 to-cyan-500"
+                      } rounded-t-full rounded-b-xl shadow-lg origin-bottom blur-[0.4px]`}
+                      style={{ 
+                        boxShadow: `0 0 25px ${
+                          gameState.level <= 14 ? "rgba(245, 158, 11, 0.6)" :
+                          gameState.level <= 29 ? "rgba(249, 115, 22, 0.7)" :
+                          gameState.level <= 47 ? "rgba(6, 182, 212, 0.75)" :
+                          gameState.level <= 69 ? "rgba(99, 102, 241, 0.8)" :
+                          gameState.level <= 89 ? "rgba(139, 92, 246, 0.85)" :
+                          "rgba(168, 85, 247, 0.95)"
+                        }` 
+                      }}
+                    />
 
-                {gameState.level >= 30 && gameState.level <= 47 && (
-                  <div className="text-center relative">
-                    {/* Energy rings and wings representation */}
-                    <div className="absolute inset-0 border border-dotted border-cyan-400 animate-spin rounded-full opacity-30" />
-                    <Sparkles className="w-16 h-16 text-cyan-300" />
-                    <span className="text-[8px] font-mono text-cyan-300 tracking-widest block uppercase mt-2 font-extrabold">Wings Active</span>
+                    {/* Flame Core Right */}
+                    <motion.div 
+                      animate={{ 
+                        scaleY: [0.95, 1.2, 0.85, 1.1, 0.95],
+                        skewX: [5, -4, 4, -3, 5],
+                        y: [0, -2, 1, -1, 0]
+                      }}
+                      transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                      className={`w-6 h-18 bg-gradient-to-t ${
+                        gameState.level <= 14 ? "from-yellow-500 via-amber-500 to-red-600" :
+                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
+                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
+                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
+                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
+                        "from-purple-600 via-fuchsia-600 to-cyan-500"
+                      } rounded-t-full rounded-b-lg opacity-80 blur-[0.6px] origin-bottom`}
+                    />
                   </div>
-                )}
 
-                {gameState.level >= 48 && gameState.level <= 69 && (
-                  <div className="text-center relative">
-                    <div className="absolute inset-2 border-2 border-dashed border-indigo-400 animate-pulse rounded-full opacity-30" />
-                    <Zap className="w-16 h-16 text-indigo-400 animate-bounce" />
-                    <span className="text-[8px] font-mono text-indigo-400 tracking-widest block uppercase mt-2 font-bold">Electric Overlord</span>
-                  </div>
-                )}
+                  {/* Floating ember particles */}
+                  {[...Array(6)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ y: 20, x: (i - 2.5) * 12, opacity: 0, scale: 0.6 }}
+                      animate={{ 
+                        y: [-10, -60], 
+                        x: [ (i - 2.5) * 12, (i - 2.5) * 12 + (Math.random() * 20 - 10) ],
+                        opacity: [0, 0.75, 0],
+                        scale: [0.3, 0.8, 0.3]
+                      }}
+                      transition={{ 
+                        repeat: Infinity, 
+                        duration: 1.3 + Math.random() * 0.8,
+                        delay: i * 0.25,
+                        ease: "easeOut"
+                      }}
+                      className={`absolute w-1.5 h-1.5 rounded-full bg-gradient-to-t ${
+                        gameState.level <= 14 ? "from-yellow-400 to-amber-500" :
+                        gameState.level <= 29 ? "from-orange-400 to-amber-500" :
+                        gameState.level <= 47 ? "from-cyan-400 to-blue-500" :
+                        gameState.level <= 69 ? "from-blue-400 to-indigo-500" :
+                        gameState.level <= 89 ? "from-indigo-400 to-violet-500" :
+                        "from-purple-400 to-fuchsia-500"
+                      } blur-[0.4px]`}
+                    />
+                  ))}
 
-                {gameState.level >= 70 && gameState.level <= 89 && (
-                  <div className="text-center relative">
-                    <div className="absolute -inset-1 border border-cyan-400 animate-ping rounded-full opacity-20" />
-                    <Flame className="w-16 h-16 text-cyan-400 animate-spin" style={{ animationDuration: "12s" }} />
-                    <span className="text-[8px] font-mono text-cyan-400 tracking-widest block uppercase mt-2 font-extrabold">Aura Mesh</span>
+                  {/* Central Rank Badge Emblem */}
+                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/85 p-2 px-3 rounded-xl border border-slate-900/80 backdrop-blur shadow-xl">
+                    <Crown className="w-4 h-4 text-yellow-400 mb-0.5 animate-pulse" />
+                    <span 
+                      className={`text-[8px] font-black tracking-widest uppercase bg-gradient-to-r bg-clip-text text-transparent ${
+                        gameState.level <= 14 ? "from-yellow-400 to-amber-500" :
+                        gameState.level <= 29 ? "from-orange-400 to-orange-600" :
+                        gameState.level <= 47 ? "from-cyan-400 to-blue-600" :
+                        gameState.level <= 69 ? "from-blue-400 to-indigo-600" :
+                        gameState.level <= 89 ? "from-indigo-400 to-violet-600" :
+                        "from-purple-400 via-fuchsia-500 to-cyan-500"
+                      }`}
+                    >
+                      {
+                        gameState.level <= 14 ? "YELLOW FLAME" :
+                        gameState.level <= 29 ? "ORANGE FLAME" :
+                        gameState.level <= 47 ? "ICE BLUE FLAME" :
+                        gameState.level <= 69 ? "INDIGO FLAME" :
+                        gameState.level <= 89 ? "VIOLET FLAME" :
+                        "SOVEREIGN FLAME"
+                      }
+                    </span>
                   </div>
-                )}
-
-                {gameState.level >= 90 && (
-                  <div className="text-center relative">
-                    <div className="absolute -inset-2 bg-purple-500/10 rounded-full blur animate-pulse" />
-                    <Crown className="w-16 h-16 text-yellow-400 animate-bounce" />
-                    <span className="text-[8px] font-mono text-yellow-400 tracking-widest block uppercase mt-2 font-black">Monarch Sovereign</span>
-                  </div>
-                )}
+                </div>
 
               </div>
 
@@ -950,6 +1181,51 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
                     );
                   })}
+                </div>
+
+                {/* DAILY SOVEREIGN ALLOCATION & COMPLIANCE HUD PANEL */}
+                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl relative overflow-hidden flex flex-wrap justify-between items-center gap-4 font-mono">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(234,179,8,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-yellow-500 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
+                    <h4 className="text-sm font-bold text-slate-100 uppercase">SOVEREIGN ALLOCATION BOUNTY</h4>
+                    <p className="text-[10px] text-slate-400 max-w-sm font-sans leading-relaxed">
+                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 500 gold and 200 character experience points.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Reset Daily Quests Matrix button */}
+                    <button 
+                      className="px-4 py-3 bg-slate-900 border border-slate-800 text-slate-350 font-bold uppercase text-[10px] tracking-wider rounded-xl hover:border-slate-750 hover:text-white cursor-pointer transition-all duration-300"
+                      onClick={resetDailyMatrix}
+                    >
+                      Reset Daily Grinds
+                    </button>
+
+                    {isDailyAllocationClaimed ? (
+                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[10px] uppercase py-3 px-5 rounded-xl block tracking-widest text-center">
+                        ✓ ALLOCATION COLLECTED
+                      </span>
+                    ) : (
+                      <>
+                        {gameState.quests.every((q: any) => q.current >= q.target) ? (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] uppercase py-3 px-6 rounded-xl cursor-pointer shadow-[0_0_20px_rgba(234,179,8,0.2)] tracking-widest block text-center"
+                            onClick={claimDailyAllocation}
+                          >
+                            CLAIM GOLD ALLOCATION (+500 CG)
+                          </motion.button>
+                        ) : (
+                          <span className="bg-slate-900 border border-slate-800 text-slate-550 font-extrabold text-[10px] uppercase py-3 px-5 rounded-xl block tracking-widest text-center">
+                            LOCK: SYSTEM GRINDS PENDING
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
 
               </motion.div>
@@ -1281,55 +1557,128 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "backpack" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Secure spatial luggage</span>
-                  <h3 className="font-extrabold text-lg">SHADOW INV-STORAGE (BACKPACK)</h3>
+                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <span className="text-[10px] font-mono text-cyan-400 uppercase block tracking-wider font-extrabold mb-1">Secure spatial luggage</span>
+                  <h3 className="font-extrabold text-lg">SHADOW ARSENAL & SHOP</h3>
                   <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
-                    View weapon armaments collected inside dungeon chests. Equipping a primary weapon updates dynamic base attack calculations instantly.
+                    Purchase and unlock legendary armaments released via spatial leveling. Clicking on any armament displays its blue neon-bordered abilities detail sheet.
                   </p>
                 </div>
 
-                <div id="backpack_items_list" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {gameState.inventory.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className={`bg-slate-950 border p-5 rounded-2xl flex flex-col justify-between font-mono text-xs ${
-                        item.equipped ? "border-cyan-400" : "border-slate-900"
-                      }`}
-                    >
-                      <div>
-                        <div className="flex justify-between items-center text-[10px] mb-2 font-bold uppercase text-slate-500">
-                          <span>{item.type} Armament</span>
-                          <span className="text-indigo-400 font-black">Rarity: {item.rarity}</span>
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-200 mt-1">{item.name}</h4>
-                        <p className="text-[10px] text-slate-500 leading-relaxed mt-2">{item.description}</p>
-                        
-                        {item.statBonus && (
-                          <div className="text-[10px] text-cyan-400 font-bold mt-3 space-x-2">
-                            {item.statBonus.strength && <span>+{item.statBonus.strength} STR</span>}
-                            {item.statBonus.agility && <span>+{item.statBonus.agility} AGI</span>}
-                            {item.statBonus.vitality && <span>+{item.statBonus.vitality} VIT</span>}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-5 flex justify-end pt-3 border-t border-slate-900">
-                        {item.equipped ? (
-                          <span className="text-cyan-300 uppercase font-black tracking-widest text-[10px] py-1.5 px-3 bg-cyan-500/10 border border-cyan-400/20 rounded-lg">
-                            EQUIPPED ARMAMENT
-                          </span>
-                        ) : (
-                          <button
-                            className="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-300 font-bold uppercase text-[10px] tracking-wider rounded-xl hover:border-cyan-400 cursor-pointer"
-                            onClick={() => equipWeapon(item.id)}
-                          >
-                            Equip Gear
-                          </button>
-                        )}
-                      </div>
+                {/* Subsections: Owned Arsenal vs System Store */}
+                <div className="space-y-8">
+                  
+                  {/* PART 1: OWNED ARSENAL */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-900 pb-2">
+                      <Sword className="w-4 h-4 text-cyan-400" />
+                      <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">ACTIVE ARSENAL ({gameState.inventory.length})</h4>
                     </div>
-                  ))}
+
+                    <div id="backpack_items_list" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {gameState.inventory.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="group relative bg-slate-950 border border-slate-900 p-5 rounded-2xl flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300"
+                          onClick={() => setSelectedWeaponDetails(item)}
+                        >
+                          {/* Inner soft glow if equipped */}
+                          {item.equipped && (
+                            <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
+                          )}
+                          
+                          <div className="flex-1 space-y-2 pr-4">
+                            <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-500">
+                              <span>Rank: {item.rarity}</span>
+                              {item.equipped && <span className="text-cyan-400">EQUIPPED</span>}
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">{item.name}</h4>
+                            <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-1">{item.description}</p>
+                            
+                            {item.statBonus && (
+                              <div className="text-[9px] text-cyan-400 font-bold space-x-2">
+                                {item.statBonus.strength && <span>+{item.statBonus.strength} STR</span>}
+                                {item.statBonus.agility && <span>+{item.statBonus.agility} AGI</span>}
+                                {item.statBonus.vitality && <span>+{item.statBonus.vitality} VIT</span>}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Neon Blue Weapon Preview */}
+                          <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
+                            {renderNeonWeaponPreview(item.id, item.equipped)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* PART 2: SYSTEM SHOP */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-900 pb-2">
+                      <ShoppingBag className="w-4 h-4 text-yellow-400" />
+                      <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">SYSTEM WEAPONS REGISTRY (Level Releases)</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {WEAPONS_DATABASE.map((weaponTemplate) => {
+                        const isOwned = gameState.inventory.some(i => i.id === weaponTemplate.id);
+                        const shopMeta = WEAPON_SHOP_DETAILS[weaponTemplate.id] || { cost: 0, levelReq: 1 };
+                        const isUnlocked = gameState.level >= shopMeta.levelReq;
+
+                        return (
+                          <div 
+                            key={weaponTemplate.id} 
+                            className={`relative bg-slate-950 border p-5 rounded-2xl flex items-center justify-between font-mono text-xs transition-all duration-300 ${
+                              isOwned ? "border-slate-900 opacity-65" : 
+                              !isUnlocked ? "border-slate-950/40 opacity-40 bg-slate-900/10" : 
+                              "border-slate-800 hover:border-yellow-500/50 cursor-pointer"
+                            }`}
+                            onClick={() => {
+                              if (!isOwned && isUnlocked) {
+                                setSelectedWeaponDetails({ ...weaponTemplate, isShopTemplate: true, cost: shopMeta.cost, levelReq: shopMeta.levelReq });
+                              } else if (isOwned) {
+                                const ownedW = gameState.inventory.find(i => i.id === weaponTemplate.id);
+                                if (ownedW) setSelectedWeaponDetails(ownedW);
+                              }
+                            }}
+                          >
+                            <div className="flex-1 space-y-2 pr-4">
+                              <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-500">
+                                <span>{weaponTemplate.rarity} Rarity</span>
+                                <span className={isOwned ? "text-slate-500" : isUnlocked ? "text-yellow-400" : "text-red-500"}>
+                                  {isOwned ? "ACQUIRED" : isUnlocked ? "AVAILABLE" : `UNLOCKS AT LV ${shopMeta.levelReq}`}
+                                </span>
+                              </div>
+                              <h4 className="text-sm font-bold text-slate-200">{weaponTemplate.name}</h4>
+                              
+                              <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-1">{weaponTemplate.description}</p>
+                              
+                              {!isOwned && (
+                                <div className="text-yellow-400 text-xs font-bold mt-1">
+                                  Price: {shopMeta.cost} CG
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Neon Outline Silhouette preview */}
+                            <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80">
+                              {renderNeonWeaponPreview(weaponTemplate.id, false)}
+                            </div>
+
+                            {/* Lock Icon Overlay if Locked */}
+                            {!isUnlocked && !isOwned && (
+                              <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center pointer-events-none">
+                                <Lock className="w-5 h-5 text-slate-600" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
 
               </motion.div>
@@ -1340,6 +1689,377 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
 
       </div>
+
+      {/* WEAPON DETAIL BLUE NEON GLOWING POPUP MODAL */}
+      <AnimatePresence>
+        {selectedWeaponDetails && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setSelectedWeaponDetails(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 15 }}
+              className="w-full max-w-md bg-slate-950 border-2 border-cyan-400 p-6 rounded-3xl relative overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.45)] text-left font-mono cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cyber Matrix decorative grid inside modal */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(18,24,38,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(18,24,38,0.15)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex justify-between items-start mb-6 border-b border-slate-900 pb-3 relative z-10">
+                <div>
+                  <span className="text-[10px] text-cyan-400 tracking-widest font-black uppercase">SYSTEM ANALYSIS</span>
+                  <h3 className="text-lg font-black text-white uppercase tracking-wider">{selectedWeaponDetails.name}</h3>
+                </div>
+                <button 
+                  className="p-1 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs"
+                  onClick={() => setSelectedWeaponDetails(null)}
+                >
+                  CLOSE [X]
+                </button>
+              </div>
+
+              {/* Big Neon Blue Silhouette Preview */}
+              <div className="my-6 py-8 bg-slate-900/40 border border-slate-900/80 rounded-2xl flex items-center justify-center relative shadow-[inset_0_0_20px_rgba(0,0,0,0.6)]">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-24 h-24 bg-cyan-500/5 rounded-full filter blur-xl animate-pulse" />
+                </div>
+                {renderNeonWeaponPreview(selectedWeaponDetails.id, true)}
+              </div>
+
+              <div className="space-y-4 text-xs leading-relaxed relative z-10 uppercase">
+                <div>
+                  <span className="text-slate-500 text-[10px] block">CLASSIFICATION RANK</span>
+                  <span className="text-white font-extrabold">{selectedWeaponDetails.rarity} armament</span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500 text-[10px] block font-bold">CORE DESCRIPTION</span>
+                  <p className="text-slate-350 normal-case leading-relaxed select-text mt-1 text-[11px]">
+                    {selectedWeaponDetails.description}
+                  </p>
+                </div>
+
+                {/* Weapon abilities */}
+                <div>
+                  <span className="text-slate-500 text-[10px] block mb-1">PERFORMANCE ABILITY SKILLS</span>
+                  <div className="bg-slate-900/60 border border-slate-900 px-3 py-2.5 rounded-xl space-y-1.5 font-sans lowercase text-slate-400 text-[11px]">
+                    {selectedWeaponDetails.id === "rusty_dagger" && (
+                      <p><span className="text-yellow-400 font-bold font-mono uppercase">[Rusty edge]</span> Increases physical base hit by 5 points. Deals rugged laceration damage to goblin scouts.</p>
+                    )}
+                    {selectedWeaponDetails.id === "kasaka_fang" && (
+                      <p><span className="text-cyan-400 font-bold font-mono uppercase">[Paralysis Venom]</span> 20% hit chance to paralyze enemy scouts. Afflicts intense venom poison tick drains.</p>
+                    )}
+                    {selectedWeaponDetails.id === "igris_sword" && (
+                      <p><span className="text-rose-400 font-bold font-mono uppercase">[Commander Pierce]</span> Overrides 25% of opponent vital defense parameters. Radiates majestic crimson shockwave arcs.</p>
+                    )}
+                    {selectedWeaponDetails.id === "demon_dagger" && (
+                      <p><span className="text-indigo-400 font-bold font-mono uppercase">[Black Inferno]</span> Ignites black hellfire trails doing substantial double scaling shadow burn damage.</p>
+                    )}
+                    {selectedWeaponDetails.id === "kamish_fang" && (
+                      <p><span className="text-purple-400 font-bold font-mono uppercase">[Dragon Scale Wrath]</span> Infuses structural +40% physical critical accuracy rate parameters upon physical trigger.</p>
+                    )}
+                    {selectedWeaponDetails.id === "sovereigns_wrath" && (
+                      <p><span className="text-pink-400 font-bold font-mono uppercase">[Twin Sovereign Abyss]</span> Pierces local space-time fabric to materialize void marks which detonate for supreme cosmic force damage.</p>
+                    )}
+                  </div>
+                </div>
+
+                {selectedWeaponDetails.statBonus && (
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">STAT POINT ATTRIBUTES INTEGRATION</span>
+                    <div className="flex gap-3 text-cyan-400 font-bold text-xs mt-1">
+                      {selectedWeaponDetails.statBonus.strength && <span>STR +{selectedWeaponDetails.statBonus.strength}</span>}
+                      {selectedWeaponDetails.statBonus.agility && <span>AGI +{selectedWeaponDetails.statBonus.agility}</span>}
+                      {selectedWeaponDetails.statBonus.vitality && <span>VIT +{selectedWeaponDetails.statBonus.vitality}</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Action buttons */}
+              <div className="mt-6 pt-4 border-t border-slate-900 flex justify-end gap-3 z-10 relative">
+                {selectedWeaponDetails.isShopTemplate ? (
+                  <button 
+                    className="w-full py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300"
+                    onClick={() => {
+                      buyWeapon(selectedWeaponDetails.id);
+                      setSelectedWeaponDetails(null);
+                    }}
+                  >
+                    INTEGRATE WEAPON (-{selectedWeaponDetails.cost} CG)
+                  </button>
+                ) : (
+                  <>
+                    {selectedWeaponDetails.equipped ? (
+                      <div className="w-full text-center text-cyan-400 font-bold text-xs py-2.5 border border-cyan-500/20 bg-cyan-500/5 rounded-xl uppercase">
+                        ACTIVE PRIMARY EQUIPMENT IN SLOT
+                      </div>
+                    ) : (
+                      <button 
+                        className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-cyan-400 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer border border-cyan-500/30 transition-all duration-300 text-center uppercase"
+                        onClick={() => {
+                          equipWeapon(selectedWeaponDetails.id);
+                          setSelectedWeaponDetails(null);
+                        }}
+                      >
+                        EQUIP ARSENAL UNIT
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* CINEMATIC LEVEL UP HERO OVERLAY PANEL */}
+      <AnimatePresence>
+        {levelUpOverlay && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center p-4 overflow-hidden"
+            onClick={() => setLevelUpOverlay(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/20 via-slate-950 to-slate-950 pointer-events-none" />
+            
+            {/* Massive back portal glowing aura rings */}
+            <div className="absolute w-[600px] h-[600px] border border-dashed border-cyan-500/10 rounded-full animate-spin pointer-events-none" style={{ animationDuration: "50s" }} />
+            <div className="absolute w-[450px] h-[450px] border border-dotted border-purple-500/15 rounded-full animate-spin pointer-events-none" style={{ animationDuration: "25s" }} />
+
+            {/* Floating ascending energy particles */}
+            {[...Array(15)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ y: 200, x: Math.random() * 320 - 160, opacity: 0, scale: 0.5 }}
+                animate={{ y: -300, opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2.2 + Math.random() * 1.5, delay: i * 0.1 }}
+                className="absolute w-2.5 h-2.5 rounded-full bg-gradient-to-t from-cyan-400 to-indigo-500 filter blur-[1px]"
+              />
+            ))}
+
+            <motion.div 
+              initial={{ scale: 0.8, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: 50, opacity: 0 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="text-center space-y-6 max-w-sm w-full font-mono relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Systems Prompt headers */}
+              <div className="space-y-1.5 uppercase font-extrabold text-[10px] tracking-widest text-slate-500">
+                <span>SYSTEM NOTIFICATION GRANTED</span>
+                <div className="h-[2px] w-12 bg-cyan-500 mx-auto" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500 tracking-tight animate-pulse uppercase">
+                  LEVEL UP!
+                  {/* Play Level Up Audio automatically in background */}
+                  {(() => { playLevelUpSound(); return null; })()}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  The Monarchy core regulator has unlocked structural stat allocations.
+                </p>
+              </div>
+
+              <div className="p-6 bg-slate-900/60 border border-slate-900 rounded-3xl space-y-4 uppercase text-xs">
+                <div className="flex justify-between items-center text-slate-400 font-bold">
+                  <span>WARRIOR LEVEL</span>
+                  <span className="text-white font-black text-base">
+                    {levelUpOverlay.prevLevel} &rarr; <span className="text-cyan-400">{levelUpOverlay.newLevel}</span>
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-slate-400 font-bold pt-3 border-t border-slate-950/80">
+                  <span>STAT POINTS GRANTED</span>
+                  <span className="text-emerald-400 font-black text-base">
+                    +{levelUpOverlay.statPointsEarned} POINTS
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-xs text-indigo-300 leading-relaxed max-w-xs mx-auto animate-pulse font-sans">
+                "Your shadow potential has aligned to higher spatial realms. Base strength capability upgraded."
+              </div>
+
+              <button 
+                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer transition-all duration-300 uppercase block tracking-widest"
+                onClick={() => setLevelUpOverlay(null)}
+              >
+                Confirm Evolution [Accept]
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* INTERACTIVE ROBUST PROFILE DRAWER / SIDE SHEET (MOBILE COGNITIVE DRAWER) */}
+      <AnimatePresence>
+        {showProfileDrawer && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-end cursor-pointer"
+            onClick={() => setShowProfileDrawer(false)}
+          >
+            <motion.div 
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
+              className="w-full max-w-sm bg-slate-950 border-l border-slate-900 h-full flex flex-col justify-between overflow-y-auto z-50 p-6 relative cursor-default text-left font-mono"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header panel inside Drawer */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-center border-b border-indigo-950/40 pb-4">
+                  <div className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-cyan-400" />
+                    <h3 className="font-extrabold text-xs uppercase tracking-widest text-slate-200">WARRIOR REGISTRY</h3>
+                  </div>
+                  <button 
+                    className="p-1 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs lowercase"
+                    onClick={() => setShowProfileDrawer(false)}
+                  >
+                    CLOSE [X]
+                  </button>
+                </div>
+
+                {/* Profile Identification Grid */}
+                <div className="p-4 bg-slate-900/40 rounded-2xl border border-slate-900 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                    {playerName.substring(0,2).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase block">Monarch Identity</span>
+                    <h4 className="text-sm font-bold text-slate-100">{playerName}</h4>
+                    <span className="text-[9px] text-cyan-400 uppercase font-bold tracking-wider">Level {gameState.level} &middot; {gameState.rank}</span>
+                  </div>
+                </div>
+
+                {/* SETTINGS OPTIONS PORTFOLIO LIST */}
+                <div className="space-y-5 text-left text-xs">
+                  
+                  {/* OPTION 1: Player Name Updating */}
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">1. Player Name registry</label>
+                    <input 
+                      type="text"
+                      value={playerName}
+                      disabled
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-400 font-bold select-none cursor-default text-xs"
+                    />
+                    <span className="text-[9px] text-slate-600 block lowercase leading-relaxed">Identity locks are established during regional awakening selection.</span>
+                  </div>
+
+                  {/* OPTION 2: System SFX Controller Toggle (Suggested Feature 1) */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">2. System Synthesizer Volume</span>
+                    <div className="flex justify-between items-center bg-slate-900/60 p-2.5 px-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-300">Auditory sound FX core</span>
+                      <span className="text-cyan-400 font-bold uppercase text-[9px] tracking-widest bg-cyan-500/10 border border-cyan-400/20 px-2 py-0.5 rounded-full animate-pulse">
+                        Active [100%]
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* OPTION 3: Difficulty / Hardcore Regime (Suggested Feature 2) */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">3. Regimen Difficulty standard</span>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button className="py-2 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+                        RECRUIT COMPLIANCE
+                      </button>
+                      <button 
+                        className="py-2 px-1 border border-slate-800 text-slate-500 rounded-xl text-[9px] font-bold uppercase hover:border-slate-700 hover:text-slate-300 transition-all duration-300 cursor-pointer"
+                        onClick={() => triggerSystemToast("SYSTEM NOTIFICATION: S-Rank Grind forces intense Penalty sequences upon daily quest neglect!")}
+                      >
+                        S-RANK GRIND
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* OPTION 4: Notification Settings Toggle */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">4. System Sound Signals</span>
+                    <div className="flex justify-between items-center bg-slate-900/60 p-2 px-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-300">Daily Quest Reminders</span>
+                      <div className="w-10 h-6 bg-cyan-500 rounded-full p-1 cursor-pointer flex justify-end">
+                        <div className="w-4 h-4 bg-slate-950 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* OPTION 5: Reset account data safeguards (Suggested Feature 3) */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">5. Erase registry save data</span>
+                    <button 
+                      className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer"
+                      onClick={() => {
+                        if (confirm("⚠️ SYSTEM DATA DESTRUCT DIALOG:\n\nThis will immediately purge player level, stats allocation index, acquired shadow soldiers, and system weapons. Confirm player rollback restart?")) {
+                          localStorage.removeItem(`monarch_save_${playerName}`);
+                          localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      Purge Active Registry Save
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* OPTION 6: Real Sign Out Action Button */}
+              <div className="border-t border-slate-900 pt-6">
+                <button 
+                  className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setShowProfileDrawer(false);
+                    onLogout();
+                  }}
+                >
+                  <LogOut className="w-4 h-4" />
+                  DISCONNECT SESSION
+                </button>
+                <p className="text-[9px] text-slate-600 text-center font-mono uppercase mt-3">
+                  SYSTEM TELEMETRY GATEWAY - PORT RE-BOUND [3000]
+                </p>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HUD SYSTEM TOAST VIEWER NOTIFICATION PORT */}
+      <AnimatePresence>
+        {systemToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -45, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -45, scale: 0.95 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none"
+          >
+            <div className="bg-slate-950/90 border border-cyan-400 px-4 py-3.5 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.3)] backdrop-blur text-left pointer-events-auto flex items-center gap-3 font-mono">
+              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping shrink-0" />
+              <div className="text-[10px] font-semibold text-slate-200 uppercase leading-relaxed text-slate-300">
+                {systemToast}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className="p-4 border-t border-slate-950 bg-slate-950/80 text-center text-xs font-mono text-slate-600 mt-10">
         <div>&copy; MONARCH SELF-DEVELOPMENT SYSTEM &middot; SECURE SYSTEM EMULATOR v2.4</div>

@@ -200,8 +200,15 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   return (
     <div id="onboarding_container" className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-hidden font-sans select-none">
+      {/* Background artwork with a tiny blur to add textured atmosphere */}
+      <div 
+        className="absolute inset-0 z-0 opacity-25 pointer-events-none mix-blend-screen select-none blur-[2px] transition-all duration-1000 bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/assets/statue.jpg'), url('/statue.jpg'), url('/assets/double_dungeon_bg.jpg'), url('/assets/photo_provided.jpg'), url('https://images.alphacoders.com/134/1346305.jpeg')",
+        }}
+      />
       {/* Absolute Dark Cyber Background Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.03)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_80%)] pointer-events-none" />
       <div className="absolute top-10 left-10 w-96 h-96 bg-purple-900/10 rounded-full filter blur-[120px] pointer-events-none animate-pulse" />
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none" />
 
