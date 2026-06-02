@@ -12,6 +12,58 @@ export const FITNESS_GOALS = [
   { id: "stay_in_shape", label: "Stay in Shape", desc: "Boost vitality, endurance, and heart health" },
 ];
 
+export const SOVEREIGN_ASCENSION_GOALS = [
+  { id: "build_muscle", label: "Physical Conditioning & Bodybuilding", desc: "Gain power, size, muscle density and systemic strength" },
+  { id: "loose_weight", label: "Sovereign Shred & Fat Loss", desc: "Burn calories, slice fat reserves, rise with speed and stamina" },
+  { id: "academics_focus", label: "Academic Excellence & Focus", desc: "Conquer cognitive domains, focus pomodoro timers & exam prep" },
+  { id: "career_focus", label: "Career Ascension & Coding Guild", desc: "Forge projects, build resume score, and lock recruiter offers" },
+  { id: "all_round", label: "All-Round Shadow Monarch Sovereign", desc: "Achieve parity across all physical, mental, and professional gates" },
+];
+
+export const ACADEMIC_DISCIPLINE_LIST = [
+  { id: "comp_sci", label: "Computer Science & Engineering", desc: "Focuses on algorithms, system architectures & software engineering" },
+  { id: "math_physics", label: "Mathematics & Physical Sciences", desc: "Focuses on numerical formulas, structural logic & theoretical limits" },
+  { id: "bio_med", label: "Biological & Medical Sciences", desc: "Focuses on anatomy, physiological grids, biochemistry & cell pathing" },
+  { id: "biz_finance", label: "Business, Finance & Economics", desc: "Focuses on treasury assets, market algorithms & venture capital" },
+  { id: "humanities", label: "Humanities & Social Sciences", desc: "Focuses on historical context, cognitive languages & culture guilds" },
+  { id: "other", label: "Other Technical Discipline", desc: "Focuses on custom syllabus grids & tailored cognitive metrics" }
+];
+
+export const ACADEMIC_SESSIONS_GOALS = [
+  { id: "sessions_2", label: "2 Pomodoro Sessions / Day", desc: "Commit ~50 minutes of deep academic study" },
+  { id: "sessions_4", label: "4 Pomodoro Sessions / Day", desc: "Commit ~100 minutes of standard cognitive grinds" },
+  { id: "sessions_6", label: "6 Pomodoro Sessions / Day", desc: "Commit ~150 minutes of high-intensity scholar CONDITIONING" },
+  { id: "sessions_8", label: "8 Pomodoro Sessions / Day", desc: "Commit ~200 minutes of legendary, S-Rank intellectual focus" }
+];
+
+export const CAREER_TARGET_ROLES = [
+  { id: "software_eng", label: "Software Engineer / Web Generalist", desc: "Deploy frontend/backend portals & maintain modular code layers" },
+  { id: "data_scientist", label: "Data Engineer & AI Alchemist", desc: "Train machine models & aggregate massive system metadata matrices" },
+  { id: "product_manager", label: "Product Specialist / Guild Knight", desc: "Coordinate raid timelines, plan project sprints & manage players" },
+  { id: "designer", label: "Creative Designer / Archer", desc: "Develop high-contrast, responsive visual assets & vector interfaces" },
+  { id: "analyst", label: "Financial Analyst / Treasury Rogue", desc: "Oversee ledger trades, compute micro-risks & optimize resources" }
+];
+
+export const CAREER_PREPARATION_ACTIVITIES = [
+  { id: "leetcode", label: "Leetcode & DSA Duels", desc: "Solve challenges on computer science structures, queues, arrays" },
+  { id: "portfolio", label: "Portfolio & App Commits", desc: "Build functional interfaces, modular styles & deploy services" },
+  { id: "outreach", label: "Resumes & Recruiter Contacts", desc: "Optimize profile score, reach out to recruiters & track job phases" },
+  { id: "reading", label: "Technical and Systems Reading", desc: "Deeply study virtual memory, cache, thread schedules & system papers" }
+];
+
+export const BODYBUILDING_SPLITS = [
+  { id: "push_pull_legs", label: "Push-Pull-Legs Split", desc: "Divide training by functional motion: Push (Chest/Tri), Pull (Back/Bi), Legs" },
+  { id: "bro_split", label: "Classic Bro Split (Chest, Back, Arms/Sh, Legs)", desc: "Blitz one massive muscle fortress per day with heavy sets" },
+  { id: "upper_lower", label: "Upper-Lower Action Splits", desc: "Alternate entire upper body with lower extremities for recovery speed" },
+  { id: "full_body", label: "Full-Body Strength Conditioning", desc: "Combat conditioning addressing every joint & muscle chain each session" }
+];
+
+export const DIET_METABOLIC_GOALS = [
+  { id: "bulk", label: "Aggressive Muscle Bulking (+Calories)", desc: "Feed muscle synthesis with caloric surplus & high amino acid density" },
+  { id: "cut", label: "Sovereign Shred & Fat Slice (-Calories)", desc: "Maintain strength while forcing cardiorespiratory shred in deficit" },
+  { id: "recomp", label: "Metamorphosis Recomp (Maintenance)", desc: "Shed visceral fat slowly while rebuilding myofibrils around maintenance calories" }
+];
+
 export const REFERRAL_SOURCES = [
   { id: "tiktok", label: "TikTok", icon: "Music" },
   { id: "instagram", label: "Instagram", icon: "Instagram" },

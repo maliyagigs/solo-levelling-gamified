@@ -24,6 +24,14 @@ export interface OnboardingData {
   workoutFrequency: number; // 1 to 7
   workoutDays: string[]; // e.g. ["Mon", "Wed", "Fri"]
   workoutReminder: boolean;
+  
+  // New customized profile fields for Academics, Career & Bodybuilding
+  academicSubject?: string;
+  academicSessionsGoal?: number;
+  careerTargetRole?: string;
+  careerPrepActivity?: string;
+  fitnessDietGoal?: string;
+  bodybuildingSplit?: string;
 }
 
 export enum ItemRarity {

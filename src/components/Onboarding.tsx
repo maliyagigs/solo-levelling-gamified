@@ -38,7 +38,14 @@ import {
   FITNESS_MOTIVATIONS, 
   FOCUS_AREAS, 
   ARCHETYPES, 
-  EQUIPMENTS_LIST 
+  EQUIPMENTS_LIST,
+  SOVEREIGN_ASCENSION_GOALS,
+  ACADEMIC_DISCIPLINE_LIST,
+  ACADEMIC_SESSIONS_GOALS,
+  CAREER_TARGET_ROLES,
+  CAREER_PREPARATION_ACTIVITIES,
+  BODYBUILDING_SPLITS,
+  DIET_METABOLIC_GOALS
 } from "../data";
 
 interface OnboardingProps {
@@ -59,6 +66,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [archetype, setArchetype] = useState<string>("");
   const [fitnessLevel, setFitnessLevel] = useState<string>("");
   const [activityLevel, setActivityLevel] = useState<string>("");
+
+  // New features form states
+  const [academicSubject, setAcademicSubject] = useState<string>("comp_sci");
+  const [academicSessionsGoal, setAcademicSessionsGoal] = useState<number>(4);
+  const [careerTargetRole, setCareerTargetRole] = useState<string>("software_eng");
+  const [careerPrepActivity, setCareerPrepActivity] = useState<string>("leetcode");
+  const [bodybuildingSplit, setBodybuildingSplit] = useState<string>("push_pull_legs");
+  const [fitnessDietGoal, setFitnessDietGoal] = useState<string>("recomp");
   
   // Custom scrolling selectors
   const [age, setAge] = useState<number>(18);
@@ -194,6 +209,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       workoutFrequency,
       workoutDays,
       workoutReminder,
+      
+      // New fields
+      academicSubject,
+      academicSessionsGoal,
+      careerTargetRole,
+      careerPrepActivity,
+      fitnessDietGoal,
+      bodybuildingSplit,
     };
     onComplete(finalData);
   };
@@ -225,12 +248,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         {step > 0 && (
           <div id="onboarding_progress" className="text-right">
             <span className="text-xs text-slate-500 uppercase tracking-widest font-mono">System Setup</span>
-            <div className="text-xs font-mono text-cyan-400 font-bold">{step} / 16</div>
+            <div className="text-xs font-mono text-cyan-400 font-bold">{step} / 18</div>
             <div className="w-24 h-1 bg-slate-900 rounded-full mt-1 overflow-hidden">
               <motion.div 
                 className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500" 
                 initial={{ width: 0 }}
-                animate={{ width: `${(step / 16) * 100}%` }}
+                animate={{ width: `${(step / 18) * 100}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
@@ -321,7 +344,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 2: Focus Goal */}
+          {/* STEP 2: Ultimate Quest (Sovereign Ascension Goals) */}
           {step === 2 && (
             <motion.div
               key="goal_step"
@@ -330,11 +353,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">DEFINE YOUR ULTIMATE QUEST</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Select the final awakening class objective of your physical form.</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-2 font-sans">DEFINE YOUR SOVEREIGN QUEST</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">Select the primary awakening objective of your physical and mental form.</p>
               
               <div id="goal_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-                {FITNESS_GOALS.map((goal) => (
+                {SOVEREIGN_ASCENSION_GOALS.map((goal) => (
                   <motion.button
                     key={goal.id}
                     whileHover={{ scale: 1.02 }}
@@ -357,152 +380,227 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 3: Referral Source */}
+          {/* STEP 3: Academic/Scholar Discipline */}
           {step === 3 && (
             <motion.div
-              key="referral_step"
+              key="academic_subject_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">WHERE DID YOU DISCOVER THE SYSTEM?</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Your dimensional rift coordinates trace back to:</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-2">SELECT YOUR COGNITIVE DOMAIN</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">Which intellectual discipline or syllabus grid will you cultivate?</p>
               
-              <div id="referral_options" className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
-                {REFERRAL_SOURCES.map((srcName) => (
+              <div id="academic_subject_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {ACADEMIC_DISCIPLINE_LIST.map((subj) => (
                   <motion.button
-                    key={srcName.id}
+                    key={subj.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer flex justify-between items-center transition-colors ${
-                      referredBy === srcName.id 
+                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
+                      academicSubject === subj.id 
                         ? "bg-slate-900 border-cyan-400 text-cyan-300" 
                         : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
                     }`}
                     onClick={() => {
-                      setReferredBy(srcName.id);
+                      setAcademicSubject(subj.id);
                       setTimeout(handleNext, 250);
                     }}
                   >
-                    <span className="font-semibold text-sm">{srcName.label}</span>
-                    <span>{renderSocialIcon(srcName.id)}</span>
+                    <div className="font-bold text-sm">{subj.label}</div>
+                    <div className="text-slate-400 text-xs mt-1 leading-snug">{subj.desc}</div>
                   </motion.button>
                 ))}
               </div>
             </motion.div>
           )}
 
-          {/* STEP 4: Motivation */}
+          {/* STEP 4: Academic Study Goal */}
           {step === 4 && (
             <motion.div
-              key="motivation_step"
+              key="academic_sessions_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">WHAT CHANNELS YOUR COGNITIVE FIRE?</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">What seals your will to execute the daily penalty quest?</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-2">DAILY POMODORO SCHEDULE</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrate daily intellectual sessions of deep focus.</p>
               
-              <div id="motivation_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {FITNESS_MOTIVATIONS.map((mot) => (
+              <div id="academic_sessions_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {ACADEMIC_SESSIONS_GOALS.map((ses) => {
+                  const sessionsCount = ses.id === "sessions_2" ? 2 : ses.id === "sessions_4" ? 4 : ses.id === "sessions_6" ? 6 : 8;
+                  return (
+                    <motion.button
+                      key={ses.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
+                        academicSessionsGoal === sessionsCount 
+                          ? "bg-slate-900 border-cyan-400 text-cyan-300" 
+                          : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
+                      }`}
+                      onClick={() => {
+                        setAcademicSessionsGoal(sessionsCount);
+                        setTimeout(handleNext, 250);
+                      }}
+                    >
+                      <div className="font-bold text-sm">{ses.label}</div>
+                      <div className="text-slate-400 text-xs mt-1 leading-snug">{ses.desc}</div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5: Career Target Role */}
+          {step === 5 && (
+            <motion.div
+              key="career_role_step"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="w-full text-center"
+            >
+              <h2 className="text-2xl font-bold tracking-tight mb-2">TARGET PROFESSIONAL GUILD</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">Choose your target professional specialization archetype.</p>
+              
+              <div id="career_role_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {CAREER_TARGET_ROLES.map((role) => (
                   <motion.button
-                    key={mot.id}
+                    key={role.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      motivation === mot.id 
-                        ? "bg-slate-900 border-blue-400 text-blue-300" 
+                      careerTargetRole === role.id 
+                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
                         : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
                     }`}
                     onClick={() => {
-                      setMotivation(mot.id);
+                      setCareerTargetRole(role.id);
                       setTimeout(handleNext, 250);
                     }}
                   >
-                    <div className="font-bold text-sm">{mot.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{mot.desc}</div>
+                    <div className="font-bold text-sm">{role.label}</div>
+                    <div className="text-slate-400 text-xs mt-1 leading-snug">{role.desc}</div>
                   </motion.button>
                 ))}
               </div>
             </motion.div>
           )}
 
-          {/* STEP 5: Focus Area */}
-          {step === 5 && (
-            <motion.div
-              key="focus_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">TARGET AWAKENING CHANNEL</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Which muscle fortress or mental circuit seeks expansion?</p>
-              
-              <div id="focus_options" className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-lg mx-auto">
-                {FOCUS_AREAS.map((item) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.03, y: -2 }}
-                    whileTap={{ scale: 0.97 }}
-                    className={`p-4 rounded-xl border cursor-pointer h-28 flex flex-col justify-between text-left transition-colors ${
-                      focusArea === item.id 
-                        ? "bg-slate-900 border-cyan-400 text-cyan-300 shadow-md shadow-cyan-950/40" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setFocusArea(item.id);
-                      setTimeout(handleNext, 300);
-                    }}
-                  >
-                    <span className="text-xs font-mono text-slate-500 uppercase">Target</span>
-                    <span className="font-bold text-sm leading-snug">{item.label}</span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 6: Archetype */}
+          {/* STEP 6: Career Prep Activity */}
           {step === 6 && (
             <motion.div
-              key="archetype_step"
+              key="career_prep_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">SELECT YOUR COGNITIVE ARCHETYPE</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">How do you interact with other magic guilds and players?</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-2">DAILY CAREER DIRECTIVE</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">What is your primary method of preparation when grinding through the hiring gates?</p>
               
-              <div id="archetype_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-                {ARCHETYPES.map((arch) => (
+              <div id="career_prep_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {CAREER_PREPARATION_ACTIVITIES.map((act) => (
                   <motion.button
-                    key={arch.id}
+                    key={act.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`p-5 rounded-xl border text-left cursor-pointer transition-colors ${
-                      archetype === arch.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300 shadow-md shadow-indigo-950/20" 
+                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
+                      careerPrepActivity === act.id 
+                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
                         : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
                     }`}
                     onClick={() => {
-                      setArchetype(arch.id);
-                      setTimeout(handleNext, 200);
+                      setCareerPrepActivity(act.id);
+                      setTimeout(handleNext, 250);
                     }}
                   >
-                    <div className="font-bold text-lg">{arch.label}</div>
-                    <div className="text-slate-400 text-xs font-mono mt-1 leading-relaxed">{arch.desc}</div>
+                    <div className="font-bold text-sm">{act.label}</div>
+                    <div className="text-slate-400 text-xs mt-1 leading-snug">{act.desc}</div>
                   </motion.button>
                 ))}
               </div>
             </motion.div>
           )}
 
-          {/* STEP 7: Fitness Level */}
+          {/* STEP 7: Bodybuilding Splits */}
           {step === 7 && (
+            <motion.div
+              key="bodybuilding_split_step"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="w-full text-center"
+            >
+              <h2 className="text-2xl font-bold tracking-tight mb-2">BODYBUILDING TRAINING SPLIT</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono font-sans">Which muscular conditioning routine governs your training session?</p>
+              
+              <div id="bodybuilding_split_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {BODYBUILDING_SPLITS.map((split) => (
+                  <motion.button
+                    key={split.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
+                      bodybuildingSplit === split.id 
+                        ? "bg-slate-900 border-cyan-400 text-cyan-300" 
+                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
+                    }`}
+                    onClick={() => {
+                      setBodybuildingSplit(split.id);
+                      setTimeout(handleNext, 250);
+                    }}
+                  >
+                    <div className="font-bold text-sm">{split.label}</div>
+                    <div className="text-slate-400 text-xs mt-1 leading-snug">{split.desc}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 8: Metabolic Diet Goal */}
+          {step === 8 && (
+            <motion.div
+              key="diet_goal_step"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="w-full text-center"
+            >
+              <h2 className="text-2xl font-bold tracking-tight mb-2">METABOLIC & NUTRITION APPROACH</h2>
+              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrate daily nutritional and target energy thresholds.</p>
+              
+              <div id="diet_goal_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
+                {DIET_METABOLIC_GOALS.map((diet) => (
+                  <motion.button
+                    key={diet.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
+                      fitnessDietGoal === diet.id 
+                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
+                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
+                    }`}
+                    onClick={() => {
+                      setFitnessDietGoal(diet.id);
+                      setTimeout(handleNext, 250);
+                    }}
+                  >
+                    <div className="font-bold text-sm">{diet.label}</div>
+                    <div className="text-slate-400 text-xs mt-1 leading-snug">{diet.desc}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 9: Fitness Level */}
+          {step === 9 && (
             <motion.div
               key="fitness_level_step"
               initial={{ opacity: 0, x: 50 }}
@@ -510,7 +608,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">INITIAL WARRIOR RANK</h2>
+              <h2 className="text-2xl font-bold tracking-tight mb-2 font-sans">INITIAL WARRIOR RANK</h2>
               <p className="text-slate-400 text-sm mb-8 font-mono">Be completely honest with the system scanner. What is your current capacity?</p>
               
               <div id="fitness_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
@@ -541,8 +639,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 8: Active Level */}
-          {step === 8 && (
+          {/* STEP 10: Active Level */}
+          {step === 10 && (
             <motion.div
               key="activity_step"
               initial={{ opacity: 0, x: 50 }}
@@ -582,8 +680,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 9: Age Selector */}
-          {step === 9 && (
+          {/* STEP 11: Age Selector */}
+          {step === 11 && (
             <motion.div
               key="age_step"
               initial={{ opacity: 0, x: 50 }}
@@ -648,8 +746,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 10: Height Selector */}
-          {step === 10 && (
+          {/* STEP 12: Height Selector */}
+          {step === 12 && (
             <motion.div
               key="height_step"
               initial={{ opacity: 0, x: 50 }}
@@ -717,8 +815,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 11: Current Weight */}
-          {step === 11 && (
+          {/* STEP 13: Current Weight */}
+          {step === 13 && (
             <motion.div
               key="weight_step"
               initial={{ opacity: 0, x: 50 }}
@@ -776,8 +874,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 12: Target Weight */}
-          {step === 12 && (
+          {/* STEP 14: Target Weight */}
+          {step === 14 && (
             <motion.div
               key="target_weight_step"
               initial={{ opacity: 0, x: 50 }}
@@ -823,8 +921,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 13: Health Issues */}
-          {step === 13 && (
+          {/* STEP 15: Health Issues */}
+          {step === 15 && (
             <motion.div
               key="health_step"
               initial={{ opacity: 0, x: 50 }}
@@ -858,8 +956,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 14: Equipment Access */}
-          {step === 14 && (
+          {/* STEP 16: Equipment Access */}
+          {step === 16 && (
             <motion.div
               key="equipment_step"
               initial={{ opacity: 0, x: 50 }}
@@ -917,8 +1015,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 15: Workout Frequency */}
-          {step === 15 && (
+          {/* STEP 17: Workout Frequency */}
+          {step === 17 && (
             <motion.div
               key="frequency_step"
               initial={{ opacity: 0, x: 50 }}
@@ -967,8 +1065,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </motion.div>
           )}
 
-          {/* STEP 16: Workout Days & Reminder */}
-          {step === 16 && (
+          {/* STEP 18: Workout Days & Reminder */}
+          {step === 18 && (
             <motion.div
               key="days_step"
               initial={{ opacity: 0, x: 50 }}
@@ -1046,7 +1144,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       </main>
 
       {/* Footer back controls during onboarding */}
-      {step > 0 && step < 16 && (
+      {step > 0 && step < 18 && (
         <footer className="py-4 border-t border-slate-900 w-full max-w-4xl mx-auto flex justify-between items-center z-10">
           <button
             id="btn_footer_back"

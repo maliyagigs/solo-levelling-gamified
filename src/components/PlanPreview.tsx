@@ -172,16 +172,40 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
                   </div>
                   <div className="mt-3 space-y-2 text-xs font-mono">
                     <div className="flex justify-between border-b border-slate-900 pb-1">
-                      <span className="text-slate-500">Fitness Level:</span>
-                      <span className="text-cyan-300 uppercase font-bold">{profile.fitnessLevel}</span>
+                      <span className="text-slate-500">Academic focus:</span>
+                      <span className="text-cyan-300 font-bold capitalize">
+                        {profile.academicSubject === "comp_sci" ? "Computer Science" : 
+                         profile.academicSubject === "math_physics" ? "Math & Physics" :
+                         profile.academicSubject === "bio_med" ? "Biomedical & Med" :
+                         profile.academicSubject === "biz_finance" ? "Business & Finance" :
+                         profile.academicSubject === "humanities" ? "Humanities" : "Scholar Grinds"}
+                      </span>
                     </div>
                     <div className="flex justify-between border-b border-slate-900 pb-1">
-                      <span className="text-slate-500">Activity Level:</span>
-                      <span className="text-indigo-400 font-bold">{profile.activityLevel}</span>
+                      <span className="text-slate-500">Daily Study Target:</span>
+                      <span className="text-blue-300 font-bold">{profile.academicSessionsGoal || 4} Pomodoros</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-900 pb-1">
+                      <span className="text-slate-500">Career Target:</span>
+                      <span className="text-indigo-300 font-bold capitalize">
+                        {profile.careerTargetRole === "software_eng" ? "Software Engineer" :
+                         profile.careerTargetRole === "data_scientist" ? "Data/AI Alchemist" :
+                         profile.careerTargetRole === "product_manager" ? "Product Specialist" :
+                         profile.careerTargetRole === "designer" ? "Creative Designer" :
+                         profile.careerTargetRole === "analyst" ? "Financial Analyst" : "Professional Guild"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-900 pb-1">
+                      <span className="text-slate-500">Training Split:</span>
+                      <span className="text-cyan-400 font-bold uppercase">
+                        {profile.bodybuildingSplit === "push_pull_legs" ? "Push Pull Legs" :
+                         profile.bodybuildingSplit === "bro_split" ? "Classic Bro" :
+                         profile.bodybuildingSplit === "upper_lower" ? "Upper Lower" : "Full Body Force"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Target Focus:</span>
-                      <span className="text-indigo-300 font-bold uppercase">{profile.focusArea}</span>
+                      <span className="text-slate-500">Warrior Rank:</span>
+                      <span className="text-emerald-400 font-bold uppercase">{profile.fitnessLevel}</span>
                     </div>
                   </div>
                 </div>

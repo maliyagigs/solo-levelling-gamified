@@ -51,12 +51,10 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to log out? Your character level and inventory will remain saved on this device.")) {
-      localStorage.removeItem("monarch_active_player");
-      localStorage.removeItem("monarch_onboard_profile");
-      setPhase("onboarding");
-      setProfile(null);
-    }
+    localStorage.removeItem("monarch_active_player");
+    localStorage.removeItem("monarch_onboard_profile");
+    setPhase("onboarding");
+    setProfile(null);
   };
 
   return (

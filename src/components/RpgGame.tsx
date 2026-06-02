@@ -38,7 +38,7 @@ import {
   Target
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
-import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG } from "../data";
+import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -56,6 +56,12 @@ interface RpgGameProps {
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
   const [activeTab, setActiveTab] = useState<"status" | "quests" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge">("status");
+  
+  // Calculate metabolic targets from profile values
+  const weightKg = onboardProfile?.isMetricWeight ? onboardProfile.weight : Math.round(onboardProfile?.weight * 0.453592) || 75;
+  const userPlan = generatePlan(onboardProfile?.focusGoal || "build_muscle", weightKg);
+  const targetCalories = userPlan?.calorieGoal || 2800;
+  const targetProtein = userPlan?.proteinG || 140;
   
   // Game States
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -117,6 +123,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Dynamic Custom UI State hooks
   const [levelUpOverlay, setLevelUpOverlay] = useState<{ prevLevel: number; newLevel: number; statPointsEarned: number } | null>(null);
   const [showProfileDrawer, setShowProfileDrawer] = useState<boolean>(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState<boolean>(false);
+  const [showPurgeModal, setShowPurgeModal] = useState<boolean>(false);
+  const [dailyQuestReminder, setDailyQuestReminder] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`monarch_reminder_${playerName}`);
+    if (saved !== null) {
+      return saved === "true";
+    }
+    return onboardProfile?.workoutReminder ?? true;
+  });
   const [selectedWeaponDetails, setSelectedWeaponDetails] = useState<any>(null);
   const maxSlots = Math.max(0, gameState.level - 1);
   const emptySlotsCount = Math.max(0, maxSlots - gameState.inventory.length);
@@ -143,9 +158,50 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
+    const acadSubject = onboardProfile?.academicSubject || "comp_sci";
+    const sessionGoal = onboardProfile?.academicSessionsGoal || 4;
+    
+    let subjectName = "Academic Syllabus";
+    let desc_1 = "Revise high-priority syllabus chapters & practice previous year papers";
+    let name_1 = "Ultimate Exam Combat Plan";
+    let name_2 = "Sovereign Coding Project Guild";
+    let desc_2 = "Commit working modular code updates or architect functional user interfaces";
+
+    if (acadSubject === "comp_sci") {
+      subjectName = "Computer Science";
+      name_1 = "CS Blueprint Synchronisation";
+      desc_1 = "Master system design principles, dynamic algorithms, or algorithmic code challenges";
+      name_2 = "Sovereign Guild Dev Commit";
+      desc_2 = "Develop, refactor, and check-in modular codebase logic with structural precision";
+    } else if (acadSubject === "math_physics") {
+      subjectName = "Physics & Math";
+      name_1 = "Numerical Formula Solving";
+      desc_1 = "Derive core physics equations and verify exact proofs under timing constraints";
+      name_2 = "Abstract Paradigm Conquest";
+      desc_2 = "Analyse topological dimensions, linear transformations, or geometric coordinates";
+    } else if (acadSubject === "bio_med") {
+      subjectName = "Biomedical & Med";
+      name_1 = "Biochemical Path Anatomy";
+      desc_1 = "Review cellular energy pathways, muscle innervation charts, and pharmacology models";
+      name_2 = "Clinical Case Synthesis";
+      desc_2 = "Analyse diagnosis cases and review medical lab simulations to expand diagnostic ranks";
+    } else if (acadSubject === "biz_finance") {
+      subjectName = "Business & Finance";
+      name_1 = "Statistical Market Audits";
+      desc_1 = "Compare balance sheets, assess options hedging curves, or review macroeconomic indices";
+      name_2 = "Sovereign Venture Presentation";
+      desc_2 = "Outline system financial projections or pitch decks for potential investor gates";
+    } else if (acadSubject === "humanities") {
+      subjectName = "Humanities & Law";
+      name_1 = "Rhetorical Thesis Argumentation";
+      desc_1 = "Analyse historic legal precedents, philosophical ethics, or classic literary publications";
+      name_2 = "Monarch Essay Production";
+      desc_2 = "Draft detailed structured papers with clean grammar, citations, and critical reviews";
+    }
+
     return [
-      { id: "acad_1", name: "Ultimate Exam Combat Plan", desc: "Revise high-priority syllabus chapters & practice previous year papers", target: 4, current: 0, completed: false },
-      { id: "acad_2", name: "Sovereign Coding Project Guild", desc: "Commit working modular code updates or architect functional user interfaces", target: 5, current: 0, completed: false }
+      { id: "acad_1", name: name_1, desc: desc_1, target: sessionGoal, current: 0, completed: false },
+      { id: "acad_2", name: name_2, desc: desc_2, target: Math.max(1, Math.floor(sessionGoal * 0.75)), current: 0, completed: false }
     ];
   });
 
@@ -155,11 +211,35 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      { id: "lift_1", name: "Gatekeeper Squats / Leg Press", weight: "80kg", targetSets: 4, currentSets: 0, completed: false },
-      { id: "lift_2", name: "Unbreakable Chest Bench Press", weight: "60kg", targetSets: 4, currentSets: 0, completed: false },
-      { id: "lift_3", name: "Deadlift (Monarch Pull)", weight: "100kg", targetSets: 3, currentSets: 0, completed: false }
-    ];
+    const split = onboardProfile?.bodybuildingSplit || "push_pull_legs";
+    const weightLabel = onboardProfile?.weight ? `${Math.round(onboardProfile.weight * 0.55)}kg` : "70kg";
+    const lightWeight = onboardProfile?.weight ? `${Math.round(onboardProfile.weight * 0.35)}kg` : "40kg";
+    
+    if (split === "push_pull_legs") {
+      return [
+        { id: "lift_1", name: "Incline Bench Press (Push Split)", weight: lightWeight, targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_2", name: "Weighted Pull-ups (Pull Split)", weight: "Bodyweight", targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_3", name: "Gatekeeper Squats (Legs Split)", weight: weightLabel, targetSets: 4, currentSets: 0, completed: false }
+      ];
+    } else if (split === "bro_split") {
+      return [
+        { id: "lift_1", name: "Classic Barbell Bench Press (Chest)", weight: weightLabel, targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_2", name: "Plat Pulldowns (Back Force)", weight: lightWeight, targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_3", name: "Heavy Shoulder Dumbbell Press", weight: "22kg", targetSets: 3, currentSets: 0, completed: false }
+      ];
+    } else if (split === "upper_lower") {
+      return [
+        { id: "lift_1", name: "Dumbbell Floor Press (Upper Day)", weight: lightWeight, targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_2", name: "Horizontal Squat Leg Press (Lower Day)", weight: "120kg", targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_3", name: "Barbell Romanian Deadlift", weight: weightLabel, targetSets: 3, currentSets: 0, completed: false }
+      ];
+    } else {
+      return [
+        { id: "lift_1", name: "Barbell Squats (Full Body)", weight: weightLabel, targetSets: 3, currentSets: 0, completed: false },
+        { id: "lift_2", name: "Flat Bench Press (Full Body)", weight: lightWeight, targetSets: 4, currentSets: 0, completed: false },
+        { id: "lift_3", name: "Conventional Monarch Deadlifts", weight: weightLabel, targetSets: 3, currentSets: 0, completed: false }
+      ];
+    }
   });
 
   const [intakeCalories, setIntakeCalories] = useState<number>(() => {
@@ -211,6 +291,22 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     return ["Initialized focus terminal in Chamber of Scholar Wisdom."];
   });
 
+  // System Enforcement Compliance Switch & Penalty Protocol configurations
+  const [forceSystemEnforcement, setForceSystemEnforcement] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`monarch_system_enforce_${playerName}`);
+    return saved !== "false"; // Default to true for authentic push!
+  });
+  const [isInPenaltyZone, setIsInPenaltyZone] = useState<boolean>(() => {
+    return localStorage.getItem(`monarch_penalty_zone_${playerName}`) === "true";
+  });
+  const [penaltyTimeLeft, setPenaltyTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_penalty_time_${playerName}`);
+    return saved ? parseInt(saved, 10) || 120 : 120;
+  });
+  const [penaltyClicks, setPenaltyClicks] = useState<number>(0);
+  const [showPenaltyNotice, setShowPenaltyNotice] = useState<boolean>(false);
+  const [penaltyDescription, setPenaltyDescription] = useState<string>("");
+
   // Local Form Input states (so we don't pollute the general scope)
   const [newAcadName, setNewAcadName] = useState("");
   const [newAcadDesc, setNewAcadDesc] = useState("");
@@ -255,6 +351,142 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   useEffect(() => {
     localStorage.setItem(`monarch_focus_logs_${playerName}`, JSON.stringify(focusLogs));
   }, [focusLogs, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_system_enforce_${playerName}`, forceSystemEnforcement.toString());
+  }, [forceSystemEnforcement, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_penalty_zone_${playerName}`, isInPenaltyZone.toString());
+  }, [isInPenaltyZone, playerName]);
+
+  // Penalty Survival timer ticker
+  useEffect(() => {
+    let timerID: any = null;
+    if (isInPenaltyZone && penaltyTimeLeft > 0) {
+      timerID = setInterval(() => {
+        setPenaltyTimeLeft(prev => {
+          const nextVal = Math.max(0, prev - 1);
+          localStorage.setItem(`monarch_penalty_time_${playerName}`, nextVal.toString());
+          if (nextVal === 0) {
+            // Escaped the penalty zone!
+            setIsInPenaltyZone(false);
+            localStorage.setItem(`monarch_penalty_zone_${playerName}`, "false");
+            setPenaltyClicks(0);
+            try {
+              const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioCtx) {
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, ctx.currentTime + 1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+                osc.start();
+                osc.stop(ctx.currentTime + 1);
+              }
+            } catch (e) {}
+            triggerSystemToast("🛡️ PENALTY PROTOCOL CONCLUDED: You survived the Sentinel Desert. Gate parameters restored!");
+          }
+          return nextVal;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timerID);
+  }, [isInPenaltyZone, penaltyTimeLeft, playerName]);
+
+  // Calendar Day Transit Checker
+  useEffect(() => {
+    const lastDate = localStorage.getItem(`monarch_last_quest_check_date_${playerName}`);
+    const today = new Date().toDateString();
+    
+    // Check if the saved date is not equal to today's date
+    if (lastDate && lastDate !== today) {
+      // Find how many of the standard daily quests were NOT completed
+      const incompleteQuestsCount = gameState.quests.filter((q: any) => q.current < q.target).length;
+      
+      if (incompleteQuestsCount > 0) {
+        // Enforce the penalty protocol!
+        setIsInPenaltyZone(true);
+        localStorage.setItem(`monarch_penalty_zone_${playerName}`, "true");
+        setPenaltyTimeLeft(125); // 125 seconds of extreme evasion/survival
+        localStorage.setItem(`monarch_penalty_time_${playerName}`, "125");
+        setPenaltyClicks(0);
+        
+        const expDeduct = incompleteQuestsCount * 25;
+        const goldDeduct = incompleteQuestsCount * 50;
+        
+        setGameState(prev => {
+          const nextExp = Math.max(0, prev.exp - expDeduct);
+          const nextGold = Math.max(0, prev.gold - goldDeduct);
+          
+          // Refresh the daily quests for the new day
+          const refreshed = prev.quests.map((q: any) => ({
+            ...q,
+            current: 0,
+            completed: false,
+            claimed: false
+          }));
+          
+          return {
+            ...prev,
+            exp: nextExp,
+            gold: nextGold,
+            quests: refreshed
+          };
+        });
+
+        setIsDailyAllocationClaimed(false);
+        localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+
+        // Try warning buzz
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(90, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 1.2);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 1.2);
+          }
+        } catch (e) {}
+
+        setPenaltyDescription(`PENALTY TRIGGERED: Failure to perform all necessary Daily System commands. You left ${incompleteQuestsCount} grinds incomplete. Gained penalty of -${expDeduct} EXP and -${goldDeduct} CG! Survive the desert sandstorm target clicking sequence to unlock regular operations.`);
+        setShowPenaltyNotice(true);
+      } else {
+        // Clean refresh of daily quests with no penalties!
+        setGameState(prev => {
+          const refreshed = prev.quests.map((q: any) => ({
+            ...q,
+            current: 0,
+            completed: false,
+            claimed: false
+          }));
+          return {
+            ...prev,
+            quests: refreshed
+          };
+        });
+        setIsDailyAllocationClaimed(false);
+        localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+        triggerSystemToast("🔄 NEW SHIFT COMMAND RECEIVED: Quests safely refreshed. All clean!");
+      }
+    }
+    
+    // Save current date so it doesn't trigger again on reload same-day
+    localStorage.setItem(`monarch_last_quest_check_date_${playerName}`, today);
+  }, [playerName]);
 
   // Pomodoro interval ticker
   useEffect(() => {
@@ -1210,6 +1442,103 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   return (
     <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
       
+      {/* 🚨 SOVEREIGN PENALTY INTERCEPT PROTOCOL OVERLAY */}
+      {isInPenaltyZone && (
+        <div id="penalty_sentinel_overlay" className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4 md:p-8 font-mono select-none overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.12)_0%,rgba(0,0,0,0)_75%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(244,63,94,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(244,63,94,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+          
+          <div className="absolute bottom-10 right-10 opacity-10 animate-pulse pointer-events-none">
+            <Skull className="w-96 h-96 text-red-500" />
+          </div>
+
+          <div className="w-full max-w-2xl border-2 border-red-500 rounded-3xl bg-slate-950/90 p-6 md:p-8 space-y-6 relative shadow-[0_0_50px_rgba(239,68,68,0.3)] backdrop-blur-md">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-slate-950 text-[10px] uppercase font-black tracking-widest px-6 py-1 rounded-full shadow-lg">
+              SYSTEM ALARM PROTOCOL
+            </div>
+
+            <div className="text-center space-y-2">
+              <span className="text-xs text-red-500 font-extrabold tracking-widest uppercase block animate-ping">WARNING: PLAYER UNCOMPLIANT DETECTED</span>
+              <h2 className="text-2xl md:text-3xl font-black text-rose-500 tracking-wider text-center">🚨 PENALTY QUEST: DESERT OF SENTINELS</h2>
+              <div className="h-1 w-24 bg-red-500 mx-auto rounded-full" />
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed text-center font-sans max-w-lg mx-auto">
+              Your systemic self-development schedule was breached. The System does not tolerate stagnation. To resume structural progression, you are cast into the desert. You must survive the Sentinel timer.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto text-center">
+              <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-4">
+                <span className="text-[10px] text-slate-500 uppercase block tracking-wider mb-1">Banishment Remaining</span>
+                <span className="text-3xl font-bold font-mono tracking-widest text-red-400">
+                  {Math.floor(penaltyTimeLeft / 60)}m {penaltyTimeLeft % 60}s
+                </span>
+              </div>
+              <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-4">
+                <span className="text-[10px] text-slate-500 uppercase block tracking-wider mb-1">Hazards Cleared</span>
+                <span className="text-3xl font-bold font-mono tracking-widest text-cyan-400">
+                  {penaltyClicks} Slowns
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="border border-red-500/10 bg-slate-900/60 rounded-2xl p-4 text-center">
+                <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest mb-2">TARGET HARASSMENT RESISTANCE INTERFERENCE</h4>
+                <p className="text-[10px] text-slate-400 max-w-md mx-auto leading-relaxed mb-4">
+                  Tap the target below or swipe back to suppress sandstorm hazards. Each heavy impact slashes <strong className="text-cyan-400 font-mono">-3.0s</strong> off the banishment sentencing constraint!
+                </p>
+
+                <div className="flex justify-center my-2">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="relative px-6 py-4 bg-gradient-to-r from-red-600 via-rose-700 to-red-700 hover:from-red-500 hover:to-rose-600 border border-red-500 text-white rounded-2xl cursor-pointer shadow-[0_0_20px_rgba(239,68,68,0.3)] tracking-widest text-xs font-black uppercase flex items-center gap-2 group"
+                    onClick={() => {
+                      playDaggerSwipe();
+                      setPenaltyClicks(prev => prev + 1);
+                      setPenaltyTimeLeft(prev => Math.max(0, prev - 3));
+                      if (Math.random() < 0.08) {
+                        setGameState(p => ({
+                          ...p,
+                          baseStats: {
+                            ...p.baseStats,
+                            strength: p.baseStats.strength + 1
+                          }
+                        }));
+                        triggerSystemToast("⚡ STRUGGLE BONUS: Your physical body hardens! Permanent STR +1!");
+                      }
+                    }}
+                  >
+                    <Flame className="w-4 h-4 text-orange-400 animate-pulse group-hover:rotate-12 transition-transform" />
+                    SLASH SENTINEL CENTIPEDE
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase">
+                <span>Ambient Hazard Grade: A-Rank Sandstorm</span>
+                <span>Active Combat Shield: Normal</span>
+              </div>
+              <div className="w-full bg-slate-900 border border-slate-9gd rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-red-500 via-rose-600 to-rose-400 h-full transition-all duration-300"
+                  style={{ width: `${(penaltyTimeLeft / 125) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="text-center pt-2">
+              <span className="text-[10px] text-slate-500 block font-mono">
+                COMPLIANCE IS UNYIELDING &middot; SOLITARITY LEVELING PROTOCOL
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Panel */}
       <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
@@ -1566,21 +1895,45 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex justify-between items-center mb-4 border-b border-slate-900 pb-3">
                     <div>
-                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Daily System Tasks</span>
-                      <h3 className="font-extrabold text-lg">DAILY PHYSICAL PENALTY CHECKS</h3>
+                      <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block font-bold">[ SYSTEM INTERFACE ]</span>
+                      <h3 className="font-extrabold text-lg tracking-tight text-slate-200">DAILY QUEST: PREPARATION TO BECOME STRONG</h3>
                     </div>
-                    {gameState.quests.every(q => q.current === 0) && (
-                      <span className="text-[10px] font-mono text-red-500 uppercase tracking-widest animate-pulse border border-red-900 bg-red-950/10 px-3 py-1.5 rounded-full font-bold">
-                        ⚠️ Active Penalty warning triggers
+                    {gameState.quests.every(q => q.current === 0) ? (
+                      <span className="text-[9px] font-mono text-red-400 uppercase tracking-widest animate-pulse border border-red-900/40 bg-red-950/10 px-3 py-1.5 rounded-full font-bold">
+                        ⚠️ WARNING: PENALTY ACTIVE
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest border border-cyan-900/40 bg-cyan-950/10 px-3 py-1.5 rounded-full font-bold">
+                        ★ MONARCH SYSTEM OPERATION
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed font-mono">
-                    Perform physical training repetitions inside your bedroom or local gym floor. Clicking the counts logs physical tasks onto the system module. Fill them to earn massive EXP.
+                  <p className="text-xs text-slate-400 leading-relaxed font-mono mb-4">
+                    Complete physical, academic, and life targets below to satisfy the Monarch contract. Failure to complete all core modules before the daily gate closures results in a immediate <strong className="text-red-400">4-Hour Penalty Quest Area</strong> translocation.
                   </p>
+
+                  {/* Solo Leveling Styled Quest Objective Checklist */}
+                  <div className="bg-slate-950/60 p-4 border border-slate-900 rounded-xl space-y-2.5 font-mono text-xs">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-900 pb-1.5">
+                      QUEST OBJECTIVES CHECKLIST:
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                      {gameState.quests.map((q: any) => {
+                        const isDone = q.current >= q.target;
+                        return (
+                          <div key={q.id} className="flex items-center gap-2">
+                            <span className={isDone ? "text-emerald-400 font-bold" : "text-amber-500 animate-pulse font-bold"}>
+                              [{isDone ? "COMPLETE" : "INCOMPLETE"}]
+                            </span>
+                            <span className="truncate">{q.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div id="quests_checklists" className="space-y-4">
@@ -1656,6 +2009,22 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       Reset Daily Grinds
                     </button>
 
+                    {/* Simulated fail trigger button */}
+                    <button 
+                      className="px-4 py-3 bg-red-950/20 border border-red-500/20 text-red-400 font-extrabold uppercase text-[10px] tracking-wider rounded-xl hover:bg-slate-900 hover:border-red-500/50 cursor-pointer transition-all duration-300"
+                      onClick={() => {
+                        setIsInPenaltyZone(true);
+                        localStorage.setItem(`monarch_penalty_zone_${playerName}`, "true");
+                        setPenaltyTimeLeft(125);
+                        localStorage.setItem(`monarch_penalty_time_${playerName}`, "125");
+                        setPenaltyClicks(0);
+                        setPenaltyDescription("SIMULATED PENALTY PROTOCOL: Demanded by System Overlord command override directory parameters! Protect your life in the Sentinel sandstorm!");
+                        setShowPenaltyNotice(true);
+                      }}
+                    >
+                      Simulate Penalty Fail
+                    </button>
+
                     {isDailyAllocationClaimed ? (
                       <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[10px] uppercase py-3 px-5 rounded-xl block tracking-widest text-center">
                         ✓ ALLOCATION COLLECTED
@@ -1688,7 +2057,37 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "dungeons" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                {!isFighting ? (
+                {forceSystemEnforcement && gameState.quests.some((q: any) => q.current < q.target) ? (
+                  <div className="bg-slate-950/80 border-2 border-red-500/30 p-8 rounded-3xl text-center font-mono space-y-6 shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-md">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-red-950/30 border border-red-500/30 flex items-center justify-center relative shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                      <Lock className="w-6 h-6 text-red-500 animate-pulse" />
+                    </div>
+                    <span className="text-[10px] text-red-500 tracking-widest font-black uppercase block">DIMENSIONAL GATE ACCESS DENIED</span>
+                    <h3 className="font-extrabold text-white text-lg tracking-wider">⛔ SYSTEM DIRECTIVE: INTERSECT LOCKED</h3>
+                    <p className="text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
+                      Your physical structure has not cleared today's self-development directives. The Monarch System locks dimensional gate entrance for safety. Complete your <strong className="text-red-400">Daily Quests</strong> first!
+                    </p>
+                    <div className="bg-slate-900 border border-slate-950 p-4 rounded-xl divide-y divide-slate-800 max-w-sm mx-auto text-left space-y-2">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider pb-1.5 font-bold">Uncompleted Daily Tasks:</div>
+                      {gameState.quests.map((q: any) => (
+                        <div key={q.id} className="flex justify-between text-xs py-1.5 font-mono">
+                          <span className="text-slate-350">{q.name}</span>
+                          <span className={q.current >= q.target ? "text-emerald-400 font-bold" : "text-rose-500 font-bold"}>
+                            {q.current >= q.target ? "✓ CLEARED" : `${q.current}/${q.target} log`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2">
+                      <button 
+                        className="px-6 py-2.5 bg-red-950/50 hover:bg-slate-900 border border-red-500/30 text-white font-bold uppercase rounded-xl text-xs transition-colors cursor-pointer"
+                        onClick={() => setActiveTab("quests")}
+                      >
+                        DEPART TO DAILY QUESTS BOARD
+                      </button>
+                    </div>
+                  </div>
+                ) : !isFighting ? (
                   <>
                     <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md mb-6">
                       <span className="text-[10px] font-mono text-slate-500 uppercase block">Active Gate Entry Matrix</span>
@@ -2193,6 +2592,756 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </motion.div>
             )}
 
+            {/* D. THE LIFE FORGE SYSTEM PORTAL */}
+            {activeTab === "life_forge" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                
+                {/* Visual Header */}
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(147,51,234,0.08)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <span className="text-[10px] font-mono text-purple-400 block tracking-widest font-extrabold uppercase mb-1"> Imperial Sovereign Core</span>
+                  <h3 className="font-extrabold text-lg">THE LIFE FORGE PORTAL</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
+                     Gamified Self-Development directives linked to status parameters. Completing syllabus grinds, heavy physique training, and job-recruitment milestones triggers direct character attribute mutations. Compliance is unyielding!
+                  </p>
+
+                  {/* Force compliance toggle button in header for immersion */}
+                  <div className="mt-4 pt-4 border-t border-slate-900/60 flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${forceSystemEnforcement ? "bg-red-500 animate-ping" : "bg-slate-700"}`} />
+                      <span className="text-[10px] text-slate-450 font-mono">
+                        Status Directive: {forceSystemEnforcement ? "STRICT SYSTEM COMPLIANCE ACTIVE" : "MANUAL BYPASS COMMITTED"}
+                      </span>
+                    </div>
+
+                    <button 
+                      className={`px-3 py-1.5 rounded-lg border text-[9px] font-mono uppercase font-bold tracking-wider cursor-pointer transition-colors ${
+                        forceSystemEnforcement 
+                          ? "bg-red-950/20 border-red-500/30 text-red-300 hover:bg-slate-900" 
+                          : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                      onClick={() => {
+                        playSelectSound();
+                        setForceSystemEnforcement(prev => !prev);
+                        triggerSystemToast(forceSystemEnforcement ? "⚠️ DIRECTIVE ALERT: System enforcement disabled. Dimensional Gates unlocked!" : "🔒 DIRECTIVE ALERT: Strict compliance enforced! Gates locked until daily tasks cleared!");
+                      }}
+                    >
+                      {forceSystemEnforcement ? "DEACTIVATE EXCLUSION LOCK" : "ACTIVATE EXCLUSION LOCK"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-tab Selection Header Bar */}
+                <div className="flex border-b border-slate-910 gap-1 pb-1">
+                  {[
+                    { id: "academics", label: "Academics & Study", icon: BookOpen, color: "text-purple-400" },
+                    { id: "fitness", label: "Fitness & Nutrition", icon: Flame, color: "text-orange-400" },
+                    { id: "career", label: "Career & Job Guild", icon: Briefcase, color: "text-cyan-400" }
+                  ].map(sub => {
+                    const Icon = sub.icon;
+                    const isActive = forgeSubTab === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono uppercase font-bold tracking-wider cursor-pointer transition-all ${
+                          isActive 
+                            ? "bg-slate-950 border border-slate-900 text-slate-100 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)]" 
+                            : "text-slate-500 hover:text-slate-300 bg-transparent"
+                        }`}
+                        onClick={() => {
+                          playSelectSound();
+                          setForgeSubTab(sub.id as any);
+                        }}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${sub.color}`} />
+                        <span>{sub.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Visual Content Panels for each sub tab */}
+
+                {/* 1. ACADEMICS & STUDIES */}
+                {forgeSubTab === "academics" && (
+                  <div className="space-y-6">
+                    
+                    {/* Add Academic task form */}
+                    <div className="bg-slate-950/45 border border-slate-900/60 p-5 rounded-2xl font-mono text-xs space-y-4">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-purple-400" />
+                        <h4 className="text-xs uppercase font-extrabold text-slate-300 tracking-wider">INSCRIBE ACADEMIC SYLLABUS DIRECTIVE</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Blueprint Target Name</label>
+                          <input 
+                            type="text" 
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-purple-500/50" 
+                            placeholder="e.g. Master Operating Systems Exams"
+                            value={newAcadName}
+                            onChange={(e) => setNewAcadName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Chapters / Practicals count requirement</label>
+                          <select 
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-purple-500/50 cursor-pointer text-[11px]"
+                            value={newAcadTarget}
+                            onChange={(e) => setNewAcadTarget(parseInt(e.target.value, 10))}
+                          >
+                            {[2, 3, 4, 5, 6, 8, 10].map(v => (
+                              <option key={v} value={v}>{v} Sessions / Chapters Required</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Detailed Exam/Project Focus Description</label>
+                        <input 
+                          type="text" 
+                          className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-purple-500/50" 
+                          placeholder="e.g. Study virtual memory page faults, thread synchronizations & cache lookups"
+                          value={newAcadDesc}
+                          onChange={(e) => setNewAcadDesc(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        <button 
+                          className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-500/30 text-white font-extrabold text-[10px] tracking-widest uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(147,51,234,0.15)] transition-all"
+                          onClick={addAcademicQuest}
+                        >
+                          PUBLISH RESEARCH GOAL
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quests Lists */}
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] font-mono tracking-widest text-slate-400 uppercase font-bold">ACTIVE COGNITIVE EXPERIMENTS</h4>
+                      
+                      {academicQuests.length === 0 ? (
+                        <div className="bg-slate-950/20 border border-slate-900 border-dashed rounded-2xl p-6 text-center font-mono text-slate-500 text-xs">
+                          All cognitive experiments completed. Inscribe a new academic syllabus objective!
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {academicQuests.map((quest: any) => {
+                            const pct = Math.round((quest.current / quest.target) * 100);
+                            return (
+                              <div key={quest.id} className="bg-slate-950/60 border border-slate-900 p-5 rounded-2xl font-mono text-xs flex flex-col justify-between space-y-4 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-[radial-gradient(ellipse_at_top_right,rgba(147,51,234,0.03)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                                
+                                <div className="space-y-1 relative z-10">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <span className="text-[9px] font-black text-purple-400 bg-purple-400/10 border border-purple-400/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                                      {quest.completed ? "✓ SECURED" : "INTELLIGENCE FOCUS"}
+                                    </span>
+                                    <button 
+                                      className="text-slate-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                                      onClick={() => deleteAcademicQuest(quest.id)}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <h5 className="font-bold text-slate-200 mt-1">{quest.name}</h5>
+                                  <p className="text-[10px] text-slate-500 leading-relaxed font-sans mt-1">
+                                    {quest.desc}
+                                  </p>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                  <div className="flex justify-between items-center text-[10px] text-slate-400">
+                                    <span>Chapters Progress:</span>
+                                    <span className="font-bold text-slate-200">{quest.current} / {quest.target} Done</span>
+                                  </div>
+                                  <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                    <div className="bg-purple-500 h-full transition-all duration-303" style={{ width: `${pct}%` }} />
+                                  </div>
+
+                                  {!quest.completed ? (
+                                    <div className="flex gap-2">
+                                      <button 
+                                        className="flex-1 py-2 bg-purple-950/35 hover:bg-purple-600 hover:text-white border border-purple-500/20 text-purple-400 font-extrabold uppercase rounded-lg text-[10px] tracking-wider cursor-pointer transition-all"
+                                        onClick={() => incrementAcademicQuest(quest.id, 1)}
+                                      >
+                                        +1 Chapter Read
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5 text-center text-purple-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                      🏆 STAT PERMANENT BOOST UNLOCKED (+1 INT)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Interactive POMODORO TERMINAL */}
+                    <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl font-mono text-xs space-y-6 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.04)_0%,rgba(0,0,0,0)_50%)] pointer-events-none" />
+                      
+                      <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-900 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Timer className="w-4 h-4 text-indigo-400" />
+                          <h4 className="text-xs uppercase font-extrabold text-slate-350 tracking-wider">SYSTEM STUDY BOOST TERMINAL</h4>
+                        </div>
+                        <span className="text-[10px] text-slate-555 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                          Active State: {focusIsActive ? "COMPILING MIND" : "TERMINAL IDLE"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center flex-wrap">
+                        
+                        {/* Huge counter */}
+                        <div className="md:col-span-5 text-center space-y-4">
+                          <div className="inline-block px-8 py-5 rounded-3xl bg-slate-950/90 border border-indigo-500/20 text-slate-100 relative shadow-inner">
+                            <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#a5b4fc] block mb-1">
+                              {focusInterval} FOCUS DUEL
+                            </span>
+                            <span className="text-4xl md:text-5xl font-black font-mono select-all tracking-wider text-white">
+                              {Math.floor(focusSecs / 60).toString().padStart(2, "0")}:
+                              {(focusSecs % 60).toString().padStart(2, "0")}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-center gap-2">
+                            <button
+                              className={`px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all ${
+                                focusIsActive 
+                                  ? "bg-amber-600/10 border-amber-500/30 text-amber-400 hover:bg-slate-900" 
+                                  : "bg-indigo-600 hover:bg-indigo-500 border-indigo-400/30 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                              }`}
+                              onClick={() => {
+                                playSelectSound();
+                                setFocusIsActive(!focusIsActive);
+                              }}
+                            >
+                              {focusIsActive ? "PAUSE GRIND" : "ARISEN GRIND (START)"}
+                            </button>
+                            <button
+                              className="px-4 py-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                              onClick={() => {
+                                playDaggerSwipe();
+                                setFocusIsActive(false);
+                                setFocusSecs(focusTarget);
+                              }}
+                            >
+                              RESET
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Setup controls */}
+                        <div className="md:col-span-7 space-y-4 font-mono">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-500 uppercase font-black">Pre-configured Rhythms</label>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {[
+                                  { label: "15m Sprint", sec: 900 },
+                                  { label: "25m Study", sec: 1500 },
+                                  { label: "45m Deep", sec: 2700 },
+                                  { label: "5m Break", sec: 300 }
+                                ].map(t => (
+                                  <button
+                                    key={t.label}
+                                    className={`px-2 py-1.5 rounded-lg border text-[9px] uppercase font-bold text-center cursor-pointer transition-colors ${
+                                      focusTarget === t.sec 
+                                        ? "bg-slate-900 border-indigo-500/50 text-indigo-300"
+                                        : "bg-slate-900 border-slate-800 text-slate-450 hover:text-slate-350"
+                                    }`}
+                                    onClick={() => {
+                                      playSelectSound();
+                                      setFocusIsActive(false);
+                                      setFocusTarget(t.sec);
+                                      setFocusSecs(t.sec);
+                                    }}
+                                  >
+                                    {t.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-slate-500 uppercase font-black font-mono">Cognitive Ambient Sound</label>
+                              <select
+                                className="w-full bg-slate-900 border border-slate-800 rounded-lg text-[10px] px-2 py-2 h-[34px] outline-none text-slate-350 cursor-pointer focus:border-indigo-500/60"
+                                value={focusAmbient}
+                                onChange={(e) => setFocusAmbient(e.target.value)}
+                              >
+                                <option value="Abyssal Silence">Abyssal Silence (No Sound)</option>
+                                <option value="Synthetic Lofi Focus Pulse">Synthetic Lofi Focus Pulse</option>
+                                <option value="Rain on Castle Gates">Rain on Castle Gates</option>
+                                <option value="Ancient Library Binaural">Ancient Library Binaural</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-500 uppercase font-black">Matrix Focus Logs</label>
+                            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3 h-24 overflow-y-auto divide-y divide-slate-950/30 select-text font-mono text-[9px] leading-relaxed text-indigo-300">
+                              {focusLogs.map((log, i) => (
+                                <div key={i} className="py-1">{log}</div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* 2. BODYBUILDING & PHYSIQUE (FITNESS) */}
+                {forgeSubTab === "fitness" && (
+                  <div className="space-y-6">
+                    
+                    {/* Log bodybuilding Lift form */}
+                    <div className="bg-slate-950/45 border border-slate-900/60 p-5 rounded-2xl font-mono text-xs space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-orange-400" />
+                        <h4 className="text-xs uppercase font-extrabold text-slate-300 tracking-wider font-mono">SPECIFY HEAVY TRAINING LOAD</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Lifting Exercise Name</label>
+                          <input 
+                            type="text" 
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-205 outline-none focus:border-orange-500/50" 
+                            placeholder="e.g. Incline Bench Press"
+                            value={newLiftName}
+                            onChange={(e) => setNewLiftName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Target Working Load (Weight)</label>
+                          <input 
+                            type="text" 
+                            className="w-full bg-slate-905 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-205 outline-none focus:border-orange-500/50" 
+                            placeholder="e.g. 75kg"
+                            value={newLiftWeight}
+                            onChange={(e) => setNewLiftWeight(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-500 uppercase font-black font-mono font-bold">Target working Sets</label>
+                          <select 
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-205 outline-none focus:border-orange-500/50 cursor-pointer text-[11px]"
+                            value={newLiftSets}
+                            onChange={(e) => setNewLiftSets(parseInt(e.target.value, 10))}
+                          >
+                            {[3, 4, 5, 6].map(v => (
+                              <option key={v} value={v}>{v} working sets</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                        <button 
+                          className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 border border-orange-500/30 text-white font-extrabold text-[10px] tracking-widest uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(249,115,22,0.15)] transition-all"
+                          onClick={addLiftWorkout}
+                        >
+                          COMMENCE HEAVY CALIBRATION
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Exercises Lists */}
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] font-mono tracking-widest text-slate-400 uppercase font-bold">ACTIVE PHYSIQUE OVERLOAD BLUEPRINTS</h4>
+                      
+                      {bodybuildingExercises.length === 0 ? (
+                        <div className="bg-slate-950/20 border border-slate-900 border-dashed rounded-2xl p-6 text-center font-mono text-slate-500 text-xs">
+                          Physique databases static. Initialize a bodybuilding heavyset benchmark!
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {bodybuildingExercises.map((l: any) => {
+                            const pct = Math.round((l.currentSets / l.targetSets) * 100);
+                            return (
+                              <div key={l.id} className="bg-slate-950/60 border border-slate-900 p-5 rounded-2xl font-mono text-xs flex flex-col justify-between space-y-4 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-[radial-gradient(ellipse_at_top_right,rgba(249,115,22,0.03)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                                
+                                <div className="space-y-1 relative z-10">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <span className="text-[9px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                                      {l.weight} Load
+                                    </span>
+                                    <button 
+                                      className="text-slate-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                                      onClick={() => deleteLiftWorkout(l.id)}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <h5 className="font-bold text-slate-200 mt-1">{l.name}</h5>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                  <div className="flex justify-between items-center text-[10px] text-slate-400">
+                                    <span>Sets log:</span>
+                                    <span className="font-bold text-slate-200">{l.currentSets} / {l.targetSets} sets done</span>
+                                  </div>
+                                  <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                    <div className="bg-orange-500 h-full transition-all duration-303" style={{ width: `${pct}%` }} />
+                                  </div>
+
+                                  {!l.completed ? (
+                                    <button 
+                                      className="w-full py-2 bg-orange-955 hover:bg-orange-600 hover:text-white border border-orange-500/20 text-orange-400 font-extrabold uppercase rounded-lg text-[10px] tracking-wider cursor-pointer transition-all"
+                                      onClick={() => incrementLiftSet(l.id)}
+                                    >
+                                      ✓ Complete 1 heavy set
+                                    </button>
+                                  ) : (
+                                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-2.5 text-center text-orange-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                      🏆 PHY ATTRIBUTE EXPANDED (+1 STR/VIT Mapped)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Caloric Intake and Nutrition Calibration */}
+                    <div className="bg-slate-950/45 border border-slate-900/60 p-5 rounded-2xl font-mono text-xs space-y-6">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-2 flex-wrap gap-2">
+                        <span className="text-[10px] text-orange-400 font-black tracking-widest uppercase">SOVEREIGN METABOLISM DATA</span>
+                        <span className="text-[9px] text-slate-500">Daily calorie target: {targetCalories} kcal &bull; Daily protein target: {targetProtein}g</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Calories tracker column */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-350 font-bold uppercase">Energy Intake:</span>
+                            <span className="text-orange-400 font-bold">{intakeCalories} / {targetCalories} kcal</span>
+                          </div>
+                          
+                          <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden relative">
+                            <div className="bg-orange-500 h-full transition-all duration-305" style={{ width: `${Math.min(100, (intakeCalories / targetCalories) * 100)}%` }} />
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {[
+                              { label: "+100 kcal", val: 100 },
+                              { label: "+350 kcal", val: 350 },
+                              { label: "+500 kcal", val: 500 },
+                              { label: "Wipe Log", val: -9999 }
+                            ].map(btn => (
+                              <button
+                                key={btn.label}
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-850 rounded-lg text-[9px] font-bold text-slate-350 hover:text-white cursor-pointer"
+                                onClick={() => {
+                                  playSelectSound();
+                                  if (btn.val < 0) setIntakeCalories(0);
+                                  else setIntakeCalories(v => Math.min(6000, v + btn.val));
+                                }}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Protein tracker column */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-355 font-bold uppercase">Synthesized Amino Acids:</span>
+                            <span className="text-amber-400 font-bold">{intakeProtein} / {targetProtein} grams</span>
+                          </div>
+
+                          <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden relative">
+                            <div className="bg-amber-400 h-full transition-all duration-305" style={{ width: `${Math.min(100, (intakeProtein / targetProtein) * 100)}%` }} />
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {[
+                              { label: "+10g protein", val: 10 },
+                              { label: "+30g protein", val: 30 },
+                              { label: "+50g protein", val: 50 },
+                              { label: "Wipe Log", val: -9999 }
+                            ].map(btn => (
+                              <button
+                                key={btn.label}
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-850 rounded-lg text-[9px] font-bold text-slate-355 hover:text-white cursor-pointer"
+                                onClick={() => {
+                                  playSelectSound();
+                                  if (btn.val < 0) setIntakeProtein(0);
+                                  else setIntakeProtein(v => Math.min(300, v + btn.val));
+                                }}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* 3. CAREER & GUILD RECRUITMENT */}
+                {forgeSubTab === "career" && (
+                  <div className="space-y-6">
+                    
+                    {/* Career milestones dashboard */}
+                    <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl font-mono text-xs space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-cyan-400" />
+                        <h4 className="text-xs uppercase font-extrabold text-slate-300 tracking-wider">CAREER SYSTEMATIC PROGRESS CONSOLE</h4>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                        
+                        {/* 1. Resume */}
+                        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex flex-col justify-between space-y-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-black">Milestone 1</span>
+                            <h5 className="font-bold text-slate-200 mt-0.5">Resume Refactoring</h5>
+                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed font-sans">Optimize layout, action verbs & structure metrics.</p>
+                          </div>
+                          <div>
+                            {careerMilestones.resumeScore > 0 ? (
+                              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-1.5 text-center text-cyan-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                ✓ CLEARED (+1 AGIL)
+                              </div>
+                            ) : (
+                              <button 
+                                className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
+                                onClick={completeResumeObjective}
+                              >
+                                Done & Inscribe
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Portfolio Projects */}
+                        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex flex-col justify-between space-y-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-black">Milestone 2</span>
+                            <h5 className="font-bold text-slate-200 mt-0.5">Modular Systems</h5>
+                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed font-sans">Commit and launch 2 robust production interfaces.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold">
+                              <span>Committed:</span>
+                              <span className="font-bold text-cyan-400">{careerMilestones.portfolioProjects} / 2 apps</span>
+                            </div>
+                            {careerMilestones.portfolioProjects >= 2 ? (
+                              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-1.5 text-center text-cyan-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                ✓ CLEARED (+2 INT)
+                              </div>
+                            ) : (
+                              <button 
+                                className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
+                                onClick={incrementPortfolioProjects}
+                              >
+                                Publish 1 App (+1)
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. LinkedIn connections */}
+                        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex flex-col justify-between space-y-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-black">Milestone 3</span>
+                            <h5 className="font-bold text-slate-200 mt-0.5">Recruiter Contacts</h5>
+                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed font-sans">Reach out & engage 5 target recruitment leads.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold">
+                              <span>Outreaches:</span>
+                              <span className="font-bold text-cyan-400">{careerMilestones.recruiterOutreach} / 5 leads</span>
+                            </div>
+                            {careerMilestones.recruiterOutreach >= 5 ? (
+                              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-1.5 text-center text-cyan-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                ✓ CLEARED (+2 PERC)
+                              </div>
+                            ) : (
+                              <button 
+                                className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
+                                onClick={incrementRecruiterOutreach}
+                              >
+                                Register Lead (+1)
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 4. Leetcode grind */}
+                        <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex flex-col justify-between space-y-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-black">Milestone 4</span>
+                            <h5 className="font-bold text-slate-200 mt-0.5">Algorithmic Duels</h5>
+                            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed font-sans">Conquer 10 data structure & algorithm battles.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold">
+                              <span>Solved:</span>
+                              <span className="font-bold text-cyan-400">{careerMilestones.leetcodeGrind} / 10 battles</span>
+                            </div>
+                            {careerMilestones.leetcodeGrind >= 10 ? (
+                              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg py-1.5 text-center text-cyan-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                ✓ CLEARED (+3 INT)
+                              </div>
+                            ) : (
+                              <button 
+                                className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
+                                onClick={incrementLeetcodeGrind}
+                              >
+                                Solve DS Grid (+1)
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Job application log board */}
+                    <div className="bg-slate-950/45 border border-slate-900/60 p-5 rounded-2xl font-mono text-xs space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-910 pb-2 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-cyan-400" />
+                          <h4 className="text-xs uppercase font-extrabold text-slate-300 tracking-wider">GUILD RECRUITMENT APPLICATIONS</h4>
+                        </div>
+                        <span className="text-[9px] text-slate-500">Applications count: {jobApplications.length} listed</span>
+                      </div>
+
+                      {/* Add Application Form */}
+                      <div className="bg-slate-900/30 p-4 border border-slate-905 rounded-xl space-y-3.5">
+                        <span className="text-[9px] font-black uppercase text-cyan-500/80 block">TRACK NEW RECRUITMENT PROFILE</span>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-500 uppercase font-black">Guild Corp/Company</label>
+                            <input 
+                              type="text" 
+                              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
+                              placeholder="e.g. Hunter Corp"
+                              value={newJobCompany}
+                              onChange={(e) => setNewJobCompany(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-500 uppercase font-black">Sovereign Role</label>
+                            <input 
+                              type="text" 
+                              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
+                              placeholder="e.g. Fullstack Wizard"
+                              value={newJobRole}
+                              onChange={(e) => setNewJobRole(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-500 uppercase font-black">Status Phase</label>
+                            <select 
+                              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-cyan-500/50 text-[11px]"
+                              value={newJobStatus}
+                              onChange={(e) => setNewJobStatus(e.target.value)}
+                            >
+                              <option value="Applied">Applied (Initial Registry)</option>
+                              <option value="Online Screening">Online Assessment Duo</option>
+                              <option value="Interview Scheduled">Boss Interview scheduled</option>
+                              <option value="Offer Unlocked">Offer Unlocked (Sovereign Win)</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-slate-500 uppercase font-black font-sans font-bold">Brief notes</label>
+                            <input 
+                              type="text" 
+                              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
+                              placeholder="Salary details, timeline"
+                              value={newJobNotes}
+                              onChange={(e) => setNewJobNotes(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-1">
+                          <button 
+                            className="px-4 py-2 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] tracking-wider cursor-pointer transition-all"
+                            onClick={addJobApplication}
+                          >
+                            Add Job Record
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Application List */}
+                      {jobApplications.length === 0 ? (
+                        <div className="bg-slate-950/20 border border-slate-900 border-dashed rounded-xl p-4 text-center font-mono text-slate-500 text-[10px]">
+                          No active job applications tracked. Deploy applications to log details!
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {jobApplications.map((app: any) => (
+                            <div key={app.id} className="bg-slate-902/40 border border-slate-900 p-4 rounded-xl flex flex-wrap justify-between items-center gap-3 font-mono">
+                              <div className="flex-1 space-y-1 min-w-[200px]">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-extrabold text-slate-100">{app.company}</span>
+                                  <span className="text-[10px] text-slate-550 font-sans">&bull;</span>
+                                  <span className="text-[10px] text-cyan-400 font-bold">{app.role}</span>
+                                </div>
+                                <p className="text-[10.5px] text-slate-400 font-sans leading-relaxed italic pr-4">"{app.notes}"</p>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <div className="space-y-1 min-w-[120px]">
+                                  <label className="text-[8px] text-slate-550 block font-bold uppercase">Update progress stage</label>
+                                  <select
+                                    className="bg-slate-950 border border-slate-800 text-[10px] px-2 py-1 rounded-lg outline-none cursor-pointer text-slate-350"
+                                    value={app.status}
+                                    onChange={(e) => updateJobStatus(app.id, e.target.value)}
+                                  >
+                                    <option value="Applied">Applied</option>
+                                    <option value="Online Screening">Online Screening</option>
+                                    <option value="Interview Scheduled">Interview Scheduled</option>
+                                    <option value="Offer Unlocked">Offer Unlocked 👑</option>
+                                    <option value="Declined">Rejected / Silent</option>
+                                  </select>
+                                </div>
+
+                                <button
+                                  className="p-1.5 bg-slate-950 rounded-lg text-slate-600 hover:text-red-400 border border-transparent hover:border-red-950 hover:bg-slate-900 transition-all cursor-pointer"
+                                  onClick={() => deleteJobApplication(app.id)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                )}
+
+              </motion.div>
+            )}
+
           </div>
 
         </div>
@@ -2411,6 +3560,101 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         )}
       </AnimatePresence>
 
+      {/* DISCONNECT CONFIRMATION OVERLAY */}
+      <AnimatePresence>
+        {showDisconnectModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setShowDisconnectModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 25 }}
+              className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full font-mono text-xs space-y-4 shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div id="signout_title" className="flex items-center gap-2 text-amber-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-800 pb-2.5">
+                <LogOut className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>DISCONNECT COORDINATIVE INTERFACE</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed text-xs font-sans">
+                Are you absolutely sure you want to disconnect? Your current Level <strong className="text-cyan-400">{gameState.level}</strong> character stats and weapons inventory remain saved securely on your local device registrar.
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button 
+                  className="py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
+                  onClick={() => setShowDisconnectModal(false)}
+                >
+                  ABORT
+                </button>
+                <button 
+                  className="py-2.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-200 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
+                  onClick={() => {
+                    setShowDisconnectModal(false);
+                    onLogout();
+                  }}
+                >
+                  DISCONNECT
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PURGE REGISTER DATA CONFIRMATION OVERLAY */}
+      <AnimatePresence>
+        {showPurgeModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setShowPurgeModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 25 }}
+              className="bg-slate-900 border border-red-900/60 p-6 rounded-2xl max-w-sm w-full font-mono text-xs space-y-4 shadow-[0_0_30px_rgba(220,38,38,0.25)] relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div id="purge_title" className="flex items-center gap-2 text-red-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-800 pb-2.5">
+                <Trash2 className="w-4 h-4 shrink-0 text-red-400" />
+                <span>⚠️ SYSTEM PURGE DATA CONFIRMATION</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed text-xs font-sans">
+                This will immediately purge your current stats, Level <strong className="text-red-400">{gameState.level}</strong> experience, custom grinds, and database-aligned items. <span className="text-red-400 font-bold block mt-1.5 font-mono uppercase text-[10px]">Warning: This action is permanent and irreversible!</span>
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button 
+                  className="py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
+                  onClick={() => setShowPurgeModal(false)}
+                >
+                  CANCEL
+                </button>
+                <button 
+                  className="py-2.5 bg-red-900/80 hover:bg-red-950 border border-red-500 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
+                  onClick={() => {
+                    localStorage.removeItem(`monarch_save_${playerName}`);
+                    localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+                    localStorage.removeItem("monarch_active_player");
+                    localStorage.removeItem("monarch_onboard_profile");
+                    window.location.reload();
+                  }}
+                >
+                  PURGE DATA
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* INTERACTIVE ROBUST PROFILE DRAWER / SIDE SHEET (MOBILE COGNITIVE DRAWER) */}
       <AnimatePresence>
         {showProfileDrawer && (
@@ -2502,9 +3746,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">4. System Sound Signals</span>
                     <div className="flex justify-between items-center bg-slate-900/60 p-2 px-3 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-300">Daily Quest Reminders</span>
-                      <div className="w-10 h-6 bg-cyan-500 rounded-full p-1 cursor-pointer flex justify-end">
-                        <div className="w-4 h-4 bg-slate-950 rounded-full" />
+                      <span className="text-[10px] text-slate-300 block">Daily Quest Reminders</span>
+                      <div 
+                        className={`w-10 h-6 rounded-full p-0.5 cursor-pointer flex items-center transition-colors duration-200 ${dailyQuestReminder ? "bg-cyan-500 justify-end" : "bg-slate-800 justify-start"}`}
+                        onClick={() => {
+                          const newVal = !dailyQuestReminder;
+                          setDailyQuestReminder(newVal);
+                          localStorage.setItem(`monarch_reminder_${playerName}`, newVal.toString());
+                          triggerSystemToast(`SYSTEM SIGNAL: Quest Reminders turned ${newVal ? "ON" : "OFF"}`);
+                        }}
+                      >
+                        <div className="w-4 h-4 bg-slate-950 rounded-full shadow-sm" />
                       </div>
                     </div>
                   </div>
@@ -2515,11 +3767,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <button 
                       className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer"
                       onClick={() => {
-                        if (confirm("⚠️ SYSTEM DATA DESTRUCT DIALOG:\n\nThis will immediately purge player level, stats allocation index, acquired shadow soldiers, and system weapons. Confirm player rollback restart?")) {
-                          localStorage.removeItem(`monarch_save_${playerName}`);
-                          localStorage.removeItem(`monarch_daily_claim_${playerName}`);
-                          window.location.reload();
-                        }
+                        setShowProfileDrawer(false);
+                        setShowPurgeModal(true);
                       }}
                     >
                       Purge Active Registry Save
@@ -2535,7 +3784,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
                   onClick={() => {
                     setShowProfileDrawer(false);
-                    onLogout();
+                    setShowDisconnectModal(true);
                   }}
                 >
                   <LogOut className="w-4 h-4" />
