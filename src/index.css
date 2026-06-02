@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+/* === Translucent Glassmorphism Overrides for Background Video Visibility === */
+
+/* Ensure the overall RPG container remains transparent to let the cosmic background loop play underneath */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Style the dashboard top header bar to have an elegant translucent cyber glaze with neon cyan bottom border */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > header:nth-of-type(1) {
+  background-color: rgba(2, 6, 23, 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(6, 182, 212, 0.25) !important;
+}
+
+/* Ensure the main dashboard grid has an open transparent layout to showcase backend cosmic animations */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) {
+  background-color: transparent !important;
+}
+
+/* Transform all nested slate content panels within the targeted dashboard area into glassmorphic hologram cards */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) .bg-slate-950\/75,
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) .bg-slate-950\/80,
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) .bg-slate-950\/95,
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) .bg-slate-950 {
+  background-color: rgba(2, 6, 23, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(51, 65, 85, 0.25) !important;
+}
+
+/* Boost text visibility throughout the container to be more white/visible as requested */
+#rpg_game_container .text-slate-400 {
+  color: rgba(248, 250, 252, 0.95) !important; /* Raise from slate-400 to slate-50 high contrast white */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.65) !important;
+}
+#rpg_game_container .text-slate-300 {
+  color: #ffffff !important; /* pure white value */
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7) !important;
+}
+#rpg_game_container .text-slate-500 {
+  color: rgba(226, 232, 240, 0.85) !important; /* Elevate to slate-200 level readable white */
+}
+
+/* Custom Mysterious Cyber-Magic Frame overrides for the targeted elements */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
+  position: relative !important;
+  background-color: rgba(3, 7, 18, 0.5) !important;
+  border: 1.5px solid rgba(139, 92, 246, 0.45) !important; /* warm high contrast purple edge */
+  border-radius: 20px !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), inset 0 0 15px rgba(6, 182, 212, 0.1) !important;
+  padding: 1px !important;
+  overflow: visible !important;
+}
+
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) {
+  position: relative !important;
+  background-color: rgba(2, 6, 23, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1.5px solid rgba(34, 211, 238, 0.45) !important; /* cyan glow inner border */
+  border-radius: 16px !important;
+  box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.08) !important;
+}
+
+/* Mysterious Corner Brackets on the inner frame (Selector 2) to match the Shadow Monarch aesthetic */
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::before,
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::after {
+  content: "" !important;
+  position: absolute !important;
+  width: 14px !important;
+  height: 14px !important;
+  border-color: rgba(34, 211, 238, 0.9) !important;
+  border-style: solid !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::before {
+  top: -1.5px !important;
+  left: -1.5px !important;
+  border-width: 2.5px 0 0 2.5px !important;
+  border-top-left-radius: 4px !important;
+}
+
+div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::after {
+  bottom: -1.5px !important;
+  right: -1.5px !important;
+  border-width: 0 2.5px 2.5px 0 !important;
+  border-bottom-right-radius: 4px !important;
+}

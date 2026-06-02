@@ -27,7 +27,15 @@ import {
   Skull,
   Flame,
   Award,
-  Crown
+  Crown,
+  BookOpen,
+  Briefcase,
+  Clock,
+  Timer,
+  ChevronRight,
+  Trash2,
+  Pause,
+  Target
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG } from "../data";
@@ -47,7 +55,7 @@ interface RpgGameProps {
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
-  const [activeTab, setActiveTab] = useState<"status" | "quests" | "dungeons" | "shadows" | "skills" | "backpack">("status");
+  const [activeTab, setActiveTab] = useState<"status" | "quests" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge">("status");
   
   // Game States
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -80,7 +88,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       },
       job: "Fledgling Player",
       rank: "E-Rank",
-      inventory: [{ ...WEAPONS_DATABASE[0], equipped: true }], // Only start with rusty dagger
+      inventory: [], // Starts with 0 weapons as requested
       shadows: [...SHADOWS_LIST],
       skills: [...SKILLS_LIST],
       quests: [
@@ -110,6 +118,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [levelUpOverlay, setLevelUpOverlay] = useState<{ prevLevel: number; newLevel: number; statPointsEarned: number } | null>(null);
   const [showProfileDrawer, setShowProfileDrawer] = useState<boolean>(false);
   const [selectedWeaponDetails, setSelectedWeaponDetails] = useState<any>(null);
+  const maxSlots = Math.max(0, gameState.level - 1);
+  const emptySlotsCount = Math.max(0, maxSlots - gameState.inventory.length);
   const [isDailyAllocationClaimed, setIsDailyAllocationClaimed] = useState<boolean>(() => {
     return localStorage.getItem(`monarch_daily_claim_${playerName}`) === new Date().toDateString();
   });
@@ -121,6 +131,465 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setTimeout(() => {
       setSystemToast(prev => prev === msg ? null : prev);
     }, 4500);
+  };
+
+  // ==========================================
+  // LIFE FORGE PORTAL STATES & HOOKS
+  // ==========================================
+
+  // 1. Academic Quests
+  const [academicQuests, setAcademicQuests] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`monarch_acad_quests_${playerName}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: "acad_1", name: "Ultimate Exam Combat Plan", desc: "Revise high-priority syllabus chapters & practice previous year papers", target: 4, current: 0, completed: false },
+      { id: "acad_2", name: "Sovereign Coding Project Guild", desc: "Commit working modular code updates or architect functional user interfaces", target: 5, current: 0, completed: false }
+    ];
+  });
+
+  // 2. Bodybuilding Exercises Log
+  const [bodybuildingExercises, setBodybuildingExercises] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`monarch_body_lifts_${playerName}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: "lift_1", name: "Gatekeeper Squats / Leg Press", weight: "80kg", targetSets: 4, currentSets: 0, completed: false },
+      { id: "lift_2", name: "Unbreakable Chest Bench Press", weight: "60kg", targetSets: 4, currentSets: 0, completed: false },
+      { id: "lift_3", name: "Deadlift (Monarch Pull)", weight: "100kg", targetSets: 3, currentSets: 0, completed: false }
+    ];
+  });
+
+  const [intakeCalories, setIntakeCalories] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_calories_${playerName}`);
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  });
+
+  const [intakeProtein, setIntakeProtein] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_protein_${playerName}`);
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  });
+
+  // 3. Career Milestones Tracker
+  const [careerMilestones, setCareerMilestones] = useState<any>(() => {
+    const saved = localStorage.getItem(`monarch_career_stones_${playerName}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      resumeScore: 0,       // 0 or 1
+      portfolioProjects: 0, // 0 to 2
+      recruiterOutreach: 0, // 0 to 5
+      leetcodeGrind: 0      // 0 to 10
+    };
+  });
+
+  // 4. Job Guild Applications Log
+  const [jobApplications, setJobApplications] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`monarch_job_apps_${playerName}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: "job_1", company: "Aegis Guild Corp", role: "Junior Software Engineer", status: "Applied", notes: "Initial screening recruiter outreach completed" }
+    ];
+  });
+
+  // 5. Pomodoro Focus Timer States
+  const [focusSecs, setFocusSecs] = useState<number>(1500);
+  const [focusTarget, setFocusTarget] = useState<number>(1500);
+  const [focusIsActive, setFocusIsActive] = useState<boolean>(false);
+  const [focusInterval, setFocusInterval] = useState<"Work" | "Break">("Work");
+  const [focusAmbient, setFocusAmbient] = useState<string>("Abyssal Silence");
+  const [focusLogs, setFocusLogs] = useState<string[]>(() => {
+    const saved = localStorage.getItem(`monarch_focus_logs_${playerName}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return ["Initialized focus terminal in Chamber of Scholar Wisdom."];
+  });
+
+  // Local Form Input states (so we don't pollute the general scope)
+  const [newAcadName, setNewAcadName] = useState("");
+  const [newAcadDesc, setNewAcadDesc] = useState("");
+  const [newAcadTarget, setNewAcadTarget] = useState<number>(3);
+
+  const [newLiftName, setNewLiftName] = useState("");
+  const [newLiftWeight, setNewLiftWeight] = useState("");
+  const [newLiftSets, setNewLiftSets] = useState<number>(4);
+
+  const [newJobCompany, setNewJobCompany] = useState("");
+  const [newJobRole, setNewJobRole] = useState("");
+  const [newJobStatus, setNewJobStatus] = useState("Applied");
+  const [newJobNotes, setNewJobNotes] = useState("");
+
+  // ==========================================
+  // SYNC LIFECYCLE FOR FORGE PERSISTENCE
+  // ==========================================
+  useEffect(() => {
+    localStorage.setItem(`monarch_acad_quests_${playerName}`, JSON.stringify(academicQuests));
+  }, [academicQuests, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_body_lifts_${playerName}`, JSON.stringify(bodybuildingExercises));
+  }, [bodybuildingExercises, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_calories_${playerName}`, intakeCalories.toString());
+  }, [intakeCalories, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_protein_${playerName}`, intakeProtein.toString());
+  }, [intakeProtein, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_career_stones_${playerName}`, JSON.stringify(careerMilestones));
+  }, [careerMilestones, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_job_apps_${playerName}`, JSON.stringify(jobApplications));
+  }, [jobApplications, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_focus_logs_${playerName}`, JSON.stringify(focusLogs));
+  }, [focusLogs, playerName]);
+
+  // Pomodoro interval ticker
+  useEffect(() => {
+    let intervalId: any = null;
+    if (focusIsActive && focusSecs > 0) {
+      intervalId = setInterval(() => {
+        setFocusSecs(prev => prev - 1);
+      }, 1000);
+    } else if (focusSecs === 0 && focusIsActive) {
+      setFocusIsActive(false);
+      handleFocusTimerCompletion();
+    }
+    return () => clearInterval(intervalId);
+  }, [focusIsActive, focusSecs]);
+
+  // Audio synthethic alert chime
+  const playSovereignChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc1.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.35); // G5
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.6);
+      
+      setTimeout(() => {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        osc2.frequency.exponentialRampToValueAtTime(1046.50, ctx.currentTime + 0.25); // C6
+        gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc2.start();
+        osc2.stop(ctx.currentTime + 0.5);
+      }, 200);
+    } catch (e) {
+      // Inaudible if environment does not support AudioContext inside sandboxes
+    }
+  };
+
+  // Pomodoro completion routine
+  const handleFocusTimerCompletion = () => {
+    playSovereignChime();
+    const durationMins = Math.round(focusTarget / 60);
+    const expAward = durationMins * 3;
+    const goldAward = durationMins * 2;
+
+    // Grant rewards
+    addExp(expAward);
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + goldAward
+    }));
+
+    // Update Academic Quests
+    setAcademicQuests(prev => {
+      return prev.map(q => {
+        if (!q.completed) {
+          const nextVal = Math.min(q.target, q.current + 1);
+          const comp = nextVal >= q.target;
+          if (comp && !q.completed) {
+            triggerSystemToast(`🏆 ACADEMIC ASCENSION: "${q.name}" completed! permanent INT +1 added!`);
+            // Add permanent intelligence stat
+            setGameState(p => ({
+              ...p,
+              baseStats: {
+                ...p.baseStats,
+                intelligence: p.baseStats.intelligence + 1
+              }
+            }));
+          }
+          return { ...q, current: nextVal, completed: comp };
+        }
+        return q;
+      });
+    });
+
+    const newLog = `Completed a ${durationMins}m ${focusInterval} focus duel using ambient "${focusAmbient}". Gained +${expAward} EXP & +${goldAward} CG.`;
+    setFocusLogs(prev => [newLog, ...prev.slice(0, 30)]);
+    triggerSystemToast(`🔮 FOCUS MATRIX RESTORED: Gained +${expAward} EXP and +${goldAward} CG! Academic focus has sharpened!`);
+  };
+
+  const [forgeSubTab, setForgeSubTab] = useState<"academics" | "fitness" | "career">("academics");
+
+  // Helper stats boosters
+  const addStrengthPoints = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      baseStats: { ...prev.baseStats, strength: prev.baseStats.strength + amt }
+    }));
+  };
+
+  const addIntellectPoints = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      baseStats: { ...prev.baseStats, intelligence: prev.baseStats.intelligence + amt }
+    }));
+  };
+
+  const addPerceptionPoints = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      baseStats: { ...prev.baseStats, perception: prev.baseStats.perception + amt }
+    }));
+  };
+
+  const addAgilityPoints = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      baseStats: { ...prev.baseStats, agility: prev.baseStats.agility + amt }
+    }));
+  };
+
+  const addVitalityPoints = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      baseStats: { ...prev.baseStats, vitality: prev.baseStats.vitality + amt }
+    }));
+  };
+
+  const awardGold = (amt: number) => {
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + amt
+    }));
+  };
+
+  // 1. Academics Handlers
+  const addAcademicQuest = () => {
+    if (!newAcadName.trim() || !newAcadDesc.trim()) {
+      triggerSystemToast("⚠️ Form incomplete! Enter a name and syllabus details.");
+      return;
+    }
+    const newQuest = {
+      id: `acad_custom_${Date.now()}`,
+      name: newAcadName,
+      desc: newAcadDesc,
+      target: newAcadTarget || 3,
+      current: 0,
+      completed: false
+    };
+    setAcademicQuests(prev => [...prev, newQuest]);
+    setNewAcadName("");
+    setNewAcadDesc("");
+    setNewAcadTarget(3);
+    triggerSystemToast("📖 ACADEMIC OBJECTIVE SET: Inscribed syllabus blueprint onto your memory logs!");
+  };
+
+  const deleteAcademicQuest = (id: string) => {
+    setAcademicQuests(prev => prev.filter(q => q.id !== id));
+    triggerSystemToast("🗑️ OBJECTIVE DISINTEGRATED: Dissolved scholarship task.");
+  };
+
+  const incrementAcademicQuest = (id: string, amt: number) => {
+    setAcademicQuests(prev => prev.map(q => {
+      if (q.id === id) {
+        const nextVal = Math.min(q.target, q.current + amt);
+        const comp = nextVal >= q.target;
+        if (comp && !q.completed) {
+          playLootSound();
+          addExp(100);
+          awardGold(50);
+          addIntellectPoints(1);
+          triggerSystemToast(`🔮 INT EXPANSION: "${q.name}" cleared! permanent Intelligence +1 point obtained!`);
+        } else {
+          playSelectSound();
+        }
+        return { ...q, current: nextVal, completed: comp };
+      }
+      return q;
+    }));
+  };
+
+  // 2. Bodybuilding Handlers
+  const addLiftWorkout = () => {
+    if (!newLiftName.trim() || !newLiftWeight.trim()) {
+      triggerSystemToast("⚠️ Gym module incomplete! Enter target exercise & load weight.");
+      return;
+    }
+    const newLift = {
+      id: `lift_custom_${Date.now()}`,
+      name: newLiftName,
+      weight: newLiftWeight,
+      targetSets: newLiftSets || 4,
+      currentSets: 0,
+      completed: false
+    };
+    setBodybuildingExercises(prev => [...prev, newLift]);
+    setNewLiftName("");
+    setNewLiftWeight("");
+    setNewLiftSets(4);
+    triggerSystemToast("🏋️ PHYSIQUE SPEC SET: Added specialized heavy set benchmark.");
+  };
+
+  const deleteLiftWorkout = (id: string) => {
+    setBodybuildingExercises(prev => prev.filter(l => l.id !== id));
+    triggerSystemToast("🗑️ EXERCISE REMOVED: Deleted training benchmark.");
+  };
+
+  const incrementLiftSet = (id: string) => {
+    setBodybuildingExercises(prev => prev.map(l => {
+      if (l.id === id) {
+        const nextVal = Math.min(l.targetSets, l.currentSets + 1);
+        const comp = nextVal >= l.targetSets;
+        if (comp && !l.completed) {
+          playLootSound();
+          addExp(75);
+          awardGold(45);
+          // Randomly reward STR or VIT
+          const isStr = Math.random() > 0.5;
+          if (isStr) {
+            addStrengthPoints(1);
+            triggerSystemToast(`💪 STR POWER-UP: "${l.name}" completed! Strength +1 point unlocked!`);
+          } else {
+            addVitalityPoints(1);
+            triggerSystemToast(`❤️ VIT ALTITUDE: "${l.name}" completed! Vitality +1 point unlocked!`);
+          }
+        } else {
+          playDaggerSwipe();
+          triggerSystemToast(`🔥 SET RECORDED: Set ${nextVal}/${l.targetSets} of ${l.name} logged.`);
+        }
+        return { ...l, currentSets: nextVal, completed: comp };
+      }
+      return l;
+    }));
+  };
+
+  // 3. Career Handlers
+  const completeResumeObjective = () => {
+    if (careerMilestones.resumeScore > 0) return;
+    playLootSound();
+    addExp(100);
+    awardGold(50);
+    addAgilityPoints(1);
+    setCareerMilestones(prev => ({ ...prev, resumeScore: 1 }));
+    triggerSystemToast("💼 CAREER MILESTONE: Resume Refactoring Cleared! Agility +1!");
+  };
+
+  const incrementPortfolioProjects = () => {
+    if (careerMilestones.portfolioProjects >= 2) return;
+    playLootSound();
+    const nextVal = careerMilestones.portfolioProjects + 1;
+    addExp(150);
+    awardGold(75);
+    addIntellectPoints(2);
+    setCareerMilestones(prev => ({ ...prev, portfolioProjects: nextVal }));
+    triggerSystemToast(`💼 SYSTEM ARCHITECTURE: Portfolio project ${nextVal}/2 published! Intelligence +2!`);
+  };
+
+  const incrementRecruiterOutreach = () => {
+    if (careerMilestones.recruiterOutreach >= 5) return;
+    playSelectSound();
+    const nextVal = careerMilestones.recruiterOutreach + 1;
+    awardGold(15);
+    if (nextVal === 5) {
+      playLootSound();
+      addExp(150);
+      addPerceptionPoints(2);
+      triggerSystemToast("💼 NETWORKING CONQUERED: 5 LinkedIn connections completed! Perception +2!");
+    } else {
+      triggerSystemToast(`💼 SOCIAL LINK: Recruiter outreach conversation logged (${nextVal}/5)`);
+    }
+    setCareerMilestones(prev => ({ ...prev, recruiterOutreach: nextVal }));
+  };
+
+  const incrementLeetcodeGrind = () => {
+    if (careerMilestones.leetcodeGrind >= 10) return;
+    playSelectSound();
+    const nextVal = careerMilestones.leetcodeGrind + 1;
+    awardGold(20);
+    if (nextVal === 10) {
+      playLootSound();
+      addExp(300);
+      addIntellectPoints(3);
+      triggerSystemToast("💼 ALGORITHMIC MARSHAL: Cleared 10 complex problem battles! Intelligence +3!");
+    } else {
+      triggerSystemToast(`💼 PUZZLE CLEARED: Algorithmic problem solved (${nextVal}/10)`);
+    }
+    setCareerMilestones(prev => ({ ...prev, leetcodeGrind: nextVal }));
+  };
+
+  const addJobApplication = () => {
+    if (!newJobCompany.trim() || !newJobRole.trim()) {
+      triggerSystemToast("⚠️ Form incomplete! Enter recruitment company & job title.");
+      return;
+    }
+    const newApp = {
+      id: `job_custom_${Date.now()}`,
+      company: newJobCompany,
+      role: newJobRole,
+      status: newJobStatus,
+      notes: newJobNotes || "Applied via guild board recruitment channels"
+    };
+    setJobApplications(prev => [...prev, newApp]);
+    awardGold(35);
+    addExp(15);
+    setNewJobCompany("");
+    setNewJobRole("");
+    setNewJobNotes("");
+    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +35 Gold and +15 EXP!`);
+  };
+
+  const updateJobStatus = (id: string, nextStatus: string) => {
+    setJobApplications(prev => prev.map(app => {
+      if (app.id === id) {
+        if (nextStatus === "Offer Unlocked" && app.status !== "Offer Unlocked") {
+          playSovereignChime();
+          addExp(1000);
+          awardGold(1000);
+          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +1000 Gold minted!");
+        } else {
+          playSelectSound();
+          triggerSystemToast(`💼 APPLICATION STATUS: ${app.company} status updated to [${nextStatus}].`);
+        }
+        return { ...app, status: nextStatus };
+      }
+      return app;
+    }));
+  };
+
+  const deleteJobApplication = (id: string) => {
+    setJobApplications(prev => prev.filter(app => app.id !== id));
+    triggerSystemToast("🗑️ APPLICATION EXPUNGED: Removed job entry from databases.");
   };
 
   // Auto-save whenever gameState changes
@@ -165,66 +634,66 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 14) {
       return {
         title: "Battered Survivor",
-        colorClass: "from-slate-700/75 via-zinc-800/75 to-stone-900/75 border-zinc-700 backdrop-blur-md",
+        colorClass: "from-slate-700/35 via-zinc-800/35 to-stone-900/35 border-zinc-700/40 backdrop-blur-lg",
         auraStyle: "opacity-20 hover:opacity-30",
         effectText: "Fragile battle bandages & dimmed grey outline active.",
         desc: "Exhibits wounds and a shattered posture from survival in the hidden Temple.",
         eyes: "opacity-10 text-slate-500",
-        graphics: "border-slate-800 bg-slate-950/40"
+        graphics: "border-slate-800/30 bg-slate-950/20"
       };
     }
     if (lv <= 29) {
       return {
         title: "Trail Challenger",
-        colorClass: "from-blue-950/75 via-slate-900/75 to-slate-950/75 border-blue-500/40 backdrop-blur-md",
-        auraStyle: "opacity-45 shadow-[shadow-blue-500/10_inset]",
+        colorClass: "from-blue-950/35 via-slate-900/35 to-slate-950/35 border-blue-500/30 backdrop-blur-lg",
+        auraStyle: "opacity-45 shadow-[shadow-blue-500/5_inset]",
         effectText: "Wounds fully healed. Glowing neon blue-tinted eyes.",
         desc: "Your energy circuit connects. Sleek physical posture and aura forms.",
         eyes: "opacity-100 text-cyan-400 animate-pulse",
-        graphics: "border-blue-500/20 bg-blue-950/20"
+        graphics: "border-blue-500/15 bg-blue-950/15"
       };
     }
     if (lv <= 47) {
       return {
         title: "Gatecrusher Specialist",
-        colorClass: "from-cyan-950/75 via-slate-900/75 to-indigo-950/75 border-cyan-400/40 backdrop-blur-md",
-        auraStyle: "opacity-60 shadow-[0_0_20px_rgba(34,211,238,0.15)]",
+        colorClass: "from-cyan-950/35 via-slate-900/35 to-indigo-950/35 border-cyan-400/30 backdrop-blur-lg",
+        auraStyle: "opacity-60 shadow-[0_0_20px_rgba(34,211,238,0.1)]",
         effectText: "Radiant deep cyan wings manifested. Pulsing circular energy rings.",
         desc: "Dimensional gravity bends around you. Capable of solo-clearing mid gates.",
         eyes: "opacity-100 text-cyan-300 animate-ping",
-        graphics: "border-cyan-500/40 bg-cyan-950/30"
+        graphics: "border-cyan-500/25 bg-cyan-950/15"
       };
     }
     if (lv <= 69) {
       return {
         title: "Shadow Overlord",
-        colorClass: "from-indigo-950/75 via-slate-950/75 to-indigo-900/75 border-indigo-400 backdrop-blur-md",
-        auraStyle: "opacity-80 shadow-[0_0_30px_rgba(129,140,248,0.25)]",
+        colorClass: "from-indigo-950/35 via-slate-950/35 to-indigo-900/35 border-indigo-400/30 backdrop-blur-lg",
+        auraStyle: "opacity-80 shadow-[0_0_30px_rgba(129,140,248,0.15)]",
         effectText: "Rich indigo shadow vapors. Horizontal crawl static discharges.",
         desc: "The darkness list obeys. Lightning sparks surge through carbon tissue armor plates.",
         eyes: "opacity-100 text-indigo-400",
-        graphics: "border-indigo-400 bg-indigo-950/30"
+        graphics: "border-indigo-400/20 bg-indigo-950/15"
       };
     }
     if (lv <= 89) {
       return {
         title: "Abyssal General",
-        colorClass: "from-violet-950/75 via-cyan-950/75 to-blue-950/75 border-cyan-400 backdrop-blur-md",
-        auraStyle: "opacity-95 shadow-[0_0_40px_rgba(34,211,238,0.4)]",
+        colorClass: "from-violet-950/35 via-cyan-950/35 to-blue-950/35 border-cyan-400/30 backdrop-blur-lg",
+        auraStyle: "opacity-95 shadow-[0_0_40px_rgba(34,211,238,0.25)]",
         effectText: "High-velocity cyan lightning mesh. Dark void power shockwaves.",
         desc: "Pure shadow force bends gravity inside dungeons. Absolute command.",
         eyes: "opacity-100 text-cyan-300",
-        graphics: "border-cyan-450 bg-cyan-950/40"
+        graphics: "border-cyan-450/25 bg-cyan-950/20"
       };
     }
     return {
       title: "Sovereign Monarch",
-      colorClass: "from-yellow-950/70 via-purple-950/70 to-slate-950/75 border-yellow-500/85 backdrop-blur-md shadow-lg shadow-yellow-500/10",
-      auraStyle: "opacity-100 shadow-[0_0_50px_rgba(234,179,8,0.5)]",
+      colorClass: "from-yellow-950/30 via-purple-950/30 to-slate-950/35 border-yellow-500/40 backdrop-blur-lg shadow-lg shadow-yellow-500/5",
+      auraStyle: "opacity-100 shadow-[0_0_50px_rgba(234,179,8,0.3)]",
       effectText: "Ethereal floating gold crown with violet amethysts. Infinite auras.",
       desc: "Cosmic level presence. Command legions in the hundreds of millions.",
       eyes: "opacity-100 text-purple-400",
-      graphics: "border-yellow-500 bg-purple-950/20"
+      graphics: "border-yellow-500/35 bg-purple-950/10"
     };
   };
 
@@ -462,10 +931,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     return (
       <svg 
         viewBox="0 0 80 80" 
-        className={`w-16 h-16 pointer-events-none mx-auto opacity-90 transition-all duration-300 ${animate ? "animate-pulse" : ""}`}
+        className={`w-16 h-16 pointer-events-none mx-auto transition-all duration-300 ${animate ? "animate-pulse" : ""}`}
       >
-        <g stroke={glowColor} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0px 0px 5px " + glowColor + ")" }}>
-          <path d={paths} />
+        <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+          {/* Layer 1: Massive thick background energy spill (4px blur) */}
+          <path d={paths} stroke={glowColor} strokeWidth="7.5" className="opacity-55" style={{ filter: "blur(4.5px)" }} />
+          {/* Layer 2: Core hot neon outline (1px blur) */}
+          <path d={paths} stroke={glowColor} strokeWidth="4" className="opacity-85" style={{ filter: "blur(1.2px)" }} />
+          {/* Layer 3: High intensity luminous pure-white wire code core */}
+          <path d={paths} stroke="#ffffff" strokeWidth="1.5" className="opacity-95" />
         </g>
       </svg>
     );
@@ -476,8 +950,21 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const shopMeta = WEAPON_SHOP_DETAILS[itemId];
     if (!shopMeta) return;
 
-    if (gameState.level < shopMeta.levelReq || gameState.gold < shopMeta.cost) {
+    if (gameState.level < shopMeta.levelReq) {
+      triggerSystemToast(`⚠️ SYSTEM GATE LOCKED: level ${shopMeta.levelReq} required to acquire this blueprint!`);
       return; 
+    }
+
+    if (gameState.gold < shopMeta.cost) {
+      triggerSystemToast(`⚠️ RESOURCE ERR: Insufficient gold! Required: ${shopMeta.cost} CG.`);
+      return;
+    }
+
+    // Dynamic slot ceiling limits (starts at 0 slots for level 1, increases by +1 slot each level)
+    const maxSlots = Math.max(0, gameState.level - 1);
+    if (gameState.inventory.length >= maxSlots) {
+      triggerSystemToast(`⚠️ INVENTORY SPACE CAP: Backpack is full (${gameState.inventory.length}/${maxSlots} slots). Level up to expand storage capacity!`);
+      return;
     }
 
     const template = WEAPONS_DATABASE.find(w => w.id === itemId);
@@ -494,6 +981,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         inventory: [...prev.inventory, { ...template, equipped: false }]
       };
     });
+    triggerSystemToast(`🔮 ARSENAL EXPANSION: Successfully integrated ${template.name} into your spatial compartment!`);
   };
 
   // Equipment selection
@@ -723,7 +1211,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
       
       {/* Header Panel */}
-      <header className="p-4 border-b border-slate-900/60 bg-slate-950/75 backdrop-blur-md sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
+      <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div id="glow_brand_badge" className="p-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-xl">
             <Crown className="w-5 h-5 text-white animate-pulse" />
@@ -949,6 +1437,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {[
               { id: "status", label: "Status" },
               { id: "quests", label: "Quests" },
+              { id: "life_forge", label: "Life Forge" },
               { id: "dungeons", label: "Gates" },
               { id: "shadows", label: "Shadows" },
               { id: "skills", label: "Skill-Tree" },
@@ -1520,63 +2009,119 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {/* F. BACKPACK TAB: Armour weapon repository */}
             {activeTab === "backpack" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                
-                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
-                  <span className="text-[10px] font-mono text-cyan-400 uppercase block tracking-wider font-extrabold mb-1">Secure spatial luggage</span>
-                  <h3 className="font-extrabold text-lg">SHADOW ARSENAL & SHOP</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
-                    Purchase and unlock legendary armaments released via spatial leveling. Clicking on any armament displays its blue neon-bordered abilities detail sheet.
-                  </p>
-                </div>
-
-                {/* Subsections: Owned Arsenal vs System Store */}
-                <div className="space-y-8">
                   
-                  {/* PART 1: OWNED ARSENAL */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 border-b border-slate-900 pb-2">
-                      <Sword className="w-4 h-4 text-cyan-400" />
-                      <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">ACTIVE ARSENAL ({gameState.inventory.length})</h4>
-                    </div>
-
-                    <div id="backpack_items_list" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {gameState.inventory.map((item) => (
-                        <div 
-                          key={item.id} 
-                          className="group relative bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300"
-                          onClick={() => setSelectedWeaponDetails(item)}
-                        >
-                          {/* Inner soft glow if equipped */}
-                          {item.equipped && (
-                            <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
-                          )}
-                          
-                          <div className="flex-1 space-y-2 pr-4">
-                            <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-500">
-                              <span>Rank: {item.rarity}</span>
-                              {item.equipped && <span className="text-cyan-400">EQUIPPED</span>}
-                            </div>
-                            <h4 className="text-sm font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">{item.name}</h4>
-                            <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-1">{item.description}</p>
-                            
-                            {item.statBonus && (
-                              <div className="text-[9px] text-cyan-400 font-bold space-x-2">
-                                {item.statBonus.strength && <span>+{item.statBonus.strength} STR</span>}
-                                {item.statBonus.agility && <span>+{item.statBonus.agility} AGI</span>}
-                                {item.statBonus.vitality && <span>+{item.statBonus.vitality} VIT</span>}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Neon Blue Weapon Preview */}
-                          <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
-                            {renderNeonWeaponPreview(item.id, item.equipped)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                    <span className="text-[10px] font-mono text-cyan-400 uppercase block tracking-wider font-extrabold mb-1">Secure spatial luggage</span>
+                    <h3 className="font-extrabold text-lg">SHADOW ARSENAL & SHOP</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
+                      Purchase and unlock legendary armaments released via spatial leveling. Clicking on any armament displays its blue neon-bordered abilities detail sheet. Your backpack expands as you level up!
+                    </p>
                   </div>
+
+                  {/* Subsections: Owned Arsenal vs System Store */}
+                  <div className="space-y-8">
+                    
+                    {/* PART 1: OWNED ARSENAL */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Sword className="w-4 h-4 text-cyan-400" />
+                          <h4 className="text-xs font-bold font-mono tracking-widest text-slate-200 uppercase">ACTIVE ARSENAL ({gameState.inventory.length} / {maxSlots} Slots)</h4>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">Level {gameState.level}: {maxSlots} Max Slots</span>
+                      </div>
+
+                      {maxSlots === 0 ? (
+                        <div className="bg-slate-950/50 border border-slate-900 border-dashed rounded-3xl p-8 text-center font-mono space-y-4">
+                          <div className="w-12 h-12 mx-auto rounded-full bg-slate-950/80 border border-red-500/20 flex items-center justify-center relative shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                            <Lock className="w-5 h-5 text-red-500 animate-pulse" />
+                          </div>
+                          <span className="text-[9px] text-red-500 tracking-widest font-black uppercase block">DIMENSIONAL LOCKOUT</span>
+                          <h4 className="font-extrabold text-white text-sm">SPATIAL BACKPACK STORAGE UNMANIFESTED</h4>
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                            Your level molecular density is too sparse. Standard Level-1 Player lacks backpack boundary parameters. <strong className="text-cyan-400">Reach Level 2</strong> to expand 1 space slot (+1 slot added with every level up).
+                          </p>
+                        </div>
+                      ) : (
+                        <div id="backpack_items_list" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* 1. Owned items */}
+                          {gameState.inventory.map((item) => (
+                            <div 
+                              key={item.id} 
+                              className="group relative bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300 animate-fade-in"
+                              onClick={() => setSelectedWeaponDetails(item)}
+                            >
+                              {/* Inner soft glow if equipped */}
+                              {item.equipped && (
+                                <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
+                              )}
+                              
+                              <div className="flex-1 space-y-2 pr-4">
+                                <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-400">
+                                  <span>Rank: {item.rarity}</span>
+                                  {item.equipped && <span className="text-cyan-400 font-extrabold">EQUIPPED</span>}
+                                </div>
+                                <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">{item.name}</h4>
+                                <p className="text-[10px] text-slate-350 leading-relaxed line-clamp-1">{item.description}</p>
+                                
+                                {item.statBonus && (
+                                  <div className="text-[9px] text-cyan-400 font-bold space-x-2">
+                                    {item.statBonus.strength && <span>+{item.statBonus.strength} STR</span>}
+                                    {item.statBonus.agility && <span>+{item.statBonus.agility} AGI</span>}
+                                    {item.statBonus.vitality && <span>+{item.statBonus.vitality} VIT</span>}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Neon Blue Weapon Preview */}
+                              <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
+                                {renderNeonWeaponPreview(item.id, item.equipped)}
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* 2. Interactive Empty Slots */}
+                          {emptySlotsCount > 0 && Array.from({ length: emptySlotsCount }).map((_, idx) => (
+                            <div 
+                              key={`empty-slot-${idx}`} 
+                              className="border border-dashed border-slate-800/60 bg-slate-950/10 p-5 rounded-2xl flex items-center justify-between font-mono text-xs text-slate-500 h-[104px] relative group hover:border-cyan-500/20 hover:bg-slate-950/20 transition-all duration-300"
+                            >
+                              <div className="flex flex-col gap-1 pr-4">
+                                <span className="text-[9px] text-slate-500 uppercase tracking-widest">VACANT SPACE</span>
+                                <h4 className="text-xs font-bold text-slate-400">EMPTY SLOT {gameState.inventory.length + idx + 1}</h4>
+                                <p className="text-[9px] text-slate-500">Unused spatial storage buffer cell</p>
+                              </div>
+                              <div className="w-16 h-16 rounded-xl border border-dashed border-slate-800 flex items-center justify-center p-1.5 bg-slate-950/30">
+                                <Plus className="w-4 h-4 text-slate-600 group-hover:text-cyan-500 group-hover:scale-110 transition-all" />
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* 3. Locked slots preview (shows next 2 slot benchmarks) */}
+                          {Array.from({ length: 2 }).map((_, idx) => {
+                            const nextLvl = gameState.level + idx + 1;
+                            return (
+                              <div 
+                                key={`locked-benchmark-${idx}`}
+                                className="border border-dashed border-red-950/20 bg-slate-950/5 p-5 rounded-2xl flex items-center justify-between font-mono text-xs text-slate-600 h-[104px] relative opacity-45"
+                              >
+                                <div className="flex flex-col gap-1 pr-4">
+                                  <span className="text-[9px] text-red-500/80 uppercase tracking-widest font-bold">LOCKED SPACE</span>
+                                  <h4 className="text-xs font-bold text-slate-500">DYNAMIC SLOT {maxSlots + idx + 1}</h4>
+                                  <p className="text-[9px] text-slate-600">Locked inside level progression bounds</p>
+                                </div>
+                                <div className="w-16 h-16 rounded-xl border border-dashed border-red-950/20 flex flex-col items-center justify-center p-1 bg-slate-950/30">
+                                  <Lock className="w-3.5 h-3.5 text-red-500/50 mb-0.5" />
+                                  <span className="text-[8px] text-cyan-500 font-extrabold uppercase scale-90">LV {nextLvl}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
 
                   {/* PART 2: SYSTEM SHOP */}
                   <div className="space-y-4">

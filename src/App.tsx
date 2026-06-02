@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import Onboarding from "./components/Onboarding";
 import PlanPreview from "./components/PlanPreview";
 import RpgGame from "./components/RpgGame";
+import CosmicBackground from "./components/CosmicBackground";
 import { OnboardingData } from "./types";
 
 type AppPhase = "onboarding" | "plan_preview" | "rpg_dashboard";
@@ -61,21 +62,8 @@ export default function App() {
   return (
     <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-x-hidden">
       
-      {/* Immersive Global Background Video Loop */}
-      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden select-none">
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
-          className="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-1000"
-        >
-          <source src="/assets/background.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-star-portal-in-blue-and-purple-colors-41682-large.mp4" type="video/mp4" />
-        </video>
-        {/* Dynamic Dark Blue Cosmic Atmosphere Vignette */}
-        <div className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px] bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.05)_0%,rgba(2,6,23,0.7)_100%)]" />
-      </div>
+      {/* Dynamic Cosmic Background & Particle Fallback Layer */}
+      <CosmicBackground />
 
       <div className="relative z-10 w-full h-full">
         {phase === "onboarding" && (
