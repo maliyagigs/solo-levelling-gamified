@@ -56,13 +56,6 @@ interface OnboardingProps {
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState<number>(0); 
-  const [playedIntroVideo, setPlayedIntroVideo] = useState<boolean>(false);
-  const [videoStarted, setVideoStarted] = useState<boolean>(false);
-
-  const finishIntroVideo = () => {
-    setPlayedIntroVideo(true);
-  };
-
   const [showSystemPopup, setShowSystemPopup] = useState<boolean>(false);
   const [declineWarning, setDeclineWarning] = useState<boolean>(false);
 
@@ -229,42 +222,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     };
     onComplete(finalData);
   };
-
-  if (!playedIntroVideo) {
-    return (
-      <div 
-        id="intro_video_container" 
-        className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center overflow-hidden select-none font-mono text-white pointer-events-none"
-      >
-        <div className="relative w-screen h-screen bg-black overflow-hidden">
-          {/* Black overlay that blocks any control or play button flashes, smoothly fading once loaded/playing */}
-          <div 
-            className={`absolute inset-0 bg-black transition-opacity duration-[1000ms] pointer-events-none z-30 ${
-              videoStarted ? "opacity-0" : "opacity-100"
-            }`}
-          />
-
-          {/* Local background video with object-cover, autoplay, muted, playsinline */}
-          <div className="absolute inset-0 overflow-hidden bg-black pointer-events-none">
-            <video
-              src="/assets/intro.mp4"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              autoPlay
-              muted
-              playsInline
-              onPlay={() => setVideoStarted(true)}
-              onTimeUpdate={(e) => {
-                if (e.currentTarget.currentTime > 0.1 && !videoStarted) {
-                  setVideoStarted(true);
-                }
-              }}
-              onEnded={() => finishIntroVideo()}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div id="onboarding_container" className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-hidden font-sans select-none">
