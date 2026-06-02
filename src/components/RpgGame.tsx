@@ -165,7 +165,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 14) {
       return {
         title: "Battered Survivor",
-        colorClass: "from-slate-700 via-zinc-800 to-stone-900 border-zinc-700",
+        colorClass: "from-slate-700/75 via-zinc-800/75 to-stone-900/75 border-zinc-700 backdrop-blur-md",
         auraStyle: "opacity-20 hover:opacity-30",
         effectText: "Fragile battle bandages & dimmed grey outline active.",
         desc: "Exhibits wounds and a shattered posture from survival in the hidden Temple.",
@@ -176,7 +176,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 29) {
       return {
         title: "Trail Challenger",
-        colorClass: "from-blue-950 via-slate-900 to-slate-950 border-blue-500/40",
+        colorClass: "from-blue-950/75 via-slate-900/75 to-slate-950/75 border-blue-500/40 backdrop-blur-md",
         auraStyle: "opacity-45 shadow-[shadow-blue-500/10_inset]",
         effectText: "Wounds fully healed. Glowing neon blue-tinted eyes.",
         desc: "Your energy circuit connects. Sleek physical posture and aura forms.",
@@ -187,7 +187,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 47) {
       return {
         title: "Gatecrusher Specialist",
-        colorClass: "from-cyan-950 via-slate-900 to-indigo-950 border-cyan-400/40",
+        colorClass: "from-cyan-950/75 via-slate-900/75 to-indigo-950/75 border-cyan-400/40 backdrop-blur-md",
         auraStyle: "opacity-60 shadow-[0_0_20px_rgba(34,211,238,0.15)]",
         effectText: "Radiant deep cyan wings manifested. Pulsing circular energy rings.",
         desc: "Dimensional gravity bends around you. Capable of solo-clearing mid gates.",
@@ -198,7 +198,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 69) {
       return {
         title: "Shadow Overlord",
-        colorClass: "from-indigo-950 via-slate-950 to-indigo-900 border-indigo-400",
+        colorClass: "from-indigo-950/75 via-slate-950/75 to-indigo-900/75 border-indigo-400 backdrop-blur-md",
         auraStyle: "opacity-80 shadow-[0_0_30px_rgba(129,140,248,0.25)]",
         effectText: "Rich indigo shadow vapors. Horizontal crawl static discharges.",
         desc: "The darkness list obeys. Lightning sparks surge through carbon tissue armor plates.",
@@ -209,7 +209,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (lv <= 89) {
       return {
         title: "Abyssal General",
-        colorClass: "from-violet-950 via-cyan-950 to-blue-950 border-cyan-400",
+        colorClass: "from-violet-950/75 via-cyan-950/75 to-blue-950/75 border-cyan-400 backdrop-blur-md",
         auraStyle: "opacity-95 shadow-[0_0_40px_rgba(34,211,238,0.4)]",
         effectText: "High-velocity cyan lightning mesh. Dark void power shockwaves.",
         desc: "Pure shadow force bends gravity inside dungeons. Absolute command.",
@@ -219,7 +219,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
     return {
       title: "Sovereign Monarch",
-      colorClass: "from-yellow-950/20 via-purple-950/40 to-slate-950 border-yellow-500/85 shadow-lg shadow-yellow-500/10",
+      colorClass: "from-yellow-950/70 via-purple-950/70 to-slate-950/75 border-yellow-500/85 backdrop-blur-md shadow-lg shadow-yellow-500/10",
       auraStyle: "opacity-100 shadow-[0_0_50px_rgba(234,179,8,0.5)]",
       effectText: "Ethereal floating gold crown with violet amethysts. Infinite auras.",
       desc: "Cosmic level presence. Command legions in the hundreds of millions.",
@@ -723,7 +723,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
       
       {/* Header Panel */}
-      <header className="p-4 border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
+      <header className="p-4 border-b border-slate-900/60 bg-slate-950/75 backdrop-blur-md sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div id="glow_brand_badge" className="p-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-xl">
             <Crown className="w-5 h-5 text-white animate-pulse" />
@@ -861,13 +861,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
 
                   {/* Central Rank Badge Emblem in the middle of neon matrix */}
-                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/95 p-2 px-3 rounded-xl border transition-all duration-500 backdrop-blur-md shadow-2xl" style={{ borderColor: `${neonStyle.border}40`, boxShadow: `0 0 20px ${neonStyle.glow}` }}>
-                    <Crown className="w-3.5 h-3.5 mb-0.5 animate-pulse" style={{ color: neonStyle.border }} />
-                    <span 
-                      className={`text-[8px] font-black tracking-widest uppercase bg-gradient-to-r bg-clip-text text-transparent ${neonStyle.text}`}
-                    >
-                      {neonStyle.label}
-                    </span>
+                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/95 p-2 rounded-xl border transition-all duration-500 backdrop-blur-md shadow-2xl" style={{ borderColor: `${neonStyle.border}40`, boxShadow: `0 0 20px ${neonStyle.glow}` }}>
+                    <Crown className="w-4 h-4 animate-pulse" style={{ color: neonStyle.border }} />
                   </div>
                 </div>
 
@@ -879,16 +874,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </div>
             </div>
 
-            <div className="text-center space-y-1.5 z-10 relative">
-              <h3 className="text-xl font-extrabold tracking-wide uppercase font-mono">{currentTier.title}</h3>
-              <p className="text-xs text-indigo-300 font-mono font-bold leading-relaxed">{currentTier.effectText}</p>
-              <p className="text-[11px] text-slate-400 leading-relaxed font-sans">{currentTier.desc}</p>
-            </div>
+
+            {/* Titles removed as requested */}
 
           </div>
 
           {/* Level Exp Progress Section */}
-          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl font-mono text-xs space-y-3">
+          <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
             <div className="flex justify-between items-center text-[10px] text-slate-500">
               <span>PROGRESS TILL NEXT EVOLUTION</span>
               <span className="text-cyan-400 font-bold">{gameState.exp} / {gameState.maxExp} XP</span>
@@ -910,7 +902,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           </div>
 
           {/* Story Campaigns Indicator */}
-          <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl font-mono text-xs space-y-3">
+          <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
             <h4 className="text-[11px] uppercase font-bold text-slate-400">Campaign Story Milestones</h4>
             <div className="space-y-2 text-[11px]">
               
@@ -986,7 +978,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "status" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl relative overflow-hidden">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex justify-between items-center">
                     <div>
                       <span className="text-[10px] font-mono text-slate-500 uppercase block">Character stats matrices</span>
@@ -1027,7 +1019,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <button
                               id={`btn_upgrade_${stat.key}`}
                               disabled={gameState.statPoints <= 0}
-                              className="p-2 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-20 cursor-pointer text-xs font-bold"
+                              className="p-2 bg-slate-950/75 backdrop-blur-md border border-slate-800 rounded-lg hover:border-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-20 cursor-pointer text-xs font-bold"
                               onClick={() => upgradeStat(stat.key as any)}
                             >
                               <Plus className="w-4 h-4" />
@@ -1041,7 +1033,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl font-mono text-xs space-y-2">
+                  <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2">
                     <h4 className="text-[11px] font-bold text-slate-400 uppercase">Fitted Equipment parameters</h4>
                     {getEquippedWeapon() ? (
                       <div className="p-3 bg-slate-900/40 rounded-xl outline-dashed outline-1 outline-cyan-500/10">
@@ -1058,7 +1050,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     )}
                   </div>
 
-                  <div className="bg-slate-950 border border-slate-900 p-5 rounded-2xl font-mono text-xs space-y-2">
+                  <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2">
                     <h4 className="text-[11px] font-bold text-slate-400 uppercase">Awakening Archetype Info</h4>
                     <div className="space-y-1.5 text-[11px]">
                       <div className="flex justify-between">
@@ -1084,7 +1076,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "quests" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <span className="text-[10px] font-mono text-slate-500 uppercase block">Daily System Tasks</span>
@@ -1106,7 +1098,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {gameState.quests.map((quest) => {
                     const prgPercent = (quest.current / quest.target) * 100;
                     return (
-                      <div key={quest.id} className="bg-slate-950 border border-slate-900 p-5 rounded-2xl font-mono text-xs space-y-4">
+                      <div key={quest.id} className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4">
                         <div className="flex flex-wrap justify-between items-start gap-2">
                           <div>
                             <h4 className="text-sm font-bold text-slate-200">{quest.name}</h4>
@@ -1156,7 +1148,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </div>
 
                 {/* DAILY SOVEREIGN ALLOCATION & COMPLIANCE HUD PANEL */}
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl relative overflow-hidden flex flex-wrap justify-between items-center gap-4 font-mono">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl relative overflow-hidden flex flex-wrap justify-between items-center gap-4 font-mono backdrop-blur-md">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(234,179,8,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
                   <div className="flex-1 space-y-1">
                     <span className="text-[10px] text-yellow-500 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
@@ -1209,7 +1201,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 
                 {!isFighting ? (
                   <>
-                    <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl mb-6">
+                    <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md mb-6">
                       <span className="text-[10px] font-mono text-slate-500 uppercase block">Active Gate Entry Matrix</span>
                       <h3 className="font-extrabold text-lg">OPEN GATE RAIDS</h3>
                       <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
@@ -1223,10 +1215,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         return (
                           <div 
                             key={dung.id} 
-                            className={`bg-slate-950 border p-5 rounded-2xl flex flex-col justify-between transition-all font-mono text-xs ${
+                            className={`bg-slate-950/75 border border-slate-900/60 backdrop-blur-md p-5 rounded-2xl flex flex-col justify-between transition-all font-mono text-xs ${
                               isLocked 
-                                ? "border-slate-900/60 opacity-50" 
-                                : "border-slate-800 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-950/10"
+                                ? "opacity-50" 
+                                : "hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-950/10"
                             }`}
                           >
                             <div>
@@ -1275,7 +1267,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </>
                 ) : (
                   // COMBAT PANEL INTERACTIVE
-                  <div id="active_dungeon_panel" className="bg-slate-950 border border-slate-900 rounded-3xl overflow-hidden shadow-2xl relative">
+                  <div id="active_dungeon_panel" className="bg-slate-950/75 border border-slate-900 rounded-3xl overflow-hidden shadow-2xl relative backdrop-blur-md">
                     
                     <div className="p-4 bg-slate-900 border-b border-slate-900 flex justify-between items-center font-mono text-xs">
                       <span className="text-cyan-400 font-bold tracking-widest uppercase">ACTIVE GATE COMBAT ENGINE</span>
@@ -1331,7 +1323,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
 
                     {/* Combat Log Screen scrollable */}
-                    <div id="battle_narrative_display" className="p-4 h-60 bg-slate-950 font-mono text-xs space-y-2 overflow-y-auto border-b border-slate-900 text-left">
+                    <div id="battle_narrative_display" className="p-4 h-60 bg-slate-950/75 backdrop-blur-md font-mono text-xs space-y-2 overflow-y-auto border-b border-slate-900 text-left">
                       {battleLogs.map((log, index) => (
                         <div key={index} className="leading-relaxed text-slate-300">
                           <span className="text-indigo-400">&gt;</span> {log}
@@ -1349,7 +1341,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <div className="space-y-3 font-mono text-xs">
                               <span className="text-emerald-400 font-extrabold text-sm block tracking-widest">🏆 GATE CLEARED SUCCESSFULLY</span>
                               {earnedLoot && (
-                                <div className="max-w-xs mx-auto p-3.5 bg-slate-950 border border-emerald-900 rounded-xl space-y-2 leading-relaxed">
+                                <div className="max-w-xs mx-auto p-3.5 bg-slate-950/75 border border-emerald-900/60 rounded-xl space-y-2 leading-relaxed backdrop-blur-md">
                                   <div className="text-slate-300 text-[11px]">System Gold Claimed: <span className="text-yellow-400 font-bold font-mono">+{earnedLoot.gold} CG</span></div>
                                   <div className="text-slate-300 text-[11px]">Experience Gained: <span className="text-cyan-400 font-bold font-mono">+{earnedLoot.xp} XP</span></div>
                                   
@@ -1369,7 +1361,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           )}
 
                           <button
-                            className="bg-slate-950 border border-slate-800 text-slate-300 px-8 py-3 rounded-xl font-mono text-xs uppercase hover:bg-slate-900 cursor-pointer"
+                            className="bg-slate-950/75 border border-slate-800/80 text-slate-300 px-8 py-3 rounded-xl font-mono text-xs uppercase hover:bg-slate-900/80 backdrop-blur-md cursor-pointer"
                             onClick={leaveDungeon}
                           >
                             Return to Gates Sanctuary
@@ -1396,7 +1388,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             </button>
                             <button
                               id="btn_battle_shadows"
-                              className="px-6 py-3 bg-slate-950 border border-slate-800 text-slate-300 font-mono text-xs uppercase rounded-xl hover:text-white cursor-pointer"
+                              className="px-6 py-3 bg-slate-950/75 border border-slate-800/80 text-slate-300 font-mono text-xs uppercase rounded-xl hover:text-white backdrop-blur-md cursor-pointer"
                               onClick={() => executeCombatTurn("shadows")}
                             >
                               Shadow Army Support
@@ -1417,7 +1409,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "shadows" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <div className="flex flex-wrap justify-between items-center gap-3">
                     <div>
                       <span className="text-[10px] font-mono text-slate-500 uppercase block">Shadow spirits extraction system</span>
@@ -1442,7 +1434,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 <div id="shadows_market" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {gameState.shadows.map(shadow => (
-                    <div key={shadow.id} className="bg-slate-950 border border-slate-900 p-5 rounded-2xl flex justify-between items-center font-mono text-xs">
+                    <div key={shadow.id} className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex justify-between items-center font-mono text-xs">
                       <div className="space-y-1 text-left">
                         <span className="text-[8px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-bold">
                           {shadow.tier}
@@ -1477,7 +1469,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "skills" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <span className="text-[10px] font-mono text-slate-500 uppercase block font-bold">SPELLS & CONSCIOUSNESS MATRIX</span>
                   <h3 className="font-extrabold text-lg">SKILL TREE MATRIX</h3>
                   <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
@@ -1487,7 +1479,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 <div id="skills_grid" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {gameState.skills.map((skill) => (
-                    <div key={skill.id} className="bg-slate-950 border border-slate-900 p-5 rounded-2xl flex flex-col justify-between font-mono text-xs">
+                    <div key={skill.id} className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex flex-col justify-between font-mono text-xs">
                       <div>
                         <div className="flex justify-between text-[10px] text-slate-500 mb-2 font-semibold">
                           <span className="uppercase">{skill.category} Spell</span>
@@ -1529,7 +1521,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "backpack" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
-                <div className="bg-slate-950 border border-slate-900 p-6 rounded-2xl relative overflow-hidden">
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
                   <span className="text-[10px] font-mono text-cyan-400 uppercase block tracking-wider font-extrabold mb-1">Secure spatial luggage</span>
                   <h3 className="font-extrabold text-lg">SHADOW ARSENAL & SHOP</h3>
@@ -1552,7 +1544,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       {gameState.inventory.map((item) => (
                         <div 
                           key={item.id} 
-                          className="group relative bg-slate-950 border border-slate-900 p-5 rounded-2xl flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300"
+                          className="group relative bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300"
                           onClick={() => setSelectedWeaponDetails(item)}
                         >
                           {/* Inner soft glow if equipped */}
@@ -1602,10 +1594,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         return (
                           <div 
                             key={weaponTemplate.id} 
-                            className={`relative bg-slate-950 border p-5 rounded-2xl flex items-center justify-between font-mono text-xs transition-all duration-300 ${
-                              isOwned ? "border-slate-900 opacity-65" : 
-                              !isUnlocked ? "border-slate-950/40 opacity-40 bg-slate-900/10" : 
-                              "border-slate-800 hover:border-yellow-500/50 cursor-pointer"
+                            className={`relative bg-slate-950/75 border border-slate-900/60 backdrop-blur-md p-5 rounded-2xl flex items-center justify-between font-mono text-xs transition-all duration-300 ${
+                              isOwned ? "opacity-65" : 
+                              !isUnlocked ? "opacity-40 bg-slate-900/10" : 
+                              "hover:border-yellow-500/50 cursor-pointer"
                             }`}
                             onClick={() => {
                               if (!isOwned && isUnlocked) {
@@ -1669,14 +1661,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
             onClick={() => setSelectedWeaponDetails(null)}
           >
             <motion.div 
               initial={{ scale: 0.9, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 15 }}
-              className="w-full max-w-md bg-slate-950 border-2 border-cyan-400 p-6 rounded-3xl relative overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.45)] text-left font-mono cursor-default"
+              className="w-full max-w-md bg-slate-950/75 border-2 border-cyan-400 p-6 rounded-3xl relative overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.45)] text-left font-mono cursor-default backdrop-blur-md"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Cyber Matrix decorative grid inside modal */}
@@ -1881,7 +1873,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-end cursor-pointer"
+            className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex justify-end cursor-pointer"
             onClick={() => setShowProfileDrawer(false)}
           >
             <motion.div 
@@ -1889,7 +1881,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
-              className="w-full max-w-sm bg-slate-950 border-l border-slate-900 h-full flex flex-col justify-between overflow-y-auto z-50 p-6 relative cursor-default text-left font-mono"
+              className="w-full max-w-sm bg-slate-950/75 border-l border-slate-900 h-full flex flex-col justify-between overflow-y-auto z-50 p-6 relative cursor-default text-left font-mono backdrop-blur-md"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header panel inside Drawer */}

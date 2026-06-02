@@ -68,13 +68,13 @@ export default function App() {
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 w-full h-full object-cover opacity-20 transition-opacity duration-1000"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-1000"
         >
           <source src="/assets/background.mp4" type="video/mp4" />
           <source src="https://assets.mixkit.co/videos/preview/mixkit-star-portal-in-blue-and-purple-colors-41682-large.mp4" type="video/mp4" />
         </video>
         {/* Dynamic Dark Blue Cosmic Atmosphere Vignette */}
-        <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[2px] bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.1)_0%,rgba(2,6,23,0.92)_100%)]" />
+        <div className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px] bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.05)_0%,rgba(2,6,23,0.7)_100%)]" />
       </div>
 
       <div className="relative z-10 w-full h-full">
