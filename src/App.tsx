@@ -59,22 +59,41 @@ export default function App() {
   };
 
   return (
-    <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300">
-      {phase === "onboarding" && (
-        <Onboarding onComplete={handleOnboardingComplete} />
-      )}
+    <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-x-hidden">
+      
+      {/* Immersive Global Background Video Loop */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden select-none">
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          className="absolute inset-0 w-full h-full object-cover opacity-20 transition-opacity duration-1000"
+        >
+          <source src="/assets/background.mp4" type="video/mp4" />
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-star-portal-in-blue-and-purple-colors-41682-large.mp4" type="video/mp4" />
+        </video>
+        {/* Dynamic Dark Blue Cosmic Atmosphere Vignette */}
+        <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[2px] bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.1)_0%,rgba(2,6,23,0.92)_100%)]" />
+      </div>
 
-      {phase === "plan_preview" && profile && (
-        <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
-      )}
+      <div className="relative z-10 w-full h-full">
+        {phase === "onboarding" && (
+          <Onboarding onComplete={handleOnboardingComplete} />
+        )}
 
-      {phase === "rpg_dashboard" && profile && (
-        <RpgGame 
-          playerName={activePlayerName}
-          onboardProfile={profile}
-          onLogout={handleLogout}
-        />
-      )}
+        {phase === "plan_preview" && profile && (
+          <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
+        )}
+
+        {phase === "rpg_dashboard" && profile && (
+          <RpgGame 
+            playerName={activePlayerName}
+            onboardProfile={profile}
+            onLogout={handleLogout}
+          />
+        )}
+      </div>
     </div>
   );
 }

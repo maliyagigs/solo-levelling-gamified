@@ -230,6 +230,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   const currentTier = getVisualTier(gameState.level);
 
+  const neonStyle = (() => {
+    const lv = gameState.level;
+    if (lv <= 14) return { border: "rgba(234, 179, 8, 1)", glow: "rgba(234, 179, 8, 0.4)", text: "from-yellow-400 to-amber-500", label: "YELLOW NEON SIGNAL" };
+    if (lv <= 29) return { border: "rgba(249, 115, 22, 1)", glow: "rgba(249, 115, 22, 0.45)", text: "from-orange-400 to-orange-600", label: "ORANGE FLUX" };
+    if (lv <= 47) return { border: "rgba(6, 182, 212, 1)", glow: "rgba(6, 182, 212, 0.5)", text: "from-cyan-400 to-blue-600", label: "ICE CYAN RESONANCE" };
+    if (lv <= 69) return { border: "rgba(99, 102, 241, 1)", glow: "rgba(99, 102, 241, 0.55)", text: "from-blue-400 to-indigo-600", label: "INDIGO PULSAR" };
+    if (lv <= 89) return { border: "rgba(139, 92, 246, 1)", glow: "rgba(139, 92, 246, 0.6)", text: "from-indigo-400 to-violet-600", label: "VIOLET ECLIPSE" };
+    return { border: "rgba(236, 72, 153, 1)", glow: "rgba(236, 72, 153, 0.7)", text: "from-purple-400 via-fuchsia-500 to-cyan-500", label: "SOVEREIGN SINGULARITY" };
+  })();
+
   // Power Scaling calculation
   const getPowerScaling = (lv: number) => {
     if (lv <= 20) return { label: "Building Level", desc: "Can shatter small concrete structure pillars." };
@@ -710,7 +720,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   };
 
   return (
-    <div id="rpg_game_container" className="min-h-screen bg-slate-950 text-white flex flex-col font-sans select-none relative overflow-y-auto">
+    <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
       
       {/* Header Panel */}
       <header className="p-4 border-b border-slate-900 bg-slate-950/80 backdrop-blur sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
@@ -769,132 +779,94 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </span>
             </div>
 
-            {/* Animated High Impact Fire Evolution Flame */}
+            {/* Animated High Impact Neon Color Level Based Animation */}
             <div className="my-8 flex justify-center relative">
               <div className={`w-40 h-40 rounded-full border border-slate-900/60 flex items-center justify-center relative overflow-visible transition-all duration-700 bg-slate-950/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]`}>
                 
-                {/* Embedded animated flame elements */}
+                {/* Embedded animated holographic elements */}
                 <div className="relative w-full h-full flex items-center justify-center">
                   {/* Rotating portal circles behind */}
                   <div className="absolute inset-0 rounded-full border border-dashed border-cyan-500/10 animate-spin" style={{ animationDuration: "35s" }} />
                   <div className="absolute inset-2 rounded-full border border-dotted border-purple-500/10 animate-spin" style={{ animationDuration: "12s" }} />
 
-                  {/* Flame columns */}
-                  <div className="absolute bottom-4 flex items-end justify-center w-32 h-32 gap-1 overflow-visible">
-                    {/* Flame Core Left */}
-                    <motion.div 
-                      animate={{ 
-                        scaleY: [1, 1.25, 0.9, 1.15, 1],
-                        skewX: [-4, 6, -5, 4, -4],
-                        y: [0, -3, 1, -2, 0]
-                      }}
-                      transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-                      className={`w-6 h-20 bg-gradient-to-t ${
-                        gameState.level <= 14 ? "from-yellow-500 via-amber-500 to-red-600" :
-                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
-                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
-                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
-                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
-                        "from-purple-600 via-fuchsia-600 to-cyan-500"
-                      } rounded-t-full rounded-b-lg opacity-80 blur-[0.6px] origin-bottom`}
+                  {/* Concentric Neon Rings & Waves Level Animation */}
+                  <div className="absolute inset-0 flex items-center justify-center p-2 rounded-full overflow-hidden">
+                    {/* Pulsing neon center aura */}
+                    <div 
+                      className="absolute w-24 h-24 rounded-full transition-all duration-500 opacity-25 filter blur-xl animate-pulse"
+                      style={{ backgroundColor: neonStyle.border }}
                     />
                     
-                    {/* Flame Core Mid */}
+                    {/* Ring 1 - Outer slow neon circle */}
                     <motion.div 
-                      animate={{ 
-                        scaleY: [1.1, 1.45, 1.15, 1.35, 1.1],
-                        skewX: [2, -5, 3, -2, 2],
-                        y: [0, -5, 2, -3, 0]
-                      }}
-                      transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
-                      className={`w-10 h-26 bg-gradient-to-t ${
-                        gameState.level <= 14 ? "from-yellow-400 via-amber-500 to-red-600" :
-                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
-                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
-                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
-                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
-                        "from-purple-600 via-fuchsia-600 to-cyan-500"
-                      } rounded-t-full rounded-b-xl shadow-lg origin-bottom blur-[0.4px]`}
-                      style={{ 
-                        boxShadow: `0 0 25px ${
-                          gameState.level <= 14 ? "rgba(245, 158, 11, 0.6)" :
-                          gameState.level <= 29 ? "rgba(249, 115, 22, 0.7)" :
-                          gameState.level <= 47 ? "rgba(6, 182, 212, 0.75)" :
-                          gameState.level <= 69 ? "rgba(99, 102, 241, 0.8)" :
-                          gameState.level <= 89 ? "rgba(139, 92, 246, 0.85)" :
-                          "rgba(168, 85, 247, 0.95)"
-                        }` 
-                      }}
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+                      className="absolute w-32 h-32 rounded-full border border-dashed transition-all duration-500 opacity-40" 
+                      style={{ borderColor: neonStyle.border, boxShadow: `0 0 10px ${neonStyle.glow}` }}
                     />
 
-                    {/* Flame Core Right */}
+                    {/* Ring 2 - Inner fast neon circle with a cut-out border style */}
                     <motion.div 
-                      animate={{ 
-                        scaleY: [0.95, 1.2, 0.85, 1.1, 0.95],
-                        skewX: [5, -4, 4, -3, 5],
-                        y: [0, -2, 1, -1, 0]
-                      }}
-                      transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-                      className={`w-6 h-18 bg-gradient-to-t ${
-                        gameState.level <= 14 ? "from-yellow-500 via-amber-500 to-red-600" :
-                        gameState.level <= 29 ? "from-orange-400 via-amber-500 to-red-500" :
-                        gameState.level <= 47 ? "from-cyan-400 via-sky-500 to-blue-600" :
-                        gameState.level <= 69 ? "from-blue-500 via-indigo-500 to-purple-600" :
-                        gameState.level <= 89 ? "from-indigo-500 via-violet-600 to-purple-700" :
-                        "from-purple-600 via-fuchsia-600 to-cyan-500"
-                      } rounded-t-full rounded-b-lg opacity-80 blur-[0.6px] origin-bottom`}
+                      animate={{ rotate: -360 }}
+                      transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                      className="absolute w-24 h-24 rounded-full border-2 border-dotted transition-all duration-500 opacity-70" 
+                      style={{ borderColor: neonStyle.border, boxShadow: `inset 0 0 15px ${neonStyle.glow}, 0 0 15px ${neonStyle.glow}` }}
                     />
+
+                    {/* Shockwave Active Pulse Rings expanding outward */}
+                    {[...Array(3)].map((_, idx) => (
+                      <motion.div
+                        key={idx}
+                        className="absolute rounded-full border transition-all duration-500"
+                        style={{ borderColor: neonStyle.border }}
+                        initial={{ scale: 0.6, opacity: 0.8 }}
+                        animate={{ 
+                          scale: [0.6, 1.5],
+                          opacity: [0.8, 0],
+                        }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.5,
+                          delay: idx * 0.8,
+                          ease: "easeOut"
+                        }}
+                      />
+                    ))}
+
+                    {/* Orbiting Tech Coordinates (Neon points) */}
+                    {[...Array(4)].map((_, idx) => {
+                      const angle = (idx * Math.PI) / 2;
+                      const radius = 48;
+                      return (
+                        <motion.div
+                          key={`coord-${idx}`}
+                          className="absolute w-1.5 h-1.5 rounded-full transition-all duration-500"
+                          style={{
+                            backgroundColor: neonStyle.border,
+                            boxShadow: `0 0 10px ${neonStyle.glow}`,
+                            x: radius * Math.cos(angle),
+                            y: radius * Math.sin(angle),
+                          }}
+                          animate={{ 
+                            scale: [0.8, 1.4, 0.8]
+                          }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 2,
+                            delay: idx * 0.5
+                          }}
+                        />
+                      );
+                    })}
                   </div>
 
-                  {/* Floating ember particles */}
-                  {[...Array(6)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ y: 20, x: (i - 2.5) * 12, opacity: 0, scale: 0.6 }}
-                      animate={{ 
-                        y: [-10, -60], 
-                        x: [ (i - 2.5) * 12, (i - 2.5) * 12 + (Math.random() * 20 - 10) ],
-                        opacity: [0, 0.75, 0],
-                        scale: [0.3, 0.8, 0.3]
-                      }}
-                      transition={{ 
-                        repeat: Infinity, 
-                        duration: 1.3 + Math.random() * 0.8,
-                        delay: i * 0.25,
-                        ease: "easeOut"
-                      }}
-                      className={`absolute w-1.5 h-1.5 rounded-full bg-gradient-to-t ${
-                        gameState.level <= 14 ? "from-yellow-400 to-amber-500" :
-                        gameState.level <= 29 ? "from-orange-400 to-amber-500" :
-                        gameState.level <= 47 ? "from-cyan-400 to-blue-500" :
-                        gameState.level <= 69 ? "from-blue-400 to-indigo-500" :
-                        gameState.level <= 89 ? "from-indigo-400 to-violet-500" :
-                        "from-purple-400 to-fuchsia-500"
-                      } blur-[0.4px]`}
-                    />
-                  ))}
-
-                  {/* Central Rank Badge Emblem */}
-                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/85 p-2 px-3 rounded-xl border border-slate-900/80 backdrop-blur shadow-xl">
-                    <Crown className="w-4 h-4 text-yellow-400 mb-0.5 animate-pulse" />
+                  {/* Central Rank Badge Emblem in the middle of neon matrix */}
+                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/95 p-2 px-3 rounded-xl border transition-all duration-500 backdrop-blur-md shadow-2xl" style={{ borderColor: `${neonStyle.border}40`, boxShadow: `0 0 20px ${neonStyle.glow}` }}>
+                    <Crown className="w-3.5 h-3.5 mb-0.5 animate-pulse" style={{ color: neonStyle.border }} />
                     <span 
-                      className={`text-[8px] font-black tracking-widest uppercase bg-gradient-to-r bg-clip-text text-transparent ${
-                        gameState.level <= 14 ? "from-yellow-400 to-amber-500" :
-                        gameState.level <= 29 ? "from-orange-400 to-orange-600" :
-                        gameState.level <= 47 ? "from-cyan-400 to-blue-600" :
-                        gameState.level <= 69 ? "from-blue-400 to-indigo-600" :
-                        gameState.level <= 89 ? "from-indigo-400 to-violet-600" :
-                        "from-purple-400 via-fuchsia-500 to-cyan-500"
-                      }`}
+                      className={`text-[8px] font-black tracking-widest uppercase bg-gradient-to-r bg-clip-text text-transparent ${neonStyle.text}`}
                     >
-                      {
-                        gameState.level <= 14 ? "YELLOW FLAME" :
-                        gameState.level <= 29 ? "ORANGE FLAME" :
-                        gameState.level <= 47 ? "ICE BLUE FLAME" :
-                        gameState.level <= 69 ? "INDIGO FLAME" :
-                        gameState.level <= 89 ? "VIOLET FLAME" :
-                        "SOVEREIGN FLAME"
-                      }
+                      {neonStyle.label}
                     </span>
                   </div>
                 </div>
