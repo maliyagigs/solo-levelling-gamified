@@ -1,0 +1,6 @@
+{
+  "name": "Monarch",
+  "description": "A gamified self-development and fitness application inspired by the Solo Leveling progression system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

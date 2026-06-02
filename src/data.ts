@@ -1,0 +1,509 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { InventoryItem, ItemRarity, ShadowSoldier, SkillNode, Quest } from "./types";
+
+export const FITNESS_GOALS = [
+  { id: "build_muscle", label: "Build Muscle", desc: "Gain power, size, and athletic strength" },
+  { id: "loose_weight", label: "Lose Weight", desc: "Burn calories and slice fat reserves" },
+  { id: "look_better", label: "Look Better", desc: "Define tone, posture, and facial symmetry" },
+  { id: "stay_in_shape", label: "Stay in Shape", desc: "Boost vitality, endurance, and heart health" },
+];
+
+export const REFERRAL_SOURCES = [
+  { id: "tiktok", label: "TikTok", icon: "Music" },
+  { id: "instagram", label: "Instagram", icon: "Instagram" },
+  { id: "facebook", label: "Facebook", icon: "Facebook" },
+  { id: "youtube", label: "YouTube", icon: "Youtube" },
+  { id: "google", label: "Google", icon: "Search" },
+  { id: "friend", label: "Friend", icon: "User" },
+  { id: "other", label: "Other", icon: "MoreHorizontal" },
+];
+
+export const FITNESS_MOTIVATIONS = [
+  { id: "health", label: "Health & Longevity", desc: "Live longer, cleaner, and feel younger" },
+  { id: "weight_loss", label: "Weight Reduction", desc: "Shed stubborn fat layers and light up stamina" },
+  { id: "appearance", label: "Aesthetic Appearance", desc: "Command presence with a sharp, symmetrical form" },
+  { id: "stress_relief", label: "Stress Relief", desc: "Channel frustration and anxiety into raw power" },
+  { id: "social_support", label: "Social Support & Guilds", desc: "Join like-minded hunters in their journey" },
+  { id: "enjoyment", label: "Pure Enjoyment", desc: "Love the grind and enjoy pushing human capacity" },
+];
+
+export const FOCUS_AREAS = [
+  { id: "full_body", label: "Full Body", icon: "Activity" },
+  { id: "chest", label: "Chest (Gatekeeper Plates)", icon: "Shield" },
+  { id: "back", label: "Back (Demon Wings)", icon: "TrendingUp" },
+  { id: "arms", label: "Arms (Ruler Gauntlets)", icon: "Hammer" },
+  { id: "shoulders", label: "Shoulders (Boulder Pauldrons)", icon: "Grid" },
+  { id: "abs", label: "Core & Abs (Unbreakable Fortress)", icon: "Layers" },
+  { id: "legs", label: "Legs (Swift Sprinter Stems)", icon: "Zap" },
+  { id: "glutes", label: "Glutes & Hips (Titan Base)", icon: "Compass" },
+  { id: "brain", label: "Brain (Sovereign Intellect)", icon: "Brain" },
+];
+
+export const ARCHETYPES = [
+  { id: "nerd", label: "Nerd / Analyst", desc: "Calculates maximum efficiency, relies on tactical planning" },
+  { id: "introverted", label: "Introverted Shadow", desc: "Gains power in silence, executes solo dungeon grinds" },
+  { id: "extroverted", label: "Extroverted Guild Leader", desc: "Thrives in loud, collaborative training raids" },
+];
+
+export const EQUIPMENTS_LIST = [
+  { id: "dumbbells", label: "Dumbbells" },
+  { id: "barbell", label: "Barbell & Plates" },
+  { id: "resistance_bands", label: "Resistance Bands" },
+  { id: "gym_access", label: "Commercial Gym Access" },
+  { id: "kettlebells", label: "Kettlebells" },
+  { id: "pullup_bar", label: "Pull-up Bar" },
+];
+
+export const SHADOWS_LIST: ShadowSoldier[] = [
+  {
+    id: "infantry",
+    name: "Shadow Infantry",
+    tier: "Regular",
+    power: 120,
+    unlocked: true,
+    cost: 50,
+    count: 3,
+    iconName: "ShieldAlert",
+    description: "Reborn foot soldiers holding heavy obsidian tower shields."
+  },
+  {
+    id: "beast",
+    name: "Shadow Beast",
+    tier: "Regular",
+    power: 280,
+    unlocked: false,
+    cost: 150,
+    count: 0,
+    iconName: "FlameKindling",
+    description: "Fierce alpha wolves extracted from the Ice Gates."
+  },
+  {
+    id: "igris",
+    name: "Elite Commander Igris",
+    tier: "Elite",
+    power: 2450,
+    unlocked: false,
+    cost: 1000,
+    count: 0,
+    iconName: "Sword",
+    description: "The Blood-Red Commander. Wields the Greatsword with absolute loyalty."
+  },
+  {
+    id: "iron",
+    name: "Tanker Iron",
+    tier: "Elite",
+    power: 1800,
+    unlocked: false,
+    cost: 800,
+    count: 0,
+    iconName: "Hammer",
+    description: "A gigantic high-orc shieldmaster. Known for crushing shield bashes."
+  },
+  {
+    id: "tank",
+    name: "Ice Bear Tank",
+    tier: "Elite",
+    power: 2100,
+    unlocked: false,
+    cost: 950,
+    count: 0,
+    iconName: "Compass",
+    description: "Massive ice-bear lead tank. Capable of shattering brick structures."
+  },
+  {
+    id: "beru",
+    name: "Shadow Marshal Beru",
+    tier: "Named Commander",
+    power: 18500,
+    unlocked: false,
+    cost: 5000,
+    count: 0,
+    iconName: "Bug",
+    description: "The Insatiate Ant King. Unleashes high-speed lightning strikes and healing chants."
+  },
+  {
+    id: "bellion",
+    name: "Grand Marshal Bellion",
+    tier: "Named Commander",
+    power: 29000,
+    unlocked: false,
+    cost: 12000,
+    count: 0,
+    iconName: "Crown",
+    description: "The original commander of the Shadow Legion. Wields a giant snake whip sword."
+  },
+  {
+    id: "ultimate_legion",
+    name: "Sovereign Ultimate Legion",
+    tier: "Ultimate Legion",
+    power: 150000,
+    unlocked: false,
+    cost: 50000,
+    count: 0,
+    iconName: "Workflow",
+    description: "An endless army of millions of shadows standing ready in absolute darkness."
+  }
+];
+
+export const WEAPONS_DATABASE: InventoryItem[] = [
+  {
+    id: "rusty_dagger",
+    name: "Rusty Goblin Dagger",
+    description: "A brittle weapon retrieved from an E-rank dungeon. Barely holds an edge.",
+    type: "Weapon",
+    rarity: ItemRarity.E,
+    statBonus: { strength: 2, agility: 1 },
+    equipped: true,
+    iconName: "Wrench"
+  },
+  {
+    id: "kasaka_fang",
+    name: "Kasaka's Venom Dagger",
+    description: "Crafted from the refined fangs of the Kasaka blue venom serpent. Induces paralysis.",
+    type: "Weapon",
+    rarity: ItemRarity.C,
+    statBonus: { strength: 12, agility: 15 },
+    equipped: false,
+    iconName: "Dice5"
+  },
+  {
+    id: "igris_sword",
+    name: "Knight's Longsword (Igris Loot)",
+    description: "The blood-red steel longsword wielded by Commander Igris. Emits fire sparks.",
+    type: "Weapon",
+    rarity: ItemRarity.B,
+    statBonus: { strength: 35, vitality: 15 },
+    equipped: false,
+    iconName: "Sword"
+  },
+  {
+    id: "demon_dagger",
+    name: "Blood-Red Demon Dagger",
+    description: "Forged deep within the demon castle's high floor. High piercing speed.",
+    type: "Weapon",
+    rarity: ItemRarity.A,
+    statBonus: { strength: 68, agility: 55, perception: 20 },
+    equipped: false,
+    iconName: "Zap"
+  },
+  {
+    id: "kamish_fang",
+    name: "Kamish's Dragon Fang Dagger",
+    description: "Humanity's ultimate weapon. Carved from the sharpest tooth of the dragon Kamish.",
+    type: "Weapon",
+    rarity: ItemRarity.S,
+    statBonus: { strength: 180, agility: 140, perception: 70 },
+    equipped: false,
+    iconName: "Scissors"
+  },
+  {
+    id: "sovereigns_wrath",
+    name: "Sovereign's Wrath (Dual Ethereal Blades)",
+    description: "Dual ethereal purple-black cosmic blades made of pure Shadow Void energy.",
+    type: "Weapon",
+    rarity: ItemRarity.Sovereign,
+    statBonus: { strength: 450, agility: 420, vitality: 200, intelligence: 200, perception: 200 },
+    equipped: false,
+    iconName: "Sparkles"
+  }
+];
+
+export const SKILLS_LIST: SkillNode[] = [
+  {
+    id: "rulers_authority",
+    name: "Ruler's Authority",
+    description: "Psychokinetic reach allowing user to pull or push objects wirelessly.",
+    levelRequired: 5,
+    cost: 5,
+    unlocked: false,
+    category: "Combat",
+    effect: "+15% Telekinetic Attack and Defense stats"
+  },
+  {
+    id: "shadow_storage",
+    name: "Shadow Storage",
+    description: "Summons a weightless void space inside shadows to store your dynamic items.",
+    levelRequired: 12,
+    cost: 10,
+    unlocked: false,
+    category: "Passive",
+    effect: "Unlocks heavy armor load suppression, and adds 20 inventory capacity"
+  },
+  {
+    id: "shadow_extraction",
+    name: "Shadow Extraction (Arise)",
+    description: "Extract absolute shadow spirits from newly slain gate monsters using 'Arise!' Phrase.",
+    levelRequired: 20,
+    cost: 25,
+    unlocked: false,
+    category: "Shadow",
+    effect: "+25% Extract accuracy and enables Elite summons"
+  },
+  {
+    id: "monarchs_domain",
+    name: "Monarch's Domain",
+    description: "Covers the entire battlefield ground with deep indigo void shadow fog.",
+    levelRequired: 40,
+    cost: 40,
+    unlocked: false,
+    category: "Shadow",
+    effect: "Boosts all recruited shadow soldier damage by +50% in dungeons"
+  },
+  {
+    id: "dragon_fear",
+    name: "Dragon Fear",
+    description: "Unleashes a blood-curdling cosmic dragon roar that paralyzes weak opponents.",
+    levelRequired: 60,
+    cost: 60,
+    unlocked: false,
+    category: "Combat",
+    effect: "Freezes dungeon minor enemies for first 3 moves instantly"
+  },
+  {
+    id: "void_manipulation",
+    name: "Void Portal Teleportation",
+    description: "Instantly slip into user shadows and step out from any shadow soldier across the globe.",
+    levelRequired: 80,
+    cost: 80,
+    unlocked: false,
+    category: "Passive",
+    effect: "Bypasses dungeon escape constraints and halves incoming energy damage"
+  }
+];
+
+export const DUNGEONS_CATALOG = [
+  {
+    id: "dung_e",
+    name: "Double Dungeon Ruins",
+    rank: "E-Rank",
+    minLevel: 1,
+    bossName: "Statue of God",
+    difficulty: "E-Rank Survival Test",
+    expReward: 120,
+    goldReward: 50,
+    lootItem: {
+      id: "kasaka_fang",
+      name: "Kasaka's Venom Dagger",
+      chance: 0.45
+    },
+    enemyHealth: 150,
+    enemyAttack: 12,
+    desc: "The fated underground sanctuary where it all started. Run or obey the rules of the temple."
+  },
+  {
+    id: "dung_d",
+    name: "Sunken Temple Swamp Gate",
+    rank: "D-Rank",
+    minLevel: 11,
+    bossName: "Kasaka Blue Serpent",
+    difficulty: "D-Rank Combat Gate",
+    expReward: 480,
+    goldReward: 250,
+    lootItem: {
+      id: "kasaka_fang",
+      name: "Kasaka's Venom Dagger",
+      chance: 0.90
+    },
+    enemyHealth: 400,
+    enemyAttack: 28,
+    desc: "A waterlogged limestone crypt filled with toxic crawler snakes of ancient origin."
+  },
+  {
+    id: "dung_c",
+    name: "Elven Fortress Red Gate",
+    rank: "C-Rank",
+    minLevel: 21,
+    bossName: "Baruka Ice Elf Commander",
+    difficulty: "C-Rank Intense Dungeon",
+    expReward: 1500,
+    goldReward: 800,
+    lootItem: {
+      id: "igris_sword",
+      name: "Knight's Longsword (Igris Loot)",
+      chance: 0.50
+    },
+    enemyHealth: 1200,
+    enemyAttack: 65,
+    desc: "An isolated snowscape locked behind a dimensional rip. Ice-hyenas and frost-elves roam."
+  },
+  {
+    id: "dung_b",
+    name: "High Orc Keep Gate",
+    rank: "B-Rank",
+    minLevel: 36,
+    bossName: "Kargalgan Shaman King",
+    difficulty: "B-Rank Team Raid",
+    expReward: 4500,
+    goldReward: 2200,
+    lootItem: {
+      id: "demon_dagger",
+      name: "Blood-Red Demon Dagger",
+      chance: 0.40
+    },
+    enemyHealth: 3500,
+    enemyAttack: 140,
+    desc: "A massive solidstone fortress occupied by armored high-orcs casting heavy magic barrier shields."
+  },
+  {
+    id: "dung_a",
+    name: "Demon Castle Pinnacle",
+    rank: "A-Rank",
+    minLevel: 51,
+    bossName: "Baran Demon King",
+    difficulty: "A-Rank Demonic Crusade",
+    expReward: 12000,
+    goldReward: 6000,
+    lootItem: {
+      id: "demon_dagger",
+      name: "Blood-Red Demon Dagger",
+      chance: 0.85
+    },
+    enemyHealth: 8800,
+    enemyAttack: 320,
+    desc: "A burning tower that reaches high up into the pitch black lightning sky. Demonic creatures guard it."
+  },
+  {
+    id: "dung_s",
+    name: "Jeju Island Desolate Ant Nest",
+    rank: "S-Rank",
+    minLevel: 71,
+    bossName: "Beast Mutated Ant King [Beru]",
+    difficulty: "S-Rank Legendary Raid",
+    expReward: 45000,
+    goldReward: 25000,
+    lootItem: {
+      id: "kamish_fang",
+      name: "Kamish's Dragon Fang Dagger",
+      chance: 0.35
+    },
+    enemyHealth: 24000,
+    enemyAttack: 780,
+    desc: "Humanity's biggest disaster. Swarming with millions of supersonic, bloodthirsty black ants."
+  },
+  {
+    id: "dung_sovereign",
+    name: "Monarch War Sandbox",
+    rank: "Sovereign-Rank",
+    minLevel: 90,
+    bossName: "Antares Sovereign of Destruction",
+    difficulty: "Godhood Cosmic Duel",
+    expReward: 200000,
+    goldReward: 100000,
+    lootItem: {
+      id: "sovereigns_wrath",
+      name: "Sovereign's Wrath (Ethereal Dual Blades)",
+      chance: 0.60
+    },
+    enemyHealth: 95000,
+    enemyAttack: 2500,
+    desc: "Fight against the supreme cosmic monarchs who intend to grind the human world to absolute space dust."
+  }
+];
+
+export interface CustomPlan {
+  calorieGoal: number;
+  proteinG: number;
+  carbsG: number;
+  fatsG: number;
+  waterLiters: number;
+  workoutTimeMin: number;
+  restTimeMin: number;
+  weeklyGoalDesc: string;
+  meals: { name: string; grams: number; favicon: string; type: string }[];
+}
+
+export function generatePlan(goal: string, weightKg: number): CustomPlan {
+  let cal = 2000;
+  let p = 140;
+  let c = 200;
+  let f = 60;
+  let water = 3.0;
+  let workoutT = 45;
+  let restT = 60;
+  let meals: { name: string; grams: number; favicon: string; type: string }[] = [];
+  let weekly = "3 sessions of targeted muscle hyper-trophy";
+
+  if (goal === "build_muscle") {
+    cal = Math.round(weightKg * 33 + 400);
+    p = Math.round(weightKg * 2.2);
+    f = Math.round((cal * 0.25) / 9);
+    c = Math.round((cal - (p * 4 + f * 9)) / 4);
+    water = 4.0;
+    workoutT = 60;
+    restT = 90;
+    weekly = "4 high-intensity strength & hyper-trophy dungeon sessions";
+    meals = [
+      { name: "Sirloin Beef & Brown Rice Bowl", grams: 350, favicon: "🥩", type: "Lunch" },
+      { name: "Grilled Chicken Breast & Sweet Potato", grams: 400, favicon: "🍗", type: "Post-workout" },
+      { name: "Double Egg White Oatmeal & Raw Honey", grams: 250, favicon: "🥣", type: "Breakfast" },
+      { name: "Avocado & Low-fat Greek Yogurt Shake", grams: 300, favicon: "🥛", type: "Pre-sleep" },
+    ];
+  } else if (goal === "loose_weight") {
+    cal = Math.round(weightKg * 24 - 300);
+    p = Math.round(weightKg * 2.0);
+    f = Math.round((cal * 0.22) / 9);
+    c = Math.round((cal - (p * 4 + f * 9)) / 4);
+    water = 3.5;
+    workoutT = 45;
+    restT = 45;
+    weekly = "5 high-tempo calorie shred, circuit-grind shadow runs";
+    meals = [
+      { name: "Baked Salmon Fillet & Steamed Asparagus", grams: 280, favicon: "🐟", type: "Dinner" },
+      { name: "Tender Turkey breast Scramble with Spinach", grams: 200, favicon: "🍳", type: "Breakfast" },
+      { name: "Mixed Organic Green Salad with Olive Oil", grams: 180, favicon: "🥗", type: "Lunch" },
+      { name: "Antarctic Shaved Protein Flakes with Berries", grams: 150, favicon: "🍓", type: "Snack" },
+    ];
+  } else if (goal === "look_better") {
+    cal = Math.round(weightKg * 28);
+    p = Math.round(weightKg * 1.8);
+    f = Math.round((cal * 0.25) / 9);
+    c = Math.round((cal - (p * 4 + f * 9)) / 4);
+    water = 3.2;
+    workoutT = 50;
+    restT = 60;
+    weekly = "3 visual definition and facial/postural symmetry sessions";
+    meals = [
+      { name: "Atlantic Cod & Lemon Quinoa Plate", grams: 300, favicon: "🐟", type: "Lunch" },
+      { name: "Fluffy Egg White Omelet with Roma Tomatoes", grams: 220, favicon: "🍳", type: "Breakfast" },
+      { name: "Tender Sirloin Steak with Broccoli Heads", grams: 250, favicon: "🥩", type: "Dinner" },
+      { name: "Low-sugar Almond Chia Pudding cup", grams: 120, favicon: "🍮", type: "Snack" },
+    ];
+  } else {
+    // stay in shape
+    cal = Math.round(weightKg * 28);
+    p = Math.round(weightKg * 1.6);
+    f = Math.round((cal * 0.28) / 9);
+    c = Math.round((cal - (p * 4 + f * 9)) / 4);
+    water = 3.0;
+    workoutT = 40;
+    restT = 60;
+    weekly = "3 full body endurance conditioning runs";
+    meals = [
+      { name: "Classic Chicken Breast Strip & Veggie Stir-fry", grams: 320, favicon: "🥗", type: "Dinner" },
+      { name: "Low-fat Greek Yogurt cup with Raw Granola", grams: 180, favicon: "🥣", type: "Breakfast" },
+      { name: "Mixed Canned Tuna Toast with Avocado Mash", grams: 200, favicon: "🥑", type: "Lunch" },
+    ];
+  }
+
+  // Cap minimums to keep numbers reasonable
+  if (p < 50) p = 80;
+  if (c < 50) c = 100;
+  if (f < 20) f = 40;
+  if (cal < 1000) cal = 1500;
+
+  return {
+    calorieGoal: cal,
+    proteinG: p,
+    carbsG: c,
+    fatsG: f,
+    waterLiters: water,
+    workoutTimeMin: workoutT,
+    restTimeMin: restT,
+    weeklyGoalDesc: weekly,
+    meals
+  };
+}
