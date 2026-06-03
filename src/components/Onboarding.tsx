@@ -50,6 +50,10 @@ import {
   DIET_METABOLIC_GOALS
 } from "../data";
 
+import startupBg from "../assets/images/startup_background_1780493337816.png";
+
+import { MonarchLogo } from "./MonarchLogo";
+
 interface OnboardingProps {
   onComplete: (data: OnboardingData) => void;
 }
@@ -227,41 +231,99 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     <div id="onboarding_container" className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-hidden font-sans select-none">
       {/* Background artwork with a tiny blur to add textured atmosphere */}
       <div 
-        className="absolute inset-0 z-0 opacity-25 pointer-events-none mix-blend-screen select-none blur-[2px] transition-all duration-1000 bg-cover bg-center"
+        className="absolute inset-0 z-0 opacity-20 pointer-events-none select-none blur-[1px] transition-all duration-1000 bg-cover bg-center"
         style={{
-          backgroundImage: "url('/assets/statue.jpg'), url('/statue.jpg'), url('/assets/double_dungeon_bg.jpg'), url('/assets/photo_provided.jpg'), url('https://images.alphacoders.com/134/1346305.jpeg')",
+          backgroundImage: `url(${startupBg})`,
         }}
       />
+      {/* Floating Detailed Particles Overlay */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Layer 1: Tiny ambient dust */}
+        {[...Array(40)].map((_, i) => (
+          <motion.div
+            key={`dust-${i}`}
+            className="absolute rounded-full bg-cyan-100"
+            style={{
+              width: Math.random() * 2 + 1 + "px",
+              height: Math.random() * 2 + 1 + "px",
+              left: Math.random() * 100 + "%",
+              top: Math.random() * 100 + "%",
+              filter: `blur(${Math.random() * 1}px)`,
+            }}
+            animate={{
+              y: [0, -Math.random() * 150 - 50],
+              x: [0, (Math.random() - 0.5) * 50],
+              opacity: [0, Math.random() * 0.4 + 0.1, 0],
+              scale: [0.8, 1.2, 0.8]
+            }}
+            transition={{
+              duration: Math.random() * 10 + 10,
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 10,
+            }}
+          />
+        ))}
+        {/* Layer 2: Glowing cyan/purple cores */}
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={`core-${i}`}
+            className={`absolute rounded-full ${i % 2 === 0 ? "bg-cyan-400" : "bg-purple-500"}`}
+            style={{
+              width: Math.random() * 4 + 2 + "px",
+              height: Math.random() * 4 + 2 + "px",
+              left: Math.random() * 100 + "%",
+              top: Math.random() * 100 + "%",
+              boxShadow: `0 0 10px ${i % 2 === 0 ? "rgba(34, 211, 238, 0.8)" : "rgba(168, 85, 247, 0.8)"}`,
+              filter: "blur(1px)",
+            }}
+            animate={{
+              y: [0, -Math.random() * 100 - 50],
+              x: [0, (Math.random() - 0.5) * 100],
+              opacity: [0, Math.random() * 0.6 + 0.4, 0],
+            }}
+            transition={{
+              duration: Math.random() * 8 + 6,
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 8,
+            }}
+          />
+        ))}
+        {/* Layer 3: Large rising energy flares */}
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={`flare-${i}`}
+            className="absolute rounded-full bg-blue-500"
+            style={{
+              width: Math.random() * 10 + 5 + "px",
+              height: Math.random() * 30 + 10 + "px",
+              left: Math.random() * 100 + "%",
+              top: "100%",
+              boxShadow: "0 0 20px rgba(59, 130, 246, 0.6)",
+              filter: "blur(4px)",
+              transformOrigin: "bottom center"
+            }}
+            animate={{
+              y: [0, -1000],
+              opacity: [0, 0.5, 0],
+              scaleY: [1, 2, 1]
+            }}
+            transition={{
+              duration: Math.random() * 4 + 4,
+              repeat: Infinity,
+              ease: "easeOut",
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+      </div>
       {/* Absolute Dark Cyber Background Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_80%)] pointer-events-none" />
-      <div className="absolute top-10 left-10 w-96 h-96 bg-purple-900/10 rounded-full filter blur-[120px] pointer-events-none animate-pulse" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,rgba(9,9,11,0.6)_80%)] pointer-events-none z-0" />
+      <div className="absolute top-10 left-10 w-96 h-96 bg-purple-900/10 rounded-full filter blur-[120px] pointer-events-none animate-pulse z-0" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none z-0" />
 
-      {/* Header section (progress indicator) */}
-      <header className="p-2 border-b border-slate-900 flex justify-between items-center z-10 w-full max-w-4xl mx-auto">
-        <div id="app_brand" className="flex items-center gap-2">
-          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 20, ease: "linear" }}>
-            <Sword className="w-6 h-6 text-cyan-400" />
-          </motion.div>
-          <span className="font-bold text-lg tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-500">
-            M O N A R C H
-          </span>
-        </div>
-        {step > 0 && (
-          <div id="onboarding_progress" className="text-right">
-            <span className="text-xs text-slate-500 uppercase tracking-widest font-mono">System Setup</span>
-            <div className="text-xs font-mono text-cyan-400 font-bold">{step} / 18</div>
-            <div className="w-24 h-1 bg-slate-900 rounded-full mt-1 overflow-hidden">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500" 
-                initial={{ width: 0 }}
-                animate={{ width: `${(step / 18) * 100}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-          </div>
-        )}
-      </header>
+
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex items-center justify-center py-6 w-full max-w-2xl mx-auto z-10">
@@ -276,21 +338,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               className="text-center flex flex-col items-center max-w-lg px-4"
             >
               <motion.div 
-                className="mb-6 relative"
+                className="mb-8 relative flex items-center justify-center p-8 bg-slate-900 border-2 border-cyan-400/30 rounded-full"
+                id="gate_icon_container"
                 initial={{ rotateY: 180, opacity: 0 }}
                 animate={{ rotateY: 0, opacity: 1 }}
                 transition={{ duration: 1 }}
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full blur opacity-40 animate-pulse" />
-                <div id="gate_icon_container" className="bg-slate-900 border-2 border-cyan-400/30 p-8 rounded-full relative">
-                  <Flame className="w-16 h-16 text-cyan-400 animate-bounce" />
-                </div>
+                <MonarchLogo size={140} />
               </motion.div>
 
-              <h1 id="cover_title" className="text-5xl font-extrabold tracking-widest text-slate-100 uppercase mb-3">
+              <h1 id="cover_title" className="text-4xl sm:text-5xl font-extrabold tracking-widest text-slate-100 uppercase mb-3">
                 ʍօռǟʀƈɦ
               </h1>
-              <p className="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-8">
+              <p className="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-8 shadow-cyan-500/50 drop-shadow-md">
                 Physical Ascension Protocol &middot; Gate Challenge
               </p>
 
@@ -713,7 +774,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       key={age}
                       initial={{ scale: 0.8, opacity: 0.5 }}
                       animate={{ scale: 1.2, opacity: 1 }}
-                      className="text-6xl font-extrabold font-mono text-cyan-400"
+                      className="text-5xl sm:text-6xl font-extrabold font-mono text-cyan-400"
                     >
                       {age}
                     </motion.div>
@@ -785,7 +846,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                     <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Centimeters</div>
                     <div className="flex items-center justify-center gap-4">
                       <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.max(90, prev - 1))}>-</button>
-                      <span className="text-5xl font-extrabold font-mono text-cyan-300">{heightCm}</span>
+                      <span className="text-4xl sm:text-5xl font-extrabold font-mono text-cyan-300">{heightCm}</span>
                       <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.min(270, prev + 1))}>+</button>
                     </div>
                   </div>
@@ -839,7 +900,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       else setWeight(Math.max(60, weight - 2));
                     }}>-</button>
                     
-                    <span className="text-5xl font-extrabold font-mono text-indigo-400">
+                    <span className="text-4xl sm:text-5xl font-extrabold font-mono text-indigo-400">
                       {isMetricWeight ? weightKg : weight}
                     </span>
                     
@@ -898,7 +959,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       else setTargetWeight(Math.max(60, targetWeight - 2));
                     }}>-</button>
                     
-                    <span className="text-5xl font-extrabold font-mono text-cyan-400">
+                    <span className="text-4xl sm:text-5xl font-extrabold font-mono text-cyan-400">
                       {isMetricWeight ? targetWeightKg : targetWeight}
                     </span>
                     
@@ -1032,7 +1093,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <div id="frequency_slider_card" className="max-w-md mx-auto bg-slate-950 border border-slate-900 p-8 rounded-3xl mb-10">
                 <div className="text-center mb-6">
                   <span className="text-[10px] tracking-widest uppercase text-slate-500 font-mono block">Optimal Target</span>
-                  <div className="text-6xl font-extrabold text-cyan-400 font-mono mt-2">{workoutFrequency}</div>
+                  <div className="text-5xl sm:text-6xl font-extrabold text-cyan-400 font-mono mt-2">{workoutFrequency}</div>
                   <span className="text-xs font-mono text-slate-400">Workouts / Week</span>
                 </div>
 

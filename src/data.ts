@@ -210,7 +210,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.E,
     statBonus: { strength: 2, agility: 1 },
     equipped: true,
-    iconName: "Wrench"
+    iconName: "Wrench",
+    weaponDetails: {
+      lore: "A crude dagger fashioned from scrap iron found within the depths of a low-grade E-rank gate. Traces of goblin civilization remain in the poorly tied leather hilt constraint.",
+      passiveAbility: "Tetanus Strike (1% chance to inflict slight poison)",
+      criticalChance: "5%",
+      scalingModifier: "STR C",
+      speed: "Fast (7 hits/sec)",
+      durability: "35/100 (Chipped)",
+      origin: "E-Rank Goblin Caverns",
+      history: ["Looted by a novice hunter from a slain goblin scout.", "Discarded in the association market before being picked up again."],
+      elements: ["Physical"],
+      weight: "1.2 kg"
+    }
   },
   {
     id: "kasaka_fang",
@@ -220,7 +232,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.C,
     statBonus: { strength: 12, agility: 15 },
     equipped: false,
-    iconName: "Dice5"
+    iconName: "Dice5",
+    weaponDetails: {
+      lore: "A lethal blade carved from the severed fang of the Blue Venom Fang Kasaka, the boss of a hidden subway dungeon. It pulses with unresolved malice.",
+      passiveAbility: "Kasaka's Venom (Paralyzes enemies on critical hit & saps 1% HP per second)",
+      criticalChance: "25%",
+      scalingModifier: "AGI B+",
+      speed: "Very Fast (12 hits/sec)",
+      durability: "800/800 (Pristine)",
+      origin: "Hapjeong Station Instance Dungeon",
+      history: ["Harvested after defeating the Blue Venom Fang Kasaka.", "First magic-imbued item used by the shadow monarch."],
+      elements: ["Venom", "Physical"],
+      weight: "0.8 kg"
+    }
   },
   {
     id: "igris_sword",
@@ -230,7 +254,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.B,
     statBonus: { strength: 35, vitality: 15 },
     equipped: false,
-    iconName: "Sword"
+    iconName: "Sword",
+    weaponDetails: {
+      lore: "Once belonging to Blood-Red Commander Igris, this blade was forged in an unknown dimension to withstand the clash of immortals. Its edge never dulls and it crackles with silent red lightning.",
+      passiveAbility: "Commander's Aura (Damage increases by 30% against targets with lower agility)",
+      criticalChance: "15%",
+      scalingModifier: "STR A",
+      speed: "Moderate (4 hits/sec)",
+      durability: "2400/2400 (Indestructible by mortal means)",
+      origin: "Empty Throne Room, Job Change Dungeon",
+      history: ["Wielded by Igris in the defensive trials of the Empty Throne.", "Claimed as spoils after an arduous near-death struggle."],
+      elements: ["Lightning", "Physical"],
+      weight: "15.0 kg"
+    }
   },
   {
     id: "demon_dagger",
@@ -240,7 +276,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.A,
     statBonus: { strength: 68, agility: 55, perception: 20 },
     equipped: false,
-    iconName: "Zap"
+    iconName: "Zap",
+    weaponDetails: {
+      lore: "Crafted by the architects of the Demon Castle. The blade drinks the blood of those it slays, turning a deeper crimson as it accumulates souls.",
+      passiveAbility: "Blood Harvest (Absorbs 5% of damage dealt as HP)",
+      criticalChance: "40%",
+      scalingModifier: "AGI S",
+      speed: "Hyper Fast (25 hits/sec)",
+      durability: "5000/5000",
+      origin: "Demon Castle 70th Floor",
+      history: ["Bought from the system shop using souls farmed in the Demon Castle.", "Bathed in the blood of high orcs and demon nobles."],
+      elements: ["Demonic", "Blood"],
+      weight: "0.6 kg"
+    }
   },
   {
     id: "kamish_fang",
@@ -250,7 +298,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.S,
     statBonus: { strength: 180, agility: 140, perception: 70 },
     equipped: false,
-    iconName: "Scissors"
+    iconName: "Scissors",
+    weaponDetails: {
+      lore: "The pinnacle of human magic manipulation. Carved from the corpse of Kamish, the dragon who caused the first S-Rank Gate break. It is capable of transmitting mana with zero resistance.",
+      passiveAbility: "Dragon's Greed (Mana cost for sword skills zeroed, ignores 80% of physical defense)",
+      criticalChance: "60%",
+      scalingModifier: "STR S+ / AGI S+",
+      speed: "Light Speed (Mana Dependant)",
+      durability: "Absolute",
+      origin: "Remains of the Dragon Kamish",
+      history: ["Commissioned by the USA Hunters Bureau.", "Stored for years as no hunter possessed enough mana to draw its true edge.", "Gifted to the Shadow Monarch."],
+      elements: ["Dragon Fire", "Pure Mana"],
+      weight: "2.1 kg"
+    }
   },
   {
     id: "sovereigns_wrath",
@@ -260,7 +320,19 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
     rarity: ItemRarity.Sovereign,
     statBonus: { strength: 450, agility: 420, vitality: 200, intelligence: 200, perception: 200 },
     equipped: false,
-    iconName: "Sparkles"
+    iconName: "Sparkles",
+    weaponDetails: {
+      lore: "Weapons forged strictly from the domain of the dead. These twin blades exist perfectly balanced between existence and non-existence, allowing the wearer to cut through space and concepts alike.",
+      passiveAbility: "Monarch's Domain (All stats +100%. Reality rending slashes bypass all immunities. Shadow soldiers replicate wielders path.)",
+      criticalChance: "100%",
+      scalingModifier: "ALL STATS EX",
+      speed: "Transcendent",
+      durability: "Infinite",
+      origin: "The Realm of Rest",
+      history: ["Forged from the fragment of the Absolute Being.", "A true weapon fit for the King of the Dead."],
+      elements: ["Shadow", "Void", "Ethereal"],
+      weight: "Weightless"
+    }
   }
 ];
 

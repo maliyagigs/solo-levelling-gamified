@@ -58,6 +58,18 @@ export interface InventoryItem {
     intelligence?: number;
     perception?: number;
   };
+  weaponDetails?: {
+    lore: string;
+    passiveAbility: string;
+    criticalChance: string;
+    scalingModifier: string;
+    speed: string;
+    durability: string;
+    origin: string;
+    history: string[];
+    elements: string[];
+    weight: string;
+  };
   equipped: boolean;
   iconName: string;
 }

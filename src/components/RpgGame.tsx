@@ -1449,10 +1449,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           <div className="absolute inset-0 bg-[linear-gradient(rgba(244,63,94,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(244,63,94,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
           
           <div className="absolute bottom-10 right-10 opacity-10 animate-pulse pointer-events-none">
-            <Skull className="w-96 h-96 text-red-500" />
+            <Skull className="w-64 h-64 sm:w-96 sm:h-96 text-red-500" />
           </div>
 
-          <div className="w-full max-w-2xl border-2 border-red-500 rounded-3xl bg-slate-950/90 p-6 md:p-8 space-y-6 relative shadow-[0_0_50px_rgba(239,68,68,0.3)] backdrop-blur-md">
+          <div className="w-full max-w-2xl border-2 border-red-500 rounded-3xl bg-slate-950/90 p-4 sm:p-6 md:p-8 space-y-6 relative shadow-[0_0_50px_rgba(239,68,68,0.3)] backdrop-blur-md">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-slate-950 text-[10px] uppercase font-black tracking-widest px-6 py-1 rounded-full shadow-lg">
               SYSTEM ALARM PROTOCOL
             </div>
@@ -1825,7 +1825,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     ].map(stat => {
                       const val = gameState.baseStats[stat.key as keyof typeof gameState.baseStats];
                       return (
-                        <div key={stat.key} className="flex flex-wrap justify-between items-center p-3.5 bg-slate-900/35 border border-slate-900 rounded-xl gap-4">
+                        <motion.div 
+                          key={stat.key} 
+                          whileHover={{ scale: 1.01, backgroundColor: "rgba(15, 23, 42, 0.45)" }}
+                          className="flex flex-wrap justify-between items-center p-3.5 bg-slate-900/35 border border-slate-900 rounded-xl gap-4 transition-colors"
+                        >
                           <div className="flex-1 min-w-[200px]">
                             <div className="text-xs font-bold font-mono text-slate-300">{stat.label}</div>
                             <div className="text-[10px] text-slate-500 mt-1 leading-snug">{stat.desc}</div>
@@ -1834,57 +1838,149 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <div className="flex items-center gap-4 font-mono">
                             <span id={`val_stat_${stat.key}`} className="text-xl font-bold font-mono text-cyan-300 w-12 text-right">{val}</span>
                             
-                            <button
+                            <motion.button
+                              whileHover={{ scale: gameState.statPoints > 0 ? 1.15 : 1 }}
+                              whileTap={{ scale: gameState.statPoints > 0 ? 0.9 : 1 }}
                               id={`btn_upgrade_${stat.key}`}
                               disabled={gameState.statPoints <= 0}
-                              className="p-2 bg-slate-950/75 backdrop-blur-md border border-slate-800 rounded-lg hover:border-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-20 cursor-pointer text-xs font-bold"
+                              className="p-2 bg-slate-950/75 backdrop-blur-md border border-slate-800 rounded-lg hover:border-cyan-400 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all duration-300 disabled:opacity-20 disabled:hover:shadow-none cursor-pointer text-xs font-bold"
                               onClick={() => upgradeStat(stat.key as any)}
                             >
                               <Plus className="w-4 h-4" />
-                            </button>
+                            </motion.button>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
 
                   </div>
                 </div>
 
+                {/* PRIORITIZATION & HIGHLIGHTED LIFE FORGE INTEGRATION BLOCK */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-slate-950/50 border-2 border-indigo-500/20 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute top-0 right-0 p-2 opacity-50 flex items-center justify-center animate-pulse pointer-events-none">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-indigo-400"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mb-4 relative z-10">
+                    <div>
+                      <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black block">SYSTEM INTEGRATED PRIORITY</span>
+                      <h3 className="font-extrabold text-white text-lg tracking-wider">LIFE FORGE QUICK OVERVIEW</h3>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05, backgroundColor: "rgba(99, 102, 241, 0.1)" }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setActiveTab("life_forge")}
+                      className="px-4 py-2 bg-slate-900 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold font-mono tracking-widest rounded-lg transition-colors cursor-pointer"
+                    >
+                      ENTER FORGE --&gt;
+                    </motion.button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                    <motion.div whileHover={{ y: -2 }} className="bg-slate-900/40 border border-indigo-500/10 p-3 rounded-xl flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-mono font-bold text-slate-300 uppercase">Academics Priority</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono leading-tight">Focus: {onboardProfile.academicSubject || "Systematic Learning"}</p>
+                      <div className="w-full bg-slate-950 h-1.5 rounded-full mt-auto overflow-hidden">
+                        <div className="h-full bg-purple-500/80 rounded-full w-[45%]" />
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div whileHover={{ y: -2 }} className="bg-slate-900/40 border border-orange-500/10 p-3 rounded-xl flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-orange-400" />
+                        <span className="text-xs font-mono font-bold text-slate-300 uppercase">Fitness Milestones</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono leading-tight">Current Target: {onboardProfile.fitnessDietGoal || "Survival"}</p>
+                      <div className="w-full bg-slate-950 h-1.5 rounded-full mt-auto overflow-hidden">
+                        <div className="h-full bg-orange-500/80 rounded-full w-[15%]" />
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div whileHover={{ y: -2 }} className="bg-slate-900/40 border border-cyan-500/10 p-3 rounded-xl flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs font-mono font-bold text-slate-300 uppercase">Career & Guild</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono leading-tight">Role Prep: {onboardProfile.careerTargetRole || "Hunter"}</p>
+                      <div className="w-full bg-slate-950 h-1.5 rounded-full mt-auto overflow-hidden">
+                        <div className="h-full bg-cyan-500/80 rounded-full w-[80%]" />
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2">
-                    <h4 className="text-[11px] font-bold text-slate-400 uppercase">Fitted Equipment parameters</h4>
+                  <motion.div 
+                    whileHover={{ scale: 1.01 }}
+                    className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2 relative group overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-cyan-500/0 group-hover:bg-cyan-500/5 transition-colors pointer-events-none" />
+                    <div className="flex justify-between items-center relative z-10 w-full mb-3">
+                      <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Fitted Arsenal Core</h4>
+                      <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                    </div>
                     {getEquippedWeapon() ? (
-                      <div className="p-3 bg-slate-900/40 rounded-xl outline-dashed outline-1 outline-cyan-500/10">
-                        <div className="text-cyan-300 font-bold">{getEquippedWeapon()?.name}</div>
-                        <div className="text-slate-500 text-[10px] mt-1">{getEquippedWeapon()?.description}</div>
+                      <div 
+                        className="p-4 bg-slate-900/40 rounded-xl outline-dashed outline-1 outline-cyan-500/20 shadow-[inset_0_0_20px_rgba(34,211,238,0.05)] cursor-pointer hover:bg-slate-800/40 transition-colors"
+                        onClick={() => setSelectedWeaponDetails(getEquippedWeapon())}
+                        title="Click to view full weapon 1000x detailed analysis"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 border border-cyan-500/30 rounded-lg bg-slate-950">
+                            {renderNeonWeaponPreview(getEquippedWeapon()!.id, false)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-cyan-400 font-black text-sm tracking-widest uppercase truncate">{getEquippedWeapon()?.name}</div>
+                            <div className="text-slate-500 text-[10px] mt-0.5 truncate">{getEquippedWeapon()?.description}</div>
+                          </div>
+                        </div>
                         {getEquippedWeapon()?.statBonus && (
-                          <div className="text-[10px] text-indigo-400 font-bold mt-2">
-                            +{getEquippedWeapon()?.statBonus.strength || 0} Strength &middot; +{getEquippedWeapon()?.statBonus.agility || 0} Agility
+                          <div className="text-[10px] text-cyan-300 font-bold mt-3 border-t border-cyan-500/10 pt-2 flex gap-3">
+                            {getEquippedWeapon()?.statBonus?.strength && <span>STR +{getEquippedWeapon()?.statBonus?.strength}</span>}
+                            {getEquippedWeapon()?.statBonus?.agility && <span>AGI +{getEquippedWeapon()?.statBonus?.agility}</span>}
                           </div>
                         )}
+                        <span className="text-[9px] text-slate-600 uppercase block mt-2 text-right tracking-[0.2em]">Click to trigger detailed inspection</span>
                       </div>
                     ) : (
-                      <span className="text-slate-500 block">No weapon equipped. Fists active (+0 Attack).</span>
+                      <span className="text-slate-500 block p-4 bg-slate-900/30 rounded-xl">No weapon equipped. Fists active (+0 Attack).</span>
                     )}
-                  </div>
+                  </motion.div>
 
-                  <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2">
-                    <h4 className="text-[11px] font-bold text-slate-400 uppercase">Awakening Archetype Info</h4>
-                    <div className="space-y-1.5 text-[11px]">
-                      <div className="flex justify-between">
+                  <motion.div 
+                    whileHover={{ scale: 1.01 }}
+                    className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-2 relative group overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/5 transition-colors pointer-events-none" />
+                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 relative z-10 w-full flex justify-between">
+                      <span>Awakening Archetype Info</span>
+                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                    </h4>
+                    <div className="space-y-1.5 text-[11px] relative z-10">
+                      <div className="flex justify-between p-1.5 hover:bg-slate-900/50 rounded-lg transition-colors">
                         <span className="text-slate-500">Gender Index:</span>
                         <span className="text-slate-300 uppercase font-black">{onboardProfile.gender}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between p-1.5 hover:bg-slate-900/50 rounded-lg transition-colors">
                         <span className="text-slate-500">Motivation Path:</span>
                         <span className="text-slate-300 font-bold">{onboardProfile.motivation.replace("_", " ")}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between p-1.5 hover:bg-slate-900/50 rounded-lg transition-colors">
                         <span className="text-slate-500">Workout Regime:</span>
                         <span className="text-cyan-400 font-bold">{onboardProfile.workoutFrequency} workouts / wk</span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
 
               </motion.div>
@@ -2058,7 +2154,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 {forceSystemEnforcement && gameState.quests.some((q: any) => q.current < q.target) ? (
-                  <div className="bg-slate-950/80 border-2 border-red-500/30 p-8 rounded-3xl text-center font-mono space-y-6 shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-md">
+                  <div className="bg-slate-950/80 border-2 border-red-500/30 p-5 sm:p-8 rounded-3xl text-center font-mono space-y-6 shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-md">
                     <div className="w-16 h-16 mx-auto rounded-full bg-red-950/30 border border-red-500/30 flex items-center justify-center relative shadow-[0_0_20px_rgba(239,68,68,0.2)]">
                       <Lock className="w-6 h-6 text-red-500 animate-pulse" />
                     </div>
@@ -2168,7 +2264,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
 
                     {/* Battle health boards */}
-                    <div id="battle_fighters_arena" className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center border-b border-slate-900">
+                    <div id="battle_fighters_arena" className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center border-b border-slate-900">
                       
                       {/* Left side: Player HP details */}
                       <div className="space-y-3 font-mono text-xs text-left">
@@ -2432,7 +2528,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
 
                       {maxSlots === 0 ? (
-                        <div className="bg-slate-950/50 border border-slate-900 border-dashed rounded-3xl p-8 text-center font-mono space-y-4">
+                        <div className="bg-slate-950/50 border border-slate-900 border-dashed rounded-3xl p-5 sm:p-8 text-center font-mono space-y-4">
                           <div className="w-12 h-12 mx-auto rounded-full bg-slate-950/80 border border-red-500/20 flex items-center justify-center relative shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                             <Lock className="w-5 h-5 text-red-500 animate-pulse" />
                           </div>
@@ -2802,7 +2898,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         
                         {/* Huge counter */}
                         <div className="md:col-span-5 text-center space-y-4">
-                          <div className="inline-block px-8 py-5 rounded-3xl bg-slate-950/90 border border-indigo-500/20 text-slate-100 relative shadow-inner">
+                          <div className="inline-block px-4 sm:px-8 py-4 sm:py-5 rounded-3xl bg-slate-950/90 border border-indigo-500/20 text-slate-100 relative shadow-inner">
                             <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#a5b4fc] block mb-1">
                               {focusInterval} FOCUS DUEL
                             </span>
@@ -3348,126 +3444,237 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
       </div>
 
-      {/* WEAPON DETAIL BLUE NEON GLOWING POPUP MODAL */}
+      {/* WEAPON DETAIL BLUE NEON GLOWING POPUP MODAL (1000x Detailed) */}
       <AnimatePresence>
         {selectedWeaponDetails && (
           <motion.div 
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+            animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-slate-950/85 z-[90] flex items-center justify-center p-2 sm:p-6 cursor-pointer overflow-y-auto"
             onClick={() => setSelectedWeaponDetails(null)}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 15 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 15 }}
-              className="w-full max-w-md bg-slate-950/75 border-2 border-cyan-400 p-6 rounded-3xl relative overflow-hidden shadow-[0_0_35px_rgba(6,182,212,0.45)] text-left font-mono cursor-default backdrop-blur-md"
+              initial={{ scale: 0.8, y: 50, rotateX: 20 }}
+              animate={{ scale: 1, y: 0, rotateX: 0 }}
+              exit={{ scale: 0.8, y: 50, opacity: 0, rotateX: -20 }}
+              transition={{ type: "spring", damping: 20, stiffness: 100 }}
+              className="w-full max-w-4xl bg-slate-950/80 border border-cyan-500/40 p-3 sm:p-6 md:p-8 rounded-[1.5rem] sm:rounded-[2rem] relative shadow-[0_0_80px_rgba(6,182,212,0.15)] text-left font-mono cursor-default min-h-[70vh] flex flex-col justify-between"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Cyber Matrix decorative grid inside modal */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(18,24,38,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(18,24,38,0.15)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
-              <div className="absolute -top-12 -left-12 w-32 h-32 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+              {/* Inner Decorative Sci-Fi Cyber Grid & Radial Aura */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(18,24,38,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(18,24,38,0.3)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none rounded-[2rem]" />
+              <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-              <div className="flex justify-between items-start mb-6 border-b border-slate-900 pb-3 relative z-10">
-                <div>
-                  <span className="text-[10px] text-cyan-400 tracking-widest font-black uppercase">SYSTEM ANALYSIS</span>
-                  <h3 className="text-lg font-black text-white uppercase tracking-wider">{selectedWeaponDetails.name}</h3>
+              {/* Modal Header */}
+              <div className="flex justify-between items-start mb-6 border-b border-cyan-500/20 pb-4 relative z-10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-cyan-400 tracking-[0.3em] font-black uppercase bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30">
+                      SYSTEM ANALYSIS MATCH
+                    </span>
+                    <span className="text-[10px] text-purple-400 tracking-widest font-bold uppercase bg-purple-950/50 px-2 py-0.5 rounded border border-purple-500/30">
+                      ID: {selectedWeaponDetails.id.toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-wider drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+                    {selectedWeaponDetails.name}
+                  </h3>
                 </div>
-                <button 
-                  className="p-1 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs"
+                <motion.button 
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="w-10 h-10 flex items-center justify-center bg-slate-900/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 rounded-xl transition-colors"
                   onClick={() => setSelectedWeaponDetails(null)}
                 >
-                  CLOSE [X]
-                </button>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </motion.button>
               </div>
 
-              {/* Big Neon Blue Silhouette Preview */}
-              <div className="my-6 py-8 bg-slate-900/40 border border-slate-900/80 rounded-2xl flex items-center justify-center relative shadow-[inset_0_0_20px_rgba(0,0,0,0.6)]">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-24 h-24 bg-cyan-500/5 rounded-full filter blur-xl animate-pulse" />
-                </div>
-                {renderNeonWeaponPreview(selectedWeaponDetails.id, true)}
-              </div>
-
-              <div className="space-y-4 text-xs leading-relaxed relative z-10 uppercase">
-                <div>
-                  <span className="text-slate-500 text-[10px] block">CLASSIFICATION RANK</span>
-                  <span className="text-white font-extrabold">{selectedWeaponDetails.rarity} armament</span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 text-[10px] block font-bold">CORE DESCRIPTION</span>
-                  <p className="text-slate-350 normal-case leading-relaxed select-text mt-1 text-[11px]">
-                    {selectedWeaponDetails.description}
-                  </p>
-                </div>
-
-                {/* Weapon abilities */}
-                <div>
-                  <span className="text-slate-500 text-[10px] block mb-1">PERFORMANCE ABILITY SKILLS</span>
-                  <div className="bg-slate-900/60 border border-slate-900 px-3 py-2.5 rounded-xl space-y-1.5 font-sans lowercase text-slate-400 text-[11px]">
-                    {selectedWeaponDetails.id === "rusty_dagger" && (
-                      <p><span className="text-yellow-400 font-bold font-mono uppercase">[Rusty edge]</span> Increases physical base hit by 5 points. Deals rugged laceration damage to goblin scouts.</p>
-                    )}
-                    {selectedWeaponDetails.id === "kasaka_fang" && (
-                      <p><span className="text-cyan-400 font-bold font-mono uppercase">[Paralysis Venom]</span> 20% hit chance to paralyze enemy scouts. Afflicts intense venom poison tick drains.</p>
-                    )}
-                    {selectedWeaponDetails.id === "igris_sword" && (
-                      <p><span className="text-rose-400 font-bold font-mono uppercase">[Commander Pierce]</span> Overrides 25% of opponent vital defense parameters. Radiates majestic crimson shockwave arcs.</p>
-                    )}
-                    {selectedWeaponDetails.id === "demon_dagger" && (
-                      <p><span className="text-indigo-400 font-bold font-mono uppercase">[Black Inferno]</span> Ignites black hellfire trails doing substantial double scaling shadow burn damage.</p>
-                    )}
-                    {selectedWeaponDetails.id === "kamish_fang" && (
-                      <p><span className="text-purple-400 font-bold font-mono uppercase">[Dragon Scale Wrath]</span> Infuses structural +40% physical critical accuracy rate parameters upon physical trigger.</p>
-                    )}
-                    {selectedWeaponDetails.id === "sovereigns_wrath" && (
-                      <p><span className="text-pink-400 font-bold font-mono uppercase">[Twin Sovereign Abyss]</span> Pierces local space-time fabric to materialize void marks which detonate for supreme cosmic force damage.</p>
-                    )}
+              {/* Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 flex-grow">
+                
+                {/* Left Column: Visual Projection */}
+                <div className="lg:col-span-5 flex flex-col gap-4">
+                  <div className="relative w-full aspect-square bg-slate-950/60 border border-cyan-500/20 rounded-2xl flex items-center justify-center shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] overflow-hidden group">
+                    <div className="absolute inset-0 bg-cyan-500/5 backdrop-blur-[2px]" />
+                    <div className="absolute top-2 left-2 text-[10px] text-cyan-500/60 font-black tracking-widest">VISUAL PROJECTION_</div>
+                    {/* Big scaled up vector */}
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 2.2, opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      className="origin-center"
+                    >
+                      {renderNeonWeaponPreview(selectedWeaponDetails.id, true)}
+                    </motion.div>
+                    
+                    {/* Scanning Line overlay */}
+                    <motion.div 
+                      animate={{ y: ["0%", "100%", "0%"] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      className="absolute left-0 right-0 h-[2px] bg-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.8)] z-20"
+                    />
                   </div>
-                </div>
 
-                {selectedWeaponDetails.statBonus && (
-                  <div>
-                    <span className="text-slate-500 text-[10px] block">STAT POINT ATTRIBUTES INTEGRATION</span>
-                    <div className="flex gap-3 text-cyan-400 font-bold text-xs mt-1">
-                      {selectedWeaponDetails.statBonus.strength && <span>STR +{selectedWeaponDetails.statBonus.strength}</span>}
-                      {selectedWeaponDetails.statBonus.agility && <span>AGI +{selectedWeaponDetails.statBonus.agility}</span>}
-                      {selectedWeaponDetails.statBonus.vitality && <span>VIT +{selectedWeaponDetails.statBonus.vitality}</span>}
+                  {/* High Level Stats Summary */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 block mb-1">CLASSIFICATION</span>
+                      <span className="text-cyan-300 font-bold text-sm tracking-widest">{selectedWeaponDetails.rarity} RANK</span>
                     </div>
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 block mb-1">TYPE DOMAIN</span>
+                      <span className="text-indigo-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.type}</span>
+                    </div>
+                    {selectedWeaponDetails.weaponDetails && (
+                      <>
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                          <span className="text-[9px] text-slate-500 block mb-1">SCALING TIER</span>
+                          <span className="text-purple-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.scalingModifier}</span>
+                        </div>
+                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                          <span className="text-[9px] text-slate-500 block mb-1">CRIT RATE</span>
+                          <span className="text-rose-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.criticalChance}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* Right Column: In-depth analytical details */}
+                <div className="lg:col-span-7 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                  
+                  {/* Base Core Desc */}
+                  <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-[10px] text-slate-400 tracking-widest font-bold">CORE STRUCTURE LOG</span>
+                    <p className="text-slate-300 text-sm leading-relaxed">{selectedWeaponDetails.description}</p>
+                  </div>
+
+                  {/* Weapon Details from DB */}
+                  {selectedWeaponDetails.weaponDetails && (
+                    <div className="space-y-4">
+                      {/* Lore block */}
+                      <div className="border-l-2 border-cyan-500/50 pl-4 py-1">
+                        <span className="text-[10px] text-cyan-500/80 tracking-widest block mb-1">ARCHIVAL LORE ENTRY</span>
+                        <p className="text-slate-400 text-xs leading-relaxed italic">"{selectedWeaponDetails.weaponDetails.lore}"</p>
+                      </div>
+
+                      {/* Specs Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
+                          <span className="text-slate-500">SPEED</span>
+                          <span className="text-white">{selectedWeaponDetails.weaponDetails.speed}</span>
+                        </div>
+                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
+                          <span className="text-slate-500">DURABILITY</span>
+                          <span className="text-white">{selectedWeaponDetails.weaponDetails.durability}</span>
+                        </div>
+                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
+                          <span className="text-slate-500">WEIGHT</span>
+                          <span className="text-white">{selectedWeaponDetails.weaponDetails.weight}</span>
+                        </div>
+                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
+                          <span className="text-slate-500">ORIGIN</span>
+                          <span className="text-cyan-400 truncate ml-2" title={selectedWeaponDetails.weaponDetails.origin}>{selectedWeaponDetails.weaponDetails.origin}</span>
+                        </div>
+                      </div>
+
+                      {/* Passive Ability Highlight */}
+                      <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-indigo-950/30 border border-indigo-500/40 p-4 rounded-xl flex items-start gap-4"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/50 mt-1">
+                          <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-indigo-400 tracking-widest font-black block mb-0.5">AWAKENED PASSIVE ABILITY</span>
+                          <p className="text-white text-sm font-bold shadow-indigo-500/50">{selectedWeaponDetails.weaponDetails.passiveAbility}</p>
+                        </div>
+                      </motion.div>
+
+                      {/* Elements and History */}
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block mb-1.5 uppercase tracking-wider">Inherent Elements</span>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedWeaponDetails.weaponDetails.elements.map((el: string, idx: number) => (
+                              <span key={idx} className="bg-slate-800 text-slate-300 px-3 py-1 text-[10px] rounded border border-slate-700 tracking-wider">
+                                {el}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="bg-slate-900/30 p-3 rounded-lg border border-slate-800/50">
+                          <span className="text-[10px] text-slate-500 block mb-1.5 uppercase tracking-wider">Item History Chain Log</span>
+                          <ul className="list-none space-y-1">
+                            {selectedWeaponDetails.weaponDetails.history.map((hist: string, idx: number) => (
+                              <li key={idx} className="text-[11px] text-slate-400 flex items-start gap-2">
+                                <span className="text-cyan-500 leading-tight block">&gt;</span> <span className="leading-tight">{hist}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Raw Stat Additions */}
+                  {selectedWeaponDetails.statBonus && (
+                    <div className="pt-2">
+                      <span className="text-[10px] text-slate-500 block mb-2 tracking-widest">METRIC BONUSES</span>
+                      <div className="flex flex-wrap gap-2 text-cyan-400 font-bold text-xs">
+                        {Object.entries(selectedWeaponDetails.statBonus).map(([key, val]) => (
+                          <div key={key} className="bg-cyan-950/40 px-3 py-1.5 rounded-md border border-cyan-500/30 flex gap-2 items-center">
+                            <span className="text-slate-300 uppercase text-[10px]">{key.slice(0,3)}</span>
+                            <span>+{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                </div>
               </div>
 
               {/* Bottom Action buttons */}
-              <div className="mt-6 pt-4 border-t border-slate-900 flex justify-end gap-3 z-10 relative">
+              <div className="mt-6 pt-5 border-t border-cyan-500/20 flex justify-end gap-4 z-10 relative">
                 {selectedWeaponDetails.isShopTemplate ? (
-                  <button 
-                    className="w-full py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-slate-950 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all duration-300"
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full lg:w-auto px-10 py-4 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 focus:outline-none hover:from-cyan-500 hover:to-purple-500 text-white font-extrabold text-sm uppercase rounded-xl cursor-pointer shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all"
                     onClick={() => {
                       buyWeapon(selectedWeaponDetails.id);
                       setSelectedWeaponDetails(null);
                     }}
                   >
-                    INTEGRATE WEAPON (-{selectedWeaponDetails.cost} CG)
-                  </button>
+                    INTEGRATE WEAPON ARSENAL (-{selectedWeaponDetails.cost} CG)
+                  </motion.button>
                 ) : (
                   <>
                     {selectedWeaponDetails.equipped ? (
-                      <div className="w-full text-center text-cyan-400 font-bold text-xs py-2.5 border border-cyan-500/20 bg-cyan-500/5 rounded-xl uppercase">
+                      <div className="w-full text-center text-cyan-400 font-bold text-sm py-4 border-2 border-cyan-500/40 bg-cyan-950/40 rounded-xl uppercase tracking-widest overflow-hidden relative">
+                        <div className="absolute inset-0 bg-cyan-500/10 animate-pulse pointer-events-none" />
                         ACTIVE PRIMARY EQUIPMENT IN SLOT
                       </div>
                     ) : (
-                      <button 
-                        className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-cyan-400 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer border border-cyan-500/30 transition-all duration-300 text-center uppercase"
+                      <motion.button 
+                        whileHover={{ scale: 1.02, backgroundColor: "rgba(15, 23, 42, 0.8)" }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full lg:w-auto px-12 py-4 bg-slate-900 border-2 border-cyan-500/50 text-cyan-400 hover:text-white hover:border-cyan-400 font-extrabold text-sm uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.1)] transition-all text-center tracking-widest relative overflow-hidden"
                         onClick={() => {
                           equipWeapon(selectedWeaponDetails.id);
                           setSelectedWeaponDetails(null);
                         }}
                       >
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
                         EQUIP ARSENAL UNIT
-                      </button>
+                      </motion.button>
                     )}
                   </>
                 )}
