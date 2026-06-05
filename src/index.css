@@ -28,7 +28,7 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
   background-color: rgba(2, 6, 23, 0.45) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid rgba(6, 182, 212, 0.25) !important;
+  border-bottom: none !important;
 }
 
 /* Ensure the main dashboard grid has an open transparent layout to showcase backend cosmic animations */
@@ -44,7 +44,8 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
   background-color: rgba(2, 6, 23, 0.35) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border-color: rgba(51, 65, 85, 0.25) !important;
+  border: none !important;
+  border-width: 0px !important;
 }
 
 /* Boost text visibility throughout the container to be more white/visible as requested */
@@ -64,10 +65,10 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
 div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) {
   position: relative !important;
   background-color: rgba(3, 7, 18, 0.5) !important;
-  border: 1.5px solid rgba(139, 92, 246, 0.45) !important; /* warm high contrast purple edge */
+  border: none !important;
   border-radius: 20px !important;
   box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), inset 0 0 15px rgba(6, 182, 212, 0.1) !important;
-  padding: 1px !important;
+  padding: 0px !important;
   overflow: visible !important;
 }
 
@@ -76,7 +77,7 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
   background-color: rgba(2, 6, 23, 0.65) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border: 1.5px solid rgba(34, 211, 238, 0.45) !important; /* cyan glow inner border */
+  border: none !important;
   border-radius: 16px !important;
   box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.08) !important;
 }
@@ -85,13 +86,7 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
 div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::before,
 div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::after {
   content: "" !important;
-  position: absolute !important;
-  width: 14px !important;
-  height: 14px !important;
-  border-color: rgba(34, 211, 238, 0.9) !important;
-  border-style: solid !important;
-  pointer-events: none !important;
-  z-index: 10 !important;
+  display: none !important;
 }
 
 div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) > div#rpg_game_container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1)::before {
@@ -107,3 +102,53 @@ div#root:nth-of-type(1) > div#monarch_root:nth-of-type(1) > div:nth-of-type(2) >
   border-width: 0 2.5px 2.5px 0 !important;
   border-bottom-right-radius: 4px !important;
 }
+
+/* Hide scrollbars on mobile devices while keeping original swipe & flow scrolling standard */
+@media (max-width: 1023px) {
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
+
+/* === Dynamic Override to Remove All Section & Card Borders from All Pages === */
+#rpg_game_container header,
+#rpg_game_container footer,
+#rpg_game_container div[class*="bg-slate-950"],
+#rpg_game_container div[class*="bg-slate-900"],
+#rpg_game_container div[class*="bg-slate-900\/60"],
+#rpg_game_container div[class*="bg-slate-950\/75"],
+#rpg_game_container div[class*="bg-slate-950\/80"],
+#rpg_game_container div[class*="bg-slate-950\/90"],
+#rpg_game_container div[class*="bg-slate-950\/95"],
+#rpg_game_container div[class*="border-slate-900"],
+#rpg_game_container div[class*="border-slate-800"],
+#rpg_game_container div[class*="border-slate-950"],
+#rpg_game_container div[class*="border-cyan-500\/20"],
+#rpg_game_container div[class*="border-cyan-500\/30"],
+#rpg_game_container div[class*="border-indigo-950\/40"],
+#rpg_game_container div[class*="border-amber-900\/30"],
+#rpg_game_container div[class*="border-rose-500\/30"],
+#rpg_game_container div[class*="border-purple-500\/30"],
+#rpg_game_container div[class*="border-pink-500\/35"],
+#rpg_game_container div[class*="border-slate-950\/80"],
+#rpg_game_container div[class*="border-t"],
+#rpg_game_container div[class*="border-b"],
+#rpg_game_container div[class*="border-l"],
+#rpg_game_container div[class*="border-r"],
+#rpg_game_container div[class*="border-x"],
+#rpg_game_container div[class*="border-y"],
+#rpg_game_container table,
+#rpg_game_container tr,
+#rpg_game_container th,
+#rpg_game_container td {
+  border-style: none !important;
+  border-width: 0px !important;
+  border-color: transparent !important;
+}
+

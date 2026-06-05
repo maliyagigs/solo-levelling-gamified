@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "Represents a user's stats on the global leaderboard",
+      "type": "object",
+      "properties": {
+        "playerName": {
+          "type": "string",
+          "description": "The name of the player"
+        },
+        "level": {
+          "type": "integer",
+          "description": "The current level of the player"
+        },
+        "gold": {
+          "type": "integer",
+          "description": "The current gold (Mana) of the player"
+        },
+        "job": {
+          "type": "string",
+          "description": "The current job of the player"
+        },
+        "rank": {
+          "type": "string",
+          "description": "The current rank of the player"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The last time the player's stats were serialized"
+        }
+      },
+      "required": ["playerName", "level", "gold", "job", "rank", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{playerId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Firestore collection containing all players and their current stats for the global ranking"
+    }
+  }
+}

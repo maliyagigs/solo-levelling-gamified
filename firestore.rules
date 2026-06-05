@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net & Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Leaderboard entries
+    match /leaderboard/{playerId} {
+      allow read: if true;
+      allow create: if (
+        isValidId(playerId) &&
+        isValidLeaderboardEntry(request.resource.data) &&
+        request.resource.data.updatedAt == request.time
+      );
+      allow update: if (
+        isValidId(playerId) &&
+        isValidLeaderboardEntry(request.resource.data) &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.playerName == resource.data.playerName
+      );
+      allow delete: if false; // Deletion is locked
+    }
+    
+    // Helper Primitives
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_ -]+$'); 
+    }
+    
+    function isValidLeaderboardEntry(data) {
+      return (
+        data.keys().hasAll(['playerName', 'level', 'gold', 'job', 'rank', 'updatedAt']) &&
+        data.keys().size() == 6 &&
+        data.playerName is string && data.playerName.size() > 0 && data.playerName.size() <= 64 &&
+        data.level is number && data.level >= 0 && data.level <= 9999 &&
+        data.gold is number && data.gold >= 0 &&
+        data.job is string && data.job.size() <= 64 &&
+        data.rank is string && data.rank.size() <= 64
+      );
+    }
+  }
+}

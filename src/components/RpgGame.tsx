@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Dumbbell, 
+  Home,
   Sword, 
   Sparkles, 
   Shield, 
@@ -35,13 +36,15 @@ import {
   ChevronRight,
   Trash2,
   Pause,
-  Target
+  Target,
+  Trophy
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
-import { Smartphone, Copy, Check } from "lucide-react";
+import { Smartphone, Copy, Check, Camera, Upload } from "lucide-react";
+import { saveToLeaderboard, fetchLeaderboard } from "../utils/firebase";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -119,6 +122,73 @@ const getWeaponColorClasses = (itemId: string) => {
   }
 };
 
+const renderCircularProgress = (
+  value: number,
+  max: number,
+  colorFrom: string,
+  colorTo: string,
+  glowColor: string,
+  label: string,
+  subText: string,
+  icon: React.ReactNode,
+  id: string
+) => {
+  const percentage = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  const radius = 24;
+  const strokeWidth = 4.5;
+  const circumference = 2 * Math.PI * radius;
+  const strokeOffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center p-2.5 text-center bg-slate-950/20 backdrop-blur-sm rounded-xl w-full">
+      <div className="relative w-14 h-14 flex items-center justify-center">
+        <svg className="w-full h-full -rotate-90 select-none pointer-events-none" viewBox="0 0 64 64">
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            className="stroke-slate-900/60"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+          <motion.circle
+            cx="32"
+            cy="32"
+            r={radius}
+            stroke={`url(#${id}-gradient)`}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: strokeOffset }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            strokeLinecap="round"
+            style={{
+              filter: `drop-shadow(0 0 3px ${glowColor})`,
+            }}
+          />
+          <defs>
+            <linearGradient id={`${id}-gradient`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={colorFrom} />
+              <stop offset="100%" stopColor={colorTo} />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div className="absolute flex flex-col items-center justify-center">
+          {icon}
+          <span className="text-[9px] font-black text-slate-100 font-mono mt-0.5">{Math.round(percentage)}%</span>
+        </div>
+      </div>
+      
+      <div className="mt-1.5 font-mono text-center">
+        <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-bold">{label}</span>
+        <span className="text-[10px] font-bold text-cyan-400 mt-0.5 block truncate max-w-[70px]">{subText}</span>
+      </div>
+    </div>
+  );
+};
+
 interface RpgGameProps {
   playerName: string;
   onboardProfile: OnboardingData;
@@ -126,7 +196,90 @@ interface RpgGameProps {
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
-  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner">("quests");
+  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "leaderboard">("home");
+  
+  const getMobileSection = (tab: string): number => {
+    if (tab === "status" || tab === "dungeons") return 0;
+    if (tab === "leaderboard") return 1;
+    if (tab === "home" || tab === "quests" || tab === "life_forge") return 2;
+    if (tab === "shadows" || tab === "skills") return 3;
+    if (tab === "backpack" || tab === "profile") return 4;
+    return 2;
+  };
+
+  const handleMobileSectionClick = (sectionIdx: number) => {
+    try {
+      playSelectSound();
+    } catch (e) {}
+    const currentSec = getMobileSection(activeTab);
+    if (sectionIdx === 0) {
+      if (currentSec !== 0) {
+        setActiveTab("status");
+      } else {
+        if (activeTab === "status") setActiveTab("dungeons");
+        else setActiveTab("status");
+      }
+    } else if (sectionIdx === 1) {
+      setActiveTab("leaderboard");
+    } else if (sectionIdx === 2) {
+      if (currentSec !== 2) {
+        setActiveTab("home");
+      } else {
+        if (activeTab === "quests") setActiveTab("home");
+        else if (activeTab === "home") setActiveTab("life_forge");
+        else setActiveTab("quests");
+      }
+    } else if (sectionIdx === 3) {
+      if (currentSec !== 3) {
+        setActiveTab("shadows");
+      } else {
+        if (activeTab === "shadows") setActiveTab("skills");
+        else setActiveTab("shadows");
+      }
+    } else if (sectionIdx === 4) {
+      if (currentSec !== 4) {
+        setActiveTab("backpack");
+      } else {
+        if (activeTab === "backpack") setActiveTab("profile");
+        else setActiveTab("backpack");
+      }
+    }
+  };
+
+  const getMobileSubtabs = () => {
+    const sec = getMobileSection(activeTab);
+    if (sec === 0) {
+      return [
+        { id: "status", label: "Status" },
+        { id: "dungeons", label: "Gates" }
+      ];
+    }
+    if (sec === 1) {
+      return [
+        { id: "leaderboard", label: "Global Ranks" }
+      ];
+    }
+    if (sec === 2) {
+      return [
+        { id: "quests", label: "Quests" },
+        { id: "home", label: "Home" },
+        { id: "life_forge", label: "Life Forge" }
+      ];
+    }
+    if (sec === 3) {
+      return [
+        { id: "shadows", label: "Shadows" },
+        { id: "skills", label: "Skill-Tree" }
+      ];
+    }
+    if (sec === 4) {
+      return [
+        { id: "backpack", label: "Backpack" },
+        { id: "profile", label: "Profile" }
+      ];
+    }
+    return [];
+  };
   
   // Calculate metabolic targets from profile values
   const weightKg = onboardProfile?.isMetricWeight ? onboardProfile.weight : Math.round(onboardProfile?.weight * 0.453592) || 75;
@@ -191,6 +344,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   const battleLogEndRef = useRef<HTMLDivElement>(null);
 
+  // Leaderboard state hooks
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState<boolean>(false);
+
   // Dynamic Custom UI State hooks
   const [levelUpOverlay, setLevelUpOverlay] = useState<{ prevLevel: number; newLevel: number; statPointsEarned: number } | null>(null);
   const [milestoneOverlay, setMilestoneOverlay] = useState<{ title: string; subtitle: string; desc: string; icon?: string } | null>(null);
@@ -218,6 +375,29 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setTimeout(() => {
       setSystemToast(prev => prev === msg ? null : prev);
     }, 4500);
+  };
+
+  const [profileImage, setProfileImage] = useState<string | null>(() => {
+    return localStorage.getItem(`monarch_profile_img_${playerName}`) || null;
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        triggerSystemToast("🚨 ERROR: Profile picture must be less than 2MB!");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setProfileImage(base64String);
+        localStorage.setItem(`monarch_profile_img_${playerName}`, base64String);
+        triggerSystemToast("⚡ SYSTEM INTEGRATION: Profile picture updated successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // ==========================================
@@ -957,6 +1137,46 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   useEffect(() => {
     localStorage.setItem(`monarch_save_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
+
+  // Firebase Leaderboard Synchronizer Effect
+  useEffect(() => {
+    let active = true;
+    const syncLeaderboard = async () => {
+      try {
+        await saveToLeaderboard(playerName, gameState.level, gameState.gold, gameState.job, gameState.rank);
+      } catch (err) {
+        console.error("Leaderboard synchronization failed", err);
+      }
+    };
+    
+    // Simple debounce/timeout so we don't spam Firestore on rapid changes
+    const t = setTimeout(() => {
+      if (active) {
+        syncLeaderboard();
+      }
+    }, 1500);
+    
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [playerName, gameState.level, gameState.gold, gameState.job, gameState.rank]);
+
+  // Fetch Leaderboard entries when active tab is "leaderboard"
+  useEffect(() => {
+    if (activeTab === "leaderboard") {
+      setLoadingLeaderboard(true);
+      fetchLeaderboard()
+        .then(data => {
+          setLeaderboardData(data);
+          setLoadingLeaderboard(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoadingLeaderboard(false);
+        });
+    }
+  }, [activeTab]);
 
   // Adjust rank and job based on Level
   useEffect(() => {
@@ -1920,7 +2140,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg)`
             }}
           >
-            {/* Layer 1: Radiant Back Aura Layer (Deepest Z) */}
+            {/* Layer 1: Radiant Back Aura Layer (Deepest Z) in Pure Blue Neon */}
             <div 
               className="absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center"
               style={{ 
@@ -1929,7 +2149,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 backfaceVisibility: "visible"
               }}
             >
-              <div className="w-[120%] h-[120%] opacity-90 blur-[6px] flex items-center justify-center">
+              <div className="w-[120%] h-[120%] opacity-90 blur-[12px] flex items-center justify-center filter sepia hue-rotate-[160deg] saturate-[5] brightness-150 contrast-125">
                 {renderNeonWeaponPreview(itemId, false, "back")}
               </div>
             </div>
@@ -1943,24 +2163,51 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 backfaceVisibility: "visible"
               }}
             >
-              <div className="w-[110%] h-[110%]">
+              <div className="w-[110%] h-[110%] filter grayscale sepia hue-rotate-[180deg] saturate-[6] brightness-[1.8]">
                 {renderNeonWeaponPreview(itemId, false, "sparks")}
               </div>
             </div>
+
+            {/* ---- 3D VOLUMETRIC EXTRUSION (Real 3D Detailed Simulation) ---- */}
+            {[-24, -18, -12, -6, 6, 12, 18, 24].map((zOffset, idx) => (
+              <div 
+                key={idx}
+                className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30"
+                style={{ 
+                  transform: `translateZ(${zOffset}px)`, 
+                  transformStyle: "preserve-3d",
+                  backfaceVisibility: "visible"
+                }}
+              >
+                <div className={`w-full h-full filter grayscale sepia hue-rotate-[180deg] saturate-[4] ${Math.abs(zOffset) > 15 ? "brightness-50" : "brightness-[0.8]"}`}>
+                  {renderNeonWeaponPreview(itemId, false, "base")}
+                </div>
+              </div>
+            ))}
 
             {/* Layer 3: Main Armament Geometry Core Layer */}
             <div 
               className="absolute inset-0 pointer-events-none flex items-center justify-center"
               style={{ 
-                transform: "translateZ(5px)", 
+                transform: "translateZ(0px)", 
                 transformStyle: "preserve-3d",
                 backfaceVisibility: "visible",
-                filter: "drop-shadow(0 8px 25px rgba(0,0,0,0.65))"
+                filter: "drop-shadow(0 0 20px rgba(6,182,212,0.8)) drop-shadow(0 0 35px rgba(6,182,212,0.4))"
               }}
             >
-              <div className="w-full h-full">
-                {renderNeonWeaponPreview(itemId, false, "base")}
+              <div className="w-full h-full filter grayscale sepia hue-rotate-[170deg] saturate-[8] brightness-[1.3] contrast-[1.25]">
+                 {renderNeonWeaponPreview(itemId, false, "base")}
+                 
+                 {/* Internal Wireframe/Facet Lines overlay for "3D detailed" tech look */}
+                 <div className="absolute inset-0 border border-cyan-400/30 rounded shadow-[inset_0_0_20px_rgba(6,182,212,0.2)] mix-blend-screen" />
               </div>
+            </div>
+
+            {/* Core Blueprint Tech Crosshairs */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 mix-blend-screen" style={{ transform: "translateZ(0px)", transformStyle: "preserve-3d" }}>
+               <div className="w-[80%] h-[1px] bg-cyan-400/60 shadow-[0_0_8px_cyan]" />
+               <div className="absolute h-[80%] w-[1px] bg-cyan-400/60 shadow-[0_0_8px_cyan]" />
+               <div className="absolute w-[60%] h-[60%] border border-cyan-400/30 rounded-full" />
             </div>
 
             {/* Layer 4: Floating Star Edge & Laser High-Voltage Front Layer */}
@@ -1969,10 +2216,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               style={{ 
                 transform: "translateZ(30px)", 
                 transformStyle: "preserve-3d",
-                backfaceVisibility: "visible"
+                backfaceVisibility: "visible",
+                filter: "drop-shadow(0 0 20px rgba(34,211,238,1)) drop-shadow(0 0 10px #ffffff)"
               }}
             >
-              <div className="w-[98%] h-[98%]">
+              <div className="w-[98%] h-[98%] filter grayscale sepia hue-rotate-[170deg] saturate-[10] brightness-[2.5] contrast-[1.5]">
                 {renderNeonWeaponPreview(itemId, false, "front")}
               </div>
             </div>
@@ -2361,44 +2609,59 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* Header Panel */}
-      <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
+      <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex items-center justify-between gap-4 h-16">
+        <div className="flex items-center gap-3 w-1/3 min-w-[80px]">
           <div>
-            <span className="text-xs text-slate-500 font-mono tracking-widest block uppercase">WARRIOR REGISTRY</span>
-            <div id="player_info_title" className="text-base font-extrabold text-cyan-400 font-mono">
-              {playerName} &middot; <span className="text-white font-sans text-xs">{gameState.rank} {gameState.job}</span>
+            <span className="text-[9px] text-slate-500 font-mono tracking-widest block uppercase truncate">PLAYER NAME</span>
+            <div id="player_info_title" className="text-xs sm:text-sm font-extrabold text-cyan-400 font-mono truncate">
+              {playerName}
             </div>
           </div>
         </div>
 
+        {/* Dynamic Mobile & Desktop Page Title - centered */}
+        <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none z-10">
+          <span className="text-[10px] sm:text-xs font-mono font-black tracking-widest text-cyan-300 uppercase drop-shadow-[0_0_8px_rgba(6,182,212,0.4)] animate-pulse">
+            {activeTab === "home" ? "HOME OVERVIEW" :
+             activeTab === "quests" ? "DAILY QUESTS" :
+             activeTab === "life_forge" ? "LIFE FORGE" :
+             activeTab === "status" ? "CHARACTER STATUS" :
+             activeTab === "dungeons" ? "DIMENSIONAL GATES" :
+             activeTab === "leaderboard" ? "GLOBAL LEADERBOARD" :
+             activeTab === "shadows" ? "SHADOW ARMY" :
+             activeTab === "skills" ? "SKILL TREE" :
+             activeTab === "backpack" ? "ARMAMENT BAG" :
+             activeTab === "profile" ? "PROFILE" :
+             "INTERFACE"}
+          </span>
+        </div>
+
         {/* Currency displays */}
-        <div className="flex items-center gap-4">
-          <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 text-xs font-mono">
-            <span className="text-indigo-400 font-bold mr-2 uppercase">MANA:</span>
+        <div className="flex items-center justify-end gap-2 pr-1 w-1/3 min-w-[80px]">
+          <div className="bg-slate-900 px-2 sm:px-3 py-1 bg-slate-900/80 border border-slate-800 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg">
             <span className="text-indigo-400 font-bold">{gameState.gold} MP</span>
           </div>
 
-          <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 text-xs font-mono">
-            <span className="text-slate-500 mr-2 uppercase">LEVEL:</span>
-            <span className="text-cyan-400 font-bold">{gameState.level}</span>
+          <div className="bg-slate-900 px-2 sm:px-3 py-1 bg-slate-900/80 border border-slate-800 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg">
+            <span className="text-cyan-400 font-bold">Lvl {gameState.level}</span>
           </div>
 
           <button 
             id="btn_profile_trigger"
-            className="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 rounded-xl cursor-pointer transition-colors border border-slate-800 flex items-center gap-1.5 font-mono text-xs font-bold"
+            className="hidden lg:flex p-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 rounded-lg cursor-pointer transition-colors border border-slate-800 items-center gap-1 font-mono text-[10px] font-bold"
             onClick={() => setShowProfileDrawer(true)}
           >
-            <User className="w-4 h-4" />
-            <span className="hidden sm:inline">PROFILE</span>
+            <User className="w-3.5 h-3.5" />
+            <span>PROFILE</span>
           </button>
         </div>
       </header>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-4 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
-        <div className="relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+        <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
 
           
           <button 
@@ -2411,40 +2674,33 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           </button>
 
 
-          {/* Level Exp Progress Section */}
-          <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
-            <div className="flex justify-between items-center text-[8px] text-slate-500">
-              <span className="tracking-wider">XP PROGRESS</span>
-              <span className="text-cyan-400 font-bold">{gameState.exp}/{gameState.maxExp}</span>
-            </div>
-            
-            <div id="player_lvl_xp_meter" className="h-1 bg-slate-900 rounded-full overflow-hidden relative">
-              <motion.div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-600 rounded-full"
-                animate={{ width: `${(gameState.exp / gameState.maxExp) * 100}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-
-            <div className="flex justify-between text-[8px] text-slate-500 border-t border-slate-900/60 pt-1.5">
+          {/* Unified Round/Circular Progresses */}
+          <div className="bg-slate-950/75 p-2 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-2">
+            {renderCircularProgress(
+              gameState.exp,
+              gameState.maxExp,
+              "#22d3ee",
+              "#4f46e5",
+              "rgba(34, 211, 238, 0.4)",
+              "XP PROGRESS",
+              `${gameState.exp}/${gameState.maxExp}`,
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />,
+              "xp-desktop"
+            )}
+            {renderCircularProgress(
+              playerMp,
+              playerMaxMp,
+              "#6366f1",
+              "#a855f7",
+              "rgba(99, 102, 241, 0.4)",
+              "MANA (MP)",
+              `${playerMp}/${playerMaxMp}`,
+              <Zap className="w-3.5 h-3.5 text-indigo-400" />,
+              "mp-desktop"
+            )}
+            <div className="col-span-2 flex justify-between items-center text-[8px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
               <span>TIER:</span>
               <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
-            </div>
-          </div>
-
-          {/* Sovereign Mana (MP) Progress Section */}
-          <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
-            <div className="flex justify-between items-center text-[8px] text-slate-500">
-              <span className="tracking-wider">MANA (MP)</span>
-              <span className="text-indigo-400 font-bold">{playerMp}/{playerMaxMp}</span>
-            </div>
-            
-            <div id="player_mana_mp_meter" className="h-1 bg-slate-900 rounded-full overflow-hidden relative">
-              <motion.div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
-                animate={{ width: `${(playerMp / playerMaxMp) * 100}%` }}
-                transition={{ duration: 0.3 }}
-              />
             </div>
           </div>
 
@@ -2511,16 +2767,41 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         {/* TAB CONTROLLERS & DETAILED TAB CONTENT (RIGHT PANEL - EXPANDED GRIDS) */}
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
+          {/* Mobile subtabs row */}
+          <div className="flex lg:hidden gap-1.5 border-b border-slate-900 pb-3" id="mobile_sub_navigation">
+            {getMobileSubtabs().map(tab => (
+              <button
+                key={tab.id}
+                className={`flex-1 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono uppercase cursor-pointer tracking-wider transition-all font-bold text-center border ${
+                  activeTab === tab.id 
+                    ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]" 
+                    : "text-slate-500 bg-transparent border-transparent hover:text-slate-350"
+                }`}
+                onClick={() => {
+                  try {
+                    playSelectSound();
+                  } catch (e) {}
+                  setActiveTab(tab.id as any);
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* Tabs header row */}
-          <div className="flex flex-wrap gap-2 border-b border-slate-900 pb-3" id="tab_navigation">
+          <div className="hidden lg:flex flex-wrap gap-2 border-b border-slate-900 pb-3" id="tab_navigation">
             {[
               { id: "quests", label: "Quests" },
-              { id: "status", label: "Status" },
+              { id: "home", label: "Home" },
               { id: "life_forge", label: "Life Forge" },
+              { id: "status", label: "Status" },
               { id: "dungeons", label: "Gates" },
+              { id: "leaderboard", label: "Leaderboard" },
               { id: "shadows", label: "Shadows" },
               { id: "skills", label: "Skill-Tree" },
-              { id: "backpack", label: "Backpack" }
+              { id: "backpack", label: "Backpack" },
+              { id: "profile", label: "Profile" }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -2541,6 +2822,256 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
           {/* Render Active Tab Screen details */}
           <div className="bg-slate-900/20 rounded-3xl min-h-[400px]">
+            
+            {/* A0_1. HOME TAB (Mobile only view representing character overview) */}
+            {activeTab === "home" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:hidden space-y-4">
+                {/* Level Up details / player indicator */}
+                <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                      ⚡
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold font-mono text-cyan-400">{playerName}</h4>
+                      <p className="text-xs text-slate-300">{gameState.rank} &middot; {gameState.job}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Level Exp & Mana Circular Progress Section */}
+                <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-3.5">
+                  {renderCircularProgress(
+                    gameState.exp,
+                    gameState.maxExp,
+                    "#22d3ee",
+                    "#4f46e5",
+                    "rgba(34, 211, 238, 0.4)",
+                    "XP PROGRESS",
+                    `${gameState.exp}/${gameState.maxExp}`,
+                    <Activity className="w-4 h-4 text-cyan-400" />,
+                    "xp-mobile"
+                  )}
+                  {renderCircularProgress(
+                    playerMp,
+                    playerMaxMp,
+                    "#6366f1",
+                    "#a855f7",
+                    "rgba(99, 102, 241, 0.4)",
+                    "MANA (MP)",
+                    `${playerMp}/${playerMaxMp}`,
+                    <Zap className="w-4 h-4 text-indigo-400" />,
+                    "mp-mobile"
+                  )}
+
+                  <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
+                    <span>REGISTRY TIER:</span>
+                    <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
+                  </div>
+                </div>
+
+                {/* Story Campaigns Indicator */}
+                <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
+                  <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
+                  <div className="space-y-2 text-[11px]">
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                      <span className={gameState.level >= 1 ? "text-cyan-400 font-medium" : "text-slate-600"}>1. Double Dungeon Rescue</span>
+                      <span className="text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase">CLEARED</span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                      <span className={gameState.level >= 25 ? "text-cyan-400 font-medium" : "text-slate-600"}>2. Red Gate Assault [Rank B]</span>
+                      <span className={gameState.level >= 25 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
+                        {gameState.level >= 25 ? "AWAKENED" : `Unlocks at Level 25`}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                      <span className={gameState.level >= 70 ? "text-cyan-400 font-medium" : "text-slate-600"}>3. Monarch Battle - Jeju Island</span>
+                      <span className={gameState.level >= 70 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
+                        {gameState.level >= 70 ? "SOVEREIGN OWNER" : `Unlocks at Level 70`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* System Messages */}
+                <div className="bg-slate-950/75 border border-amber-900/30 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3 relative overflow-hidden">
+                  <div className="flex items-center gap-1.5 pb-2 border-b border-amber-900/40">
+                    <span className="text-amber-400">🔔</span>
+                    <span className="text-amber-400 font-extrabold uppercase tracking-widest text-[10px]">Command Directives</span>
+                  </div>
+                  <div className="space-y-3 text-[11px] leading-relaxed text-slate-300">
+                    <div className="bg-slate-900/60 p-2.5 rounded-xl border border-red-950/30">
+                      <p className="text-red-400 font-bold uppercase mb-0.5 text-[9px]">Penalty Protocol Active</p>
+                      <p className="text-slate-400">All Daily Quests must be finalized before midnight. Incomplete logs trigger severe MP and XP drain sanctioning.</p>
+                    </div>
+                    <div className="bg-slate-900/60 p-2.5 rounded-xl border border-cyan-950/30">
+                      <p className="text-cyan-400 font-bold uppercase mb-0.5 text-[9px]">Alchemical Evolution</p>
+                      <p className="text-slate-400">Use Life Forge to execute focused learning runs. Gaining intellect is key to casting powerful runes.</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* A0_2. PROFILE TAB (Representing profile details) */}
+            {activeTab === "profile" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-xl mx-auto w-full">
+                {/* Profile Identification Grid */}
+                <div className="p-5 bg-slate-950/75 rounded-2xl border border-slate-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative overflow-hidden group/profile shadow-xl">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-extrabold text-white text-3xl shadow-[0_0_20px_rgba(34,211,238,0.25)] cursor-pointer overflow-hidden border-2 border-cyan-500/40 hover:border-cyan-400 transition-all duration-300 group shrink-0"
+                    title="Click to upload profile picture"
+                  >
+                    {profileImage ? (
+                      <img 
+                        src={profileImage} 
+                        alt={playerName} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      playerName.substring(0, 2).toUpperCase()
+                    )}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                      <Camera className="w-5 h-5 text-cyan-300" />
+                    </div>
+                  </div>
+                  
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-500 uppercase block tracking-wider font-mono">Monarch Identity</span>
+                    <h4 className="text-base font-bold text-slate-100 font-mono">{playerName}</h4>
+                    <span className="text-[10px] text-cyan-400 uppercase font-black tracking-wider font-mono">Level {gameState.level} &middot; {gameState.rank} {gameState.job}</span>
+                  </div>
+
+                  <div className="sm:ml-auto">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-[10px] font-mono font-bold uppercase rounded-xl tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Change Photo</span>
+                    </button>
+                    {profileImage && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProfileImage(null);
+                          localStorage.removeItem(`monarch_profile_img_${playerName}`);
+                          triggerSystemToast("⚡ SYSTEM INTEGRATION: Profile picture cleared!");
+                        }}
+                        className="mt-2 w-full justify-center px-3 py-1 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-350 text-[10px] font-mono font-bold uppercase rounded-xl tracking-wider cursor-pointer flex items-center gap-1 transition-all"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Settings Options Portfolio List */}
+                <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-5">
+                  <span className="text-slate-400 text-xs uppercase font-extrabold tracking-widest block border-b border-slate-900 pb-2.5">System Options Matrix</span>
+
+                  {/* OPTION 1: Player Name Registry */}
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">1. Player Name registry</label>
+                    <input 
+                      type="text"
+                      value={playerName}
+                      disabled
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-400 font-bold select-none cursor-default text-xs"
+                    />
+                    <span className="text-[9px] text-slate-600 block lowercase leading-relaxed">Identity locks are established during regional awakening selection.</span>
+                  </div>
+
+                  {/* OPTION 2: System Synthesizer Volume */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">2. System Synthesizer Volume</span>
+                    <div className="flex justify-between items-center bg-slate-900/60 p-2.5 px-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-300">Auditory sound FX core</span>
+                      <span className="text-cyan-400 font-bold uppercase text-[9px] tracking-widest bg-cyan-500/10 border border-cyan-400/20 px-2 py-0.5 rounded-full animate-pulse">
+                        Active [100%]
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* OPTION 3: Regimen Difficulty standard */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">3. Regimen Difficulty standard</span>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button className="py-2.5 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+                        RECRUIT COMPLIANCE
+                      </button>
+                      <button 
+                        className="py-2 px-1 border border-slate-800 text-slate-500 rounded-xl text-[9px] font-bold uppercase hover:border-slate-700 hover:text-slate-300 transition-all duration-300 cursor-pointer"
+                        onClick={() => triggerSystemToast("SYSTEM NOTIFICATION: S-Rank Grind forces intense Penalty sequences upon daily quest neglect!")}
+                      >
+                        S-RANK GRIND
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* OPTION 4: Notification Settings Toggle */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">4. System Sound Signals</span>
+                    <div className="flex justify-between items-center bg-slate-900/60 p-2 px-3 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-350 block font-sans">Daily Quest Reminders</span>
+                      <div 
+                        className={`w-10 h-6 rounded-full p-0.5 cursor-pointer flex items-center transition-colors duration-200 ${dailyQuestReminder ? "bg-cyan-500 justify-end" : "bg-slate-800 justify-start"}`}
+                        onClick={() => {
+                          const newVal = !dailyQuestReminder;
+                          setDailyQuestReminder(newVal);
+                          localStorage.setItem(`monarch_reminder_${playerName}`, newVal.toString());
+                          triggerSystemToast(`SYSTEM SIGNAL: Quest Reminders turned ${newVal ? "ON" : "OFF"}`);
+                        }}
+                      >
+                        <div className="w-4 h-4 bg-slate-950 rounded-full shadow-sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* OPTION 5: Erase registry save data */}
+                  <div className="space-y-2 border-t border-slate-900 pt-3">
+                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">5. Erase registry save data</span>
+                    <button 
+                      className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer animate-pulse"
+                      onClick={() => {
+                        setShowPurgeModal(true);
+                      }}
+                    >
+                      Purge Active Registry Save
+                    </button>
+                  </div>
+
+                  {/* OPTION 6: Real Sign Out Action Button */}
+                  <div className="border-t border-slate-900 pt-4">
+                    <button 
+                      className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setShowDisconnectModal(true);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      DISCONNECT SESSION
+                    </button>
+                    <p className="text-[9px] text-slate-600 text-center font-mono uppercase mt-3">
+                      COMPLIANCE SECURED &middot; VERSION 1.0.4 Awaken
+                    </p>
+                  </div>
+
+                </div>
+              </motion.div>
+            )}
             
             {/* A. STATUS TAB: Stat allocator and character profiles */}
             {activeTab === "status" && (
@@ -2736,51 +3267,123 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </motion.div>
             )}
 
+            {/* L. LEADERBOARD TAB: Global real-time Firebase Sync */}
+            {activeTab === "leaderboard" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 p-1">
+                <div className="bg-slate-950/75 border border-slate-900 p-3 sm:p-6 rounded-2xl backdrop-blur-md">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-900 pb-5">
+                    <div>
+                      <h3 className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-100 flex items-center gap-2">
+                        <Trophy className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" /> GLOBAL REGISTRY RANKINGS
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">Real-time synchronized records of physical hunters in training.</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try { playSelectSound(); } catch (e) {}
+                        setLoadingLeaderboard(true);
+                        const data = await fetchLeaderboard();
+                        setLeaderboardData(data);
+                        setLoadingLeaderboard(false);
+                      }}
+                      disabled={loadingLeaderboard}
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 rounded-xl text-xs font-mono uppercase font-bold tracking-wider hover:bg-cyan-500/10 cursor-pointer transition-all disabled:opacity-50"
+                    >
+                      {loadingLeaderboard ? "🔄 ACCESSING SERVER..." : "🔄 SYNC RECORDS"}
+                    </button>
+                  </div>
+
+                  {loadingLeaderboard ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 rounded-full border-2 border-slate-900" />
+                        <div className="absolute inset-0 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+                      </div>
+                      <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase animate-pulse">Establishing secure handshake & fetching logs...</p>
+                    </div>
+                  ) : leaderboardData.length === 0 ? (
+                    <div className="text-center py-20 border border-dashed border-slate-900 rounded-2xl">
+                      <Trophy className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+                      <p className="text-sm font-mono text-slate-400">NO LOGS AVAILABLE IN FIRESTORE DATABASE</p>
+                      <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">Complete custom daily tasks or update player stats to broadcast to the global hub.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-900/60 bg-slate-950/30">
+                      <table className="w-full text-left font-mono text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-900/80 bg-slate-950/80 text-[10px] text-slate-500 uppercase tracking-wider">
+                            <th className="py-3 px-2 sm:px-4 font-bold text-center w-10 sm:w-16">Rank</th>
+                            <th className="py-3 px-2 sm:px-4 font-bold">Hunter</th>
+                            <th className="py-3 px-2 sm:px-4 font-bold text-center w-12 sm:w-24">Level</th>
+                            <th className="py-3 px-2 sm:px-4 font-bold text-right w-24 sm:w-36">Mana (MP)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-900/40">
+                          {leaderboardData.map((hunter, index) => {
+                            const isSelf = hunter.playerName?.toLowerCase() === playerName?.toLowerCase();
+                            const rankNum = index + 1;
+                            
+                            // Highlight styles for different ranks
+                            const getRankBadge = () => {
+                              if (rankNum === 1) return <span className="text-lg">🥇</span>;
+                              if (rankNum === 2) return <span className="text-lg">🥈</span>;
+                              if (rankNum === 3) return <span className="text-lg">🥉</span>;
+                              return <span className="text-slate-500 font-bold">#{rankNum}</span>;
+                            };
+
+                            const getRowStyle = () => {
+                              if (isSelf) return "bg-cyan-500/5 hover:bg-cyan-500/10 border-l-2 border-l-cyan-400";
+                              if (rankNum === 1) return "bg-yellow-500/5 hover:bg-yellow-500/10 font-bold";
+                              if (rankNum === 2) return "bg-slate-300/5 hover:bg-slate-300/10";
+                              if (rankNum === 3) return "bg-amber-700/5 hover:bg-amber-700/10";
+                              return "hover:bg-slate-900/35";
+                            };
+
+                            return (
+                              <tr key={hunter.playerName + index} className={`${getRowStyle()} transition-colors`}>
+                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">{getRankBadge()}</td>
+                                <td className="py-3 sm:py-4 px-2 sm:px-4 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`font-semibold tracking-wide text-xs sm:text-sm truncate max-w-[90px] sm:max-w-none ${isSelf ? "text-cyan-400 font-bold" : "text-slate-200"}`}>
+                                      {hunter.playerName}
+                                    </span>
+                                    {isSelf && (
+                                      <span className="text-[7px] sm:text-[8px] bg-cyan-950 border border-cyan-500/30 text-cyan-400 font-bold uppercase px-1.5 py-0.5 rounded shrink-0">
+                                        You
+                                      </span>
+                                    )}
+                                    <span className="hidden sm:inline text-[9px] bg-slate-900 border border-slate-800 text-slate-500 rounded px-1.5 py-0.5 capitalize shrink-0">
+                                      {hunter.rank}
+                                    </span>
+                                  </div>
+                                  <p className="text-[9px] sm:text-[10px] text-slate-400 mt-1 capitalize truncate max-w-[110px] sm:max-w-none">
+                                    {hunter.job}
+                                  </p>
+                                </td>
+                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
+                                  <span className="text-xs sm:text-sm font-bold text-cyan-300 font-mono">
+                                    {hunter.level}
+                                  </span>
+                                </td>
+                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-right">
+                                  <span className="text-xs sm:text-sm font-black text-indigo-400 font-mono whitespace-nowrap">
+                                    {hunter.gold.toLocaleString()} <span className="hidden sm:inline">Mana </span>(MP)
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
             {/* B. QUESTS TAB: Gamified Workout checklists */}
             {activeTab === "quests" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                
-                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
-                  <div className="flex justify-between items-center mb-4 border-b border-slate-900 pb-3">
-                    <div>
-                      <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block font-bold">[ SYSTEM INTERFACE ]</span>
-                      <h3 className="font-extrabold text-lg tracking-tight text-slate-200">DAILY QUEST: PREPARATION TO BECOME STRONG</h3>
-                    </div>
-                    {gameState.quests.every(q => q.current === 0) ? (
-                      <span className="text-[9px] font-mono text-red-400 uppercase tracking-widest animate-pulse border border-red-900/40 bg-red-950/10 px-3 py-1.5 rounded-full font-bold">
-                        ⚠️ WARNING: PENALTY ACTIVE
-                      </span>
-                    ) : (
-                      <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest border border-cyan-900/40 bg-cyan-950/10 px-3 py-1.5 rounded-full font-bold">
-                        ★ MONARCH SYSTEM OPERATION
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-400 leading-relaxed font-mono mb-4">
-                    Complete physical, academic, and life targets below to satisfy the Monarch contract. Failure to complete all core modules before the daily gate closures results in a immediate <strong className="text-red-400">4-Hour Penalty Quest Area</strong> translocation.
-                  </p>
-
-                  {/* Solo Leveling Styled Quest Objective Checklist */}
-                  <div className="bg-slate-950/60 p-4 border border-slate-900 rounded-xl space-y-2.5 font-mono text-xs">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-900 pb-1.5">
-                      QUEST OBJECTIVES CHECKLIST:
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
-                      {gameState.quests.map((q: any) => {
-                        const isDone = q.current >= q.target;
-                        return (
-                          <div key={q.id} className="flex items-center gap-2">
-                            <span className={isDone ? "text-emerald-400 font-bold" : "text-amber-500 animate-pulse font-bold"}>
-                              [{isDone ? "COMPLETE" : "INCOMPLETE"}]
-                            </span>
-                            <span className="truncate">{q.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
 
                 <div id="quests_checklists" className="space-y-4">
                   {gameState.quests.map((quest) => {
@@ -3286,42 +3889,34 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           </p>
                         </div>
                       ) : (
-                        <div id="backpack_items_list" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div id="backpack_items_list" className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
                           {/* 1. Owned items */}
                           {gameState.inventory.map((item) => {
                             const colors = getWeaponColorClasses(item.id);
                             return (
                               <div 
                                 key={item.id} 
-                                className={`group relative bg-slate-950/75 border border-slate-900/60 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs cursor-pointer transition-all duration-300 animate-fade-in ${colors.border} ${colors.bg} ${colors.glow}`}
+                                className={`group relative aspect-square bg-slate-950/75 border border-slate-900/60 p-2 rounded-xl backdrop-blur-md flex flex-col items-center justify-center font-mono cursor-pointer transition-all duration-300 animate-fade-in hover:scale-105 ${colors.border} ${colors.bg} ${colors.glow} ${item.equipped ? 'border-cyan-500/80 shadow-[0_0_15px_rgba(6,182,212,0.15)] bg-cyan-950/10' : ''}`}
                                 onClick={() => setSelectedWeaponDetails(item)}
+                                title={`${item.name} (${item.rarity}-Rank) \n${item.description}`}
                               >
-                                {/* Inner soft glow if equipped or high level */}
                                 {item.equipped && (
-                                  <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
+                                  <span className="absolute top-1 left-1 bg-cyan-950/80 border border-cyan-500/60 rounded text-[7px] text-cyan-300 px-1 py-0.5 font-black uppercase tracking-widest scale-90 z-10 animate-pulse">
+                                    E
+                                  </span>
                                 )}
                                 
-                                <div className="flex-1 space-y-2 pr-4">
-                                  <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-400">
-                                    <span className={`px-2 py-0.5 rounded border ${colors.badge}`}>RANK: {item.rarity}</span>
-                                    {item.equipped && <span className="text-cyan-400 font-extrabold tracking-wider animate-pulse flex items-center gap-1"><span>✦</span> EQUIPPED</span>}
-                                  </div>
-                                  <h4 className={`text-sm font-bold text-white transition-colors group-hover:${colors.text}`}>{item.name}</h4>
-                                  <p className="text-[10px] text-slate-350 leading-relaxed line-clamp-1">{item.description}</p>
-                                  
-                                  {item.statBonus && (
-                                    <div className="text-[9px] text-cyan-420 font-bold space-x-2 flex flex-wrap gap-1 mt-1">
-                                      {item.statBonus.strength && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-slate-300">+{item.statBonus.strength} STR</span>}
-                                      {item.statBonus.agility && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-cyan-400">+{item.statBonus.agility} AGI</span>}
-                                      {item.statBonus.vitality && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-indigo-400">+{item.statBonus.vitality} VIT</span>}
-                                    </div>
-                                  )}
-                                </div>
+                                <span className={`absolute top-1 right-1 font-black text-[9px] z-10 ${colors.text}`}>
+                                  {item.rarity}
+                                </span>
 
-                                {/* Neon Blue/Dynamic Color Weapon Preview */}
-                                <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-slate-500/20 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
+                                <div className="w-12 h-12 flex items-center justify-center select-none pointer-events-none filter drop-shadow-[0_0_6px_rgba(6,182,212,0.15)]">
                                   {renderNeonWeaponPreview(item.id, item.equipped)}
                                 </div>
+
+                                <span className="text-[8px] font-bold text-slate-350 truncate w-full text-center mt-1.5 px-1 group-hover:text-cyan-300">
+                                  {item.name.replace("Sovereign's ", "S. ").replace("Commander ", "C. ").replace("Knight's ", "K. ").replace("Goblin ", "G. ")}
+                                </span>
                               </div>
                             );
                           })}
@@ -3330,16 +3925,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           {emptySlotsCount > 0 && Array.from({ length: emptySlotsCount }).map((_, idx) => (
                             <div 
                               key={`empty-slot-${idx}`} 
-                              className="border border-dashed border-slate-800/60 bg-slate-950/10 p-5 rounded-2xl flex items-center justify-between font-mono text-xs text-slate-500 h-[104px] relative group hover:border-cyan-500/20 hover:bg-slate-950/20 transition-all duration-300"
+                              className="aspect-square border border-dashed border-slate-800/40 bg-slate-950/10 p-2 rounded-xl flex flex-col items-center justify-center font-mono text-xs text-slate-500 relative group hover:border-cyan-500/20 hover:bg-slate-950/20 transition-all duration-300 h-auto cursor-default"
+                              title="Vacant Space - Unused spatial storage slot"
                             >
-                              <div className="flex flex-col gap-1 pr-4">
-                                <span className="text-[9px] text-slate-500 uppercase tracking-widest">VACANT SPACE</span>
-                                <h4 className="text-xs font-bold text-slate-400">EMPTY SLOT {gameState.inventory.length + idx + 1}</h4>
-                                <p className="text-[9px] text-slate-500">Unused spatial storage buffer cell</p>
+                              <div className="w-10 h-10 rounded-lg border border-dashed border-slate-800/30 flex items-center justify-center p-1 bg-slate-950/20 group-hover:border-cyan-500/20 transition-all">
+                                <Plus className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-500 group-hover:scale-110 transition-all" />
                               </div>
-                              <div className="w-16 h-16 rounded-xl border border-dashed border-slate-800 flex items-center justify-center p-1.5 bg-slate-950/30">
-                                <Plus className="w-4 h-4 text-slate-600 group-hover:text-cyan-500 group-hover:scale-110 transition-all" />
-                              </div>
+                              <span className="text-[7px] text-slate-500 font-bold uppercase tracking-wider block mt-1 scale-90">SLOT {gameState.inventory.length + idx + 1}</span>
                             </div>
                           ))}
 
@@ -3349,17 +3941,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             return (
                               <div 
                                 key={`locked-benchmark-${idx}`}
-                                className="border border-dashed border-red-950/20 bg-slate-950/5 p-5 rounded-2xl flex items-center justify-between font-mono text-xs text-slate-600 h-[104px] relative opacity-45"
+                                className="aspect-square border border-dashed border-red-950/20 bg-slate-950/5 p-2 rounded-xl flex flex-col items-center justify-center font-mono text-xs text-slate-600 relative opacity-45 cursor-not-allowed"
+                                title={`Locked Space - Reach Level ${nextLvl} to unlock this space slot`}
                               >
-                                <div className="flex flex-col gap-1 pr-4">
-                                  <span className="text-[9px] text-red-500/80 uppercase tracking-widest font-bold">LOCKED SPACE</span>
-                                  <h4 className="text-xs font-bold text-slate-500">DYNAMIC SLOT {maxSlots + idx + 1}</h4>
-                                  <p className="text-[9px] text-slate-600">Locked inside level progression bounds</p>
+                                <div className="w-10 h-10 rounded-lg border border-dashed border-red-950/10 flex flex-col items-center justify-center p-1 bg-slate-950/30">
+                                  <Lock className="w-3.5 h-3.5 text-red-500/40 mb-0.5" />
                                 </div>
-                                <div className="w-16 h-16 rounded-xl border border-dashed border-red-950/20 flex flex-col items-center justify-center p-1 bg-slate-950/30">
-                                  <Lock className="w-3.5 h-3.5 text-red-500/50 mb-0.5" />
-                                  <span className="text-[8px] text-cyan-500 font-extrabold uppercase scale-90">LV {nextLvl}</span>
-                                </div>
+                                <span className="text-[7px] text-red-500 font-extrabold uppercase scale-90 mt-1">LV {nextLvl}</span>
                               </div>
                             );
                           })}
@@ -4288,25 +4876,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 
                 {/* Left Column: Visual Projection */}
                 <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className={`relative w-full aspect-square bg-slate-950/80 border rounded-2xl flex items-center justify-center shadow-[inset_0_0_50px_rgba(0,0,0,0.85)] overflow-hidden group transition-colors p-4 ${
-                    selectedWeaponDetails.id === "rusty_dagger" ? "border-amber-500/30" :
-                    selectedWeaponDetails.id === "kasaka_fang" ? "border-cyan-500/30" :
-                    selectedWeaponDetails.id === "igris_sword" ? "border-rose-500/30" :
-                    selectedWeaponDetails.id === "demon_dagger" ? "border-indigo-500/30" :
-                    selectedWeaponDetails.id === "kamish_fang" ? "border-purple-500/30" :
-                    selectedWeaponDetails.id === "sovereigns_wrath" ? "border-pink-500/30" :
-                    "border-cyan-500/20"
-                  }`}>
+                  <div className="relative w-full aspect-square bg-slate-950/80 border-2 border-cyan-500/40 rounded-2xl flex items-center justify-center shadow-[inset_0_0_80px_rgba(6,182,212,0.15),0_0_30px_rgba(6,182,212,0.2)] overflow-hidden group transition-colors p-4">
                     <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]" />
-                    <div className={`absolute top-2 left-2 text-[10px] font-black tracking-widest z-30 ${
-                      selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400/60" :
-                      selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400/60" :
-                      selectedWeaponDetails.id === "igris_sword" ? "text-rose-400/60" :
-                      selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400/60" :
-                      selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400/60" :
-                      selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400/60" :
-                      "text-cyan-500/60"
-                    }`}>HOLOGRAPHIC VECTOR FIELD_</div>
+                    <div className="absolute top-2 left-2 text-[10px] font-black tracking-widest z-30 text-cyan-400/80 animate-pulse">
+                      HOLOGRAPHIC VECTOR FIELD_
+                    </div>
                     
                     {/* Immersive 3D rotatable weapon staging */}
                     <Rotatable3DWeapon itemId={selectedWeaponDetails.id} />
@@ -4863,8 +5437,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 {/* Profile Identification Grid */}
                 <div className="p-4 bg-slate-900/40 rounded-2xl border border-slate-900 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                    {playerName.substring(0,2).toUpperCase()}
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-[0_0_15px_rgba(34,211,238,0.2)] cursor-pointer overflow-hidden border border-cyan-500/20 hover:border-cyan-400 transition-all duration-300 group shrink-0"
+                    title="Click to upload profile picture"
+                  >
+                    {profileImage ? (
+                      <img 
+                        src={profileImage} 
+                        alt={playerName} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      playerName.substring(0, 2).toUpperCase()
+                    )}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                      <Camera className="w-3.5 h-3.5 text-cyan-300" />
+                    </div>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase block">Monarch Identity</span>
@@ -4963,9 +5553,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <LogOut className="w-4 h-4" />
                   DISCONNECT SESSION
                 </button>
-                <p className="text-[9px] text-slate-600 text-center font-mono uppercase mt-3">
-                  SYSTEM TELEMETRY GATEWAY - PORT RE-BOUND [3000]
-                </p>
               </div>
 
             </motion.div>
@@ -4992,7 +5579,67 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         )}
       </AnimatePresence>
 
-      <footer className="p-4 border-t border-slate-950 bg-slate-950/80 text-center text-xs font-mono text-slate-600 mt-10">
+      {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-15px_30px_rgba(0,0,0,0.65)] px-4">
+        {[
+          { icon: Activity, idx: 0 },
+          { icon: Trophy, idx: 1 },
+          { icon: Home, idx: 2 },
+          { icon: Skull, idx: 3 },
+          { icon: ShoppingBag, idx: 4 }
+        ].map(item => {
+          const Icon = item.icon;
+          const currentSec = getMobileSection(activeTab);
+          const isActive = currentSec === item.idx;
+          
+          if (item.idx === 2) {
+            return (
+              <div key={item.idx} className="relative z-10 -mt-10 flex flex-col items-center justify-center">
+                <motion.button
+                  animate={{ y: [0, -5, 0], rotate: [0, 1.5, -1.5, 0] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer bg-sky-400 text-white shadow-[0_5px_18px_rgba(56,189,248,0.45)] hover:bg-sky-300 active:scale-95 transition-all outline-none"
+                  onClick={() => handleMobileSectionClick(item.idx)}
+                >
+                  <Icon className="w-6 h-6 text-white" />
+                </motion.button>
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeMobileDot"
+                    className="absolute -bottom-5 w-1.5 h-1.5 bg-transparent rounded-full shadow-none"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={item.idx}
+              className="p-3 relative flex flex-col items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none"
+              onClick={() => handleMobileSectionClick(item.idx)}
+            >
+              <Icon 
+                className={`w-5 h-5 transition-all duration-300 ${
+                  isActive 
+                    ? "text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,1)] drop-shadow-[0_0_4px_rgba(34,211,238,0.8)] scale-110" 
+                    : "text-cyan-400/80 hover:text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.75)] drop-shadow-[0_0_3px_rgba(34,211,238,0.5)] hover:scale-105"
+                }`} 
+              />
+              {isActive && (
+                <motion.div 
+                  layoutId="activeMobileDot"
+                  className="absolute -bottom-0.5 w-1 h-1 bg-cyan-300 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.95)]"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <footer className="hidden lg:block p-4 border-t border-slate-950 bg-slate-950/80 text-center text-xs font-mono text-slate-600 mt-10">
         <div>&copy; MONARCH SELF-DEVELOPMENT SYSTEM &middot; SECURE SYSTEM EMULATOR v2.4</div>
       </footer>
     </div>
