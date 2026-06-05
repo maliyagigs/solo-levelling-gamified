@@ -39,6 +39,9 @@ import {
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
+import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
+import { AnimeTierBadge } from "./AnimeTierBadge";
+import { Smartphone, Copy, Check } from "lucide-react";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -48,6 +51,74 @@ import {
   playHurtSound 
 } from "../utils/audio";
 
+const getWeaponColorClasses = (itemId: string) => {
+  switch (itemId) {
+    case "rusty_dagger":
+      return {
+        border: "hover:border-amber-500/50",
+        bg: "hover:bg-amber-950/20",
+        glow: "hover:shadow-[0_0_25px_rgba(234,179,8,0.25)]",
+        text: "text-amber-400",
+        textLight: "text-amber-300",
+        badge: "bg-amber-950/50 text-amber-300 border-amber-500/30"
+      };
+    case "kasaka_fang":
+      return {
+        border: "hover:border-cyan-500/50",
+        bg: "hover:bg-cyan-950/20",
+        glow: "hover:shadow-[0_0_25px_rgba(6,182,212,0.25)]",
+        text: "text-cyan-400",
+        textLight: "text-cyan-300",
+        badge: "bg-cyan-950/50 text-cyan-300 border-cyan-500/30"
+      };
+    case "igris_sword":
+      return {
+        border: "hover:border-rose-500/50",
+        bg: "hover:bg-rose-950/20",
+        glow: "hover:shadow-[0_0_25px_rgba(244,63,94,0.25)]",
+        text: "text-rose-400",
+        textLight: "text-rose-300",
+        badge: "bg-rose-950/50 text-rose-300 border-rose-500/30"
+      };
+    case "demon_dagger":
+      return {
+        border: "hover:border-indigo-500/50",
+        bg: "hover:bg-indigo-950/20",
+        glow: "hover:shadow-[0_0_25px_rgba(99,102,241,0.25)]",
+        text: "text-indigo-400",
+        textLight: "text-indigo-300",
+        badge: "bg-indigo-950/50 text-indigo-300 border-indigo-500/30"
+      };
+    case "kamish_fang":
+      return {
+        border: "hover:border-purple-500/50",
+        bg: "hover:bg-purple-950/20",
+        glow: "hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]",
+        text: "text-purple-400",
+        textLight: "text-purple-300",
+        badge: "bg-purple-950/50 text-purple-300 border-purple-500/30"
+      };
+    case "sovereigns_wrath":
+      return {
+        border: "hover:border-pink-500/60",
+        bg: "hover:bg-pink-950/20",
+        glow: "hover:shadow-[0_0_35px_rgba(236,72,153,0.35)]",
+        text: "text-pink-400",
+        textLight: "text-pink-300",
+        badge: "bg-pink-950/50 text-pink-300 border-pink-500/30 animate-pulse"
+      };
+    default:
+      return {
+        border: "hover:border-cyan-500/30",
+        bg: "hover:bg-slate-900/40",
+        glow: "hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]",
+        text: "text-slate-350",
+        textLight: "text-slate-200",
+        badge: "bg-slate-900 text-slate-300 border-slate-700"
+      };
+  }
+};
+
 interface RpgGameProps {
   playerName: string;
   onboardProfile: OnboardingData;
@@ -55,7 +126,7 @@ interface RpgGameProps {
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
-  const [activeTab, setActiveTab] = useState<"status" | "quests" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge">("status");
+  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner">("quests");
   
   // Calculate metabolic targets from profile values
   const weightKg = onboardProfile?.isMetricWeight ? onboardProfile.weight : Math.round(onboardProfile?.weight * 0.453592) || 75;
@@ -122,6 +193,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   // Dynamic Custom UI State hooks
   const [levelUpOverlay, setLevelUpOverlay] = useState<{ prevLevel: number; newLevel: number; statPointsEarned: number } | null>(null);
+  const [milestoneOverlay, setMilestoneOverlay] = useState<{ title: string; subtitle: string; desc: string; icon?: string } | null>(null);
   const [showProfileDrawer, setShowProfileDrawer] = useState<boolean>(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState<boolean>(false);
   const [showPurgeModal, setShowPurgeModal] = useState<boolean>(false);
@@ -296,6 +368,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const saved = localStorage.getItem(`monarch_system_enforce_${playerName}`);
     return saved !== "false"; // Default to true for authentic push!
   });
+  
+  // Sovereign Mana States
+  const playerMaxMp = (gameState?.baseStats?.intelligence ?? 5) * 10 + 100;
+  const [playerMp, setPlayerMp] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_player_mp_${playerName}`);
+    return saved ? Math.min(parseInt(saved, 10), playerMaxMp) : playerMaxMp;
+  });
+
   const [isInPenaltyZone, setIsInPenaltyZone] = useState<boolean>(() => {
     return localStorage.getItem(`monarch_penalty_zone_${playerName}`) === "true";
   });
@@ -357,6 +437,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   }, [forceSystemEnforcement, playerName]);
 
   useEffect(() => {
+    localStorage.setItem(`monarch_player_mp_${playerName}`, playerMp.toString());
+  }, [playerMp, playerName]);
+
+  useEffect(() => {
     localStorage.setItem(`monarch_penalty_zone_${playerName}`, isInPenaltyZone.toString());
   }, [isInPenaltyZone, playerName]);
 
@@ -401,91 +485,102 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   // Calendar Day Transit Checker
   useEffect(() => {
-    const lastDate = localStorage.getItem(`monarch_last_quest_check_date_${playerName}`);
-    const today = new Date().toDateString();
-    
-    // Check if the saved date is not equal to today's date
-    if (lastDate && lastDate !== today) {
-      // Find how many of the standard daily quests were NOT completed
-      const incompleteQuestsCount = gameState.quests.filter((q: any) => q.current < q.target).length;
+    const handleDailyResetCheck = () => {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem(`monarch_last_quest_check_date_${playerName}`) || today; // Init with today to prevent instant penalty on first load
       
-      if (incompleteQuestsCount > 0) {
-        // Enforce the penalty protocol!
-        setIsInPenaltyZone(true);
-        localStorage.setItem(`monarch_penalty_zone_${playerName}`, "true");
-        setPenaltyTimeLeft(125); // 125 seconds of extreme evasion/survival
-        localStorage.setItem(`monarch_penalty_time_${playerName}`, "125");
-        setPenaltyClicks(0);
-        
-        const expDeduct = incompleteQuestsCount * 25;
-        const goldDeduct = incompleteQuestsCount * 50;
-        
-        setGameState(prev => {
-          const nextExp = Math.max(0, prev.exp - expDeduct);
-          const nextGold = Math.max(0, prev.gold - goldDeduct);
-          
-          // Refresh the daily quests for the new day
-          const refreshed = prev.quests.map((q: any) => ({
-            ...q,
-            current: 0,
-            completed: false,
-            claimed: false
-          }));
-          
-          return {
-            ...prev,
-            exp: nextExp,
-            gold: nextGold,
-            quests: refreshed
-          };
-        });
-
-        setIsDailyAllocationClaimed(false);
-        localStorage.removeItem(`monarch_daily_claim_${playerName}`);
-
-        // Try warning buzz
-        try {
-          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-          if (AudioCtx) {
-            const ctx = new AudioCtx();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = "sawtooth";
-            osc.frequency.setValueAtTime(90, ctx.currentTime);
-            osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 1.2);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.2);
-            osc.start();
-            osc.stop(ctx.currentTime + 1.2);
-          }
-        } catch (e) {}
-
-        setPenaltyDescription(`PENALTY TRIGGERED: Failure to perform all necessary Daily System commands. You left ${incompleteQuestsCount} grinds incomplete. Gained penalty of -${expDeduct} EXP and -${goldDeduct} CG! Survive the desert sandstorm target clicking sequence to unlock regular operations.`);
-        setShowPenaltyNotice(true);
-      } else {
-        // Clean refresh of daily quests with no penalties!
-        setGameState(prev => {
-          const refreshed = prev.quests.map((q: any) => ({
-            ...q,
-            current: 0,
-            completed: false,
-            claimed: false
-          }));
-          return {
-            ...prev,
-            quests: refreshed
-          };
-        });
-        setIsDailyAllocationClaimed(false);
-        localStorage.removeItem(`monarch_daily_claim_${playerName}`);
-        triggerSystemToast("🔄 NEW SHIFT COMMAND RECEIVED: Quests safely refreshed. All clean!");
+      // Save today if not set so there is a baseline
+      if (!localStorage.getItem(`monarch_last_quest_check_date_${playerName}`)) {
+        localStorage.setItem(`monarch_last_quest_check_date_${playerName}`, today);
       }
-    }
+      
+      // Check if the saved date is not equal to today's date
+      if (lastDate && lastDate !== today) {
+        
+        setGameState(prevGameState => {
+          // Find how many of the standard daily quests were NOT completed
+          const incompleteQuestsCount = prevGameState.quests.filter((q: any) => q.current < q.target).length;
+          
+          if (incompleteQuestsCount > 0) {
+            // Enforce the Mana depletion penalty protocol!
+            const expDeduct = incompleteQuestsCount * 25;
+            const goldDeduct = incompleteQuestsCount * 50;
+            const manaDeduct = incompleteQuestsCount * 25;
+            
+            setPlayerMp(prevMp => Math.max(0, prevMp - manaDeduct));
+            
+            const nextExp = Math.max(0, prevGameState.exp - expDeduct);
+            const nextGold = Math.max(0, prevGameState.gold - goldDeduct);
+            
+            // Refresh the daily quests for the new day
+            const refreshed = prevGameState.quests.map((q: any) => ({
+              ...q,
+              current: 0,
+              completed: false,
+              claimed: false
+            }));
+
+            setIsDailyAllocationClaimed(false);
+            localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+
+            // Try warning buzz
+            try {
+              const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioCtx) {
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(90, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 1.2);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+                osc.start();
+                osc.stop(ctx.currentTime + 1.2);
+              }
+            } catch (e) {}
+
+            triggerSystemToast(`🚨 SYSTEM FAILURE DECREE: Missed daily grinds detected! Internals punctured: lost -${manaDeduct} Instinctual Mana (MP), -${expDeduct} XP, and -${goldDeduct} Sovereign Mana (MP)!`);
+
+            return {
+              ...prevGameState,
+              exp: nextExp,
+              gold: nextGold,
+              quests: refreshed
+            };
+          } else {
+            // Clean refresh of daily quests with no penalties!
+            const refreshed = prevGameState.quests.map((q: any) => ({
+              ...q,
+              current: 0,
+              completed: false,
+              claimed: false
+            }));
+            
+            setIsDailyAllocationClaimed(false);
+            localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+            triggerSystemToast("🔄 NEW SHIFT COMMAND RECEIVED: Quests safely refreshed. All clean!");
+            
+            return {
+              ...prevGameState,
+              quests: refreshed
+            };
+          }
+        });
+        
+        // Save current date so it doesn't trigger again on reload same-day
+        localStorage.setItem(`monarch_last_quest_check_date_${playerName}`, today);
+      }
+    };
     
-    // Save current date so it doesn't trigger again on reload same-day
-    localStorage.setItem(`monarch_last_quest_check_date_${playerName}`, today);
+    // Initial check on mount
+    handleDailyResetCheck();
+    
+    // Poll every minute to handle midnight transition
+    const dailyTimerId = setInterval(handleDailyResetCheck, 60000);
+    return () => clearInterval(dailyTimerId);
   }, [playerName]);
 
   // Pomodoro interval ticker
@@ -576,9 +671,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       });
     });
 
-    const newLog = `Completed a ${durationMins}m ${focusInterval} focus duel using ambient "${focusAmbient}". Gained +${expAward} EXP & +${goldAward} CG.`;
+    const newLog = `Completed a ${durationMins}m ${focusInterval} focus duel using ambient "${focusAmbient}". Gained +${expAward} EXP & +${goldAward} MP.`;
     setFocusLogs(prev => [newLog, ...prev.slice(0, 30)]);
-    triggerSystemToast(`🔮 FOCUS MATRIX RESTORED: Gained +${expAward} EXP and +${goldAward} CG! Academic focus has sharpened!`);
+    triggerSystemToast(`🔮 FOCUS MATRIX RESTORED: Gained +${expAward} EXP and +${goldAward} MP! Academic focus has sharpened!`);
   };
 
   const [forgeSubTab, setForgeSubTab] = useState<"academics" | "fitness" | "career">("academics");
@@ -711,10 +806,20 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           const isStr = Math.random() > 0.5;
           if (isStr) {
             addStrengthPoints(1);
-            triggerSystemToast(`💪 STR POWER-UP: "${l.name}" completed! Strength +1 point unlocked!`);
+            setMilestoneOverlay({
+              title: "PHYSIQUE EXERCISE COMPLETED",
+              subtitle: `Cleared: ${l.name}`,
+              desc: "You've successfully completed the target sets! Strength has permanently increased by +1.",
+              icon: "💪"
+            });
           } else {
             addVitalityPoints(1);
-            triggerSystemToast(`❤️ VIT ALTITUDE: "${l.name}" completed! Vitality +1 point unlocked!`);
+            setMilestoneOverlay({
+              title: "PHYSIQUE EXERCISE COMPLETED",
+              subtitle: `Cleared: ${l.name}`,
+              desc: "You've successfully completed the target sets! Vitality has permanently increased by +1.",
+              icon: "❤️"
+            });
           }
         } else {
           playDaggerSwipe();
@@ -734,7 +839,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     awardGold(50);
     addAgilityPoints(1);
     setCareerMilestones(prev => ({ ...prev, resumeScore: 1 }));
-    triggerSystemToast("💼 CAREER MILESTONE: Resume Refactoring Cleared! Agility +1!");
+    setMilestoneOverlay({
+      title: "CAREER MILESTONE ACHEIVED",
+      subtitle: "Resume Refactored",
+      desc: "Your professional presentation matrix has been established.",
+      icon: "💼"
+    });
   };
 
   const incrementPortfolioProjects = () => {
@@ -745,7 +855,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     awardGold(75);
     addIntellectPoints(2);
     setCareerMilestones(prev => ({ ...prev, portfolioProjects: nextVal }));
-    triggerSystemToast(`💼 SYSTEM ARCHITECTURE: Portfolio project ${nextVal}/2 published! Intelligence +2!`);
+    if (nextVal >= 2) {
+      setMilestoneOverlay({
+        title: "SYSTEM ARCHITECTURE COMPLETED",
+        subtitle: "Portfolio Finalized",
+        desc: "You have built the essential apps to show recruiters your power.",
+        icon: "💻"
+      });
+    } else {
+      triggerSystemToast(`💼 SYSTEM ARCHITECTURE: Portfolio project ${nextVal}/2 published! Intelligence +2!`);
+    }
   };
 
   const incrementRecruiterOutreach = () => {
@@ -757,7 +876,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       playLootSound();
       addExp(150);
       addPerceptionPoints(2);
-      triggerSystemToast("💼 NETWORKING CONQUERED: 5 LinkedIn connections completed! Perception +2!");
+      setMilestoneOverlay({
+        title: "NETWORKING CONQUERED",
+        subtitle: "Max Outreach Reached",
+        desc: "You've successfully contacted 5 recruiters and built an initial network.",
+        icon: "🤝"
+      });
     } else {
       triggerSystemToast(`💼 SOCIAL LINK: Recruiter outreach conversation logged (${nextVal}/5)`);
     }
@@ -773,7 +897,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       playLootSound();
       addExp(300);
       addIntellectPoints(3);
-      triggerSystemToast("💼 ALGORITHMIC MARSHAL: Cleared 10 complex problem battles! Intelligence +3!");
+      setMilestoneOverlay({
+        title: "ALGORITHMIC MARSHAL",
+        subtitle: "10 LeetCode Problems Solved",
+        desc: "You cleared 10 complex problem battles! Your intellect has ascended.",
+        icon: "🧩"
+      });
     } else {
       triggerSystemToast(`💼 PUZZLE CLEARED: Algorithmic problem solved (${nextVal}/10)`);
     }
@@ -798,7 +927,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setNewJobCompany("");
     setNewJobRole("");
     setNewJobNotes("");
-    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +35 Gold and +15 EXP!`);
+    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +35 Mana (MP) and +15 EXP!`);
   };
 
   const updateJobStatus = (id: string, nextStatus: string) => {
@@ -808,7 +937,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           playSovereignChime();
           addExp(1000);
           awardGold(1000);
-          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +1000 Gold minted!");
+          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +1000 Mana (MP) infused!");
         } else {
           playSelectSound();
           triggerSystemToast(`💼 APPLICATION STATUS: ${app.company} status updated to [${nextStatus}].`);
@@ -1022,6 +1151,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     
     // Add reward
     addExp(quest.rewardExp);
+    setPlayerMp(prev => Math.min(playerMaxMp, prev + 25)); // Completing daily quest restores 25 MP!
     setGameState(prev => {
       const list = prev.quests.map((q: any) => {
         if (q.id === quest.id) {
@@ -1037,7 +1167,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
   };
 
-  // Main Daily System Allocation Bounty (500 CG and 200 XP)
+  // Main Daily System Allocation Bounty (500 MP and 200 XP)
   const claimDailyAllocation = () => {
     const allCompleted = gameState.quests.every((q: any) => q.current >= q.target);
     if (!allCompleted || isDailyAllocationClaimed) return;
@@ -1058,6 +1188,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     playSelectSound();
     setIsDailyAllocationClaimed(false);
     localStorage.removeItem(`monarch_daily_claim_${playerName}`);
+    setPlayerMp(playerMaxMp); // Fully restore MP on resets!
     setGameState(prev => {
       const refreshedQuests = prev.quests.map((q: any) => ({
         ...q,
@@ -1120,60 +1251,750 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     sovereigns_wrath: { cost: 80000, levelReq: 90 },
   };
 
-  // High quality vector contour neon renderings for weapon previews
-  const renderNeonWeaponPreview = (itemId: string, animate = false) => {
-    let paths = "";
-    let glowColor = "rgb(34, 211, 238)"; // cyan neon
-    
+  // High quality vector contour neon renderings for weapon previews (1000x Detailed)
+  const renderNeonWeaponPreview = (itemId: string, animate = false, layer: "all" | "back" | "base" | "front" | "sparks" = "all") => {
     switch (itemId) {
       case "rusty_dagger":
-        // Jagged primitive outline glowing warm yellow
-        paths = "M 15,65 L 40,40 L 45,35 L 43,28 L 52,18 L 58,24 L 48,34 L 68,14 L 72,18 L 52,38 L 56,44 L 46,48 Z";
-        glowColor = "rgb(234, 179, 8)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="rustyBladeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#452a10" />
+                <stop offset="50%" stopColor="#8c5825" />
+                <stop offset="100%" stopColor="#eab308" />
+              </linearGradient>
+              <radialGradient id="rustyGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(234, 179, 8, 0.4)" />
+                <stop offset="100%" stopColor="rgba(234, 179, 8, 0)" />
+              </radialGradient>
+              <filter id="yellowNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Background Aura */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="35" fill="url(#rustyGlow)" className="opacity-60" />
+                <circle cx="50" cy="50" r="32" fill="none" stroke="rgba(234, 179, 8, 0.15)" strokeWidth="1" strokeDasharray="3,3" />
+              </>
+            )}
+
+            {/* Rusty Scrap Sparks */}
+            {(layer === "all" || layer === "sparks") && (
+              <g className="opacity-70">
+                <path d="M 25,25 L 27,27 M 70,70 L 68,68 M 30,72 L 32,70 M 75,25 L 73,27" stroke="#eab308" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="45" cy="20" r="1.2" fill="#eab308" />
+                <circle cx="55" cy="78" r="1.2" fill="#eab308" />
+              </g>
+            )}
+
+            {/* Weapon Art */}
+            {(layer === "all" || layer === "base") && (
+              <g transform="translate(0, 0)">
+                {/* Handle / Wooden Grip */}
+                <path d="M 22,78 L 38,62" stroke="#27190c" strokeWidth="6" strokeLinecap="round" />
+                {/* Crude Leather Wrapping lines */}
+                <path d="M 24,76 L 27,77 M 28,72 L 31,73 M 32,68 L 35,69" stroke="#8c5825" strokeWidth="1.5" />
+                
+                {/* Crude Pummel */}
+                <circle cx="20" cy="80" r="4" fill="#3a230c" stroke="#eab308" strokeWidth="1" />
+                
+                {/* Metal Guard (Rusty bronze notched block) */}
+                <path d="M 30,65 L 43,52 L 40,49 L 27,62 Z" fill="#5c3a1a" stroke="#eab308" strokeWidth="1.5" />
+                <circle cx="35" cy="58" r="2" fill="#eab308" />
+
+                {/* Rusty Blade with Notches, Cracks and Wear */}
+                <path 
+                  d="M 38,51 L 78,11 L 74,8 L 60,18 L 47,31 L 43,46 Z" 
+                  fill="url(#rustyBladeGrad)" 
+                  stroke="#eab308" 
+                  strokeWidth="1.2" 
+                  filter="url(#yellowNeonGlow)"
+                />
+                {/* Jagged Chips/Notches carved in blade */}
+                <path d="M 52,37 L 54,39 L 56,36" stroke="#27190c" strokeWidth="1.5" fill="none" />
+                <path d="M 64,25 L 66,27 L 68,24" stroke="#27190c" strokeWidth="1.5" fill="none" />
+              </g>
+            )}
+
+            {/* Glowing / Detailed details */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                {/* Shining White Sharp Blade Edge */}
+                <path d="M 40,49 L 76,13" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" className="opacity-90" />
+                
+                {/* Tetanus poison trace */}
+                <path d="M 65,24 S 70,18 73,15 S 76,14 78,11" stroke="#22c55e" strokeWidth="1" strokeLinecap="round" className="opacity-80 animate-pulse" />
+              </g>
+            )}
+          </svg>
+        );
+
       case "kasaka_fang":
-        // Curved sleek venom fangs glowing cyan
-        paths = "M 15,65 L 26,54 M 26,54 S 32,41 36,28 S 54,11 76,5 C 66,25 46,44 38,48 C 30,51 26,54 26,54";
-        glowColor = "rgb(6, 182, 212)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="kasakaBladeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#083344" />
+                <stop offset="50%" stopColor="#0891b2" />
+                <stop offset="100%" stopColor="#22d3ee" />
+              </linearGradient>
+              <radialGradient id="cyanViperGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(6, 182, 212, 0.45)" />
+                <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
+              </radialGradient>
+              <filter id="cyanGlowFilter" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Radiant serpent magic aura */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="38" fill="url(#cyanViperGlow)" />
+                <path d="M 50,15 A 35,35 0 0,1 85,50" fill="none" stroke="rgba(34, 211, 238, 0.2)" strokeWidth="1.5" strokeDasharray="5,3" />
+                <path d="M 15,50 A 35,35 0 0,1 50,85" fill="none" stroke="rgba(34, 211, 238, 0.2)" strokeWidth="1.5" strokeDasharray="5,3" />
+              </>
+            )}
+
+            {/* Snake Ribs/Vapor particles */}
+            {(layer === "all" || layer === "sparks") && (
+              <g className="opacity-70">
+                <path d="M 33,25 Q 30,22 28,26" fill="none" stroke="#22d3ee" strokeWidth="1" />
+                <path d="M 72,75 Q 75,78 77,74" fill="none" stroke="#22d3ee" strokeWidth="1" />
+                <circle cx="75" cy="35" r="1.5" fill="#22d3ee" />
+                <circle cx="28" cy="62" r="1.2" fill="#22d3ee" />
+              </g>
+            )}
+
+            {/* Weapon Composition - Base */}
+            {(layer === "all" || layer === "base") && (
+              <g>
+                {/* Snake Tail/Scale Wrap Handle */}
+                <path d="M 18,82 L 34,66" stroke="#0f172a" strokeWidth="6.5" strokeLinecap="round" />
+                {/* Wrapping snake scales */}
+                <path d="M 20,80 L 22,78 M 24,76 L 26,74 M 28,72 L 30,70 M 32,68 L 34,66" stroke="#0891b2" strokeWidth="2.2" />
+
+                {/* Snake Fang Guard (Curved skull jaws) */}
+                <path d="M 28,70 C 26,65 30,58 36,60 C 42,62 44,56 42,62 Z" fill="#1e293b" stroke="#22d3ee" strokeWidth="1.2" />
+                <path d="M 30,68 L 26,62 M 34,64 L 38,58" stroke="#22d3ee" strokeWidth="1" />
+
+                {/* Translucent venom fang blade */}
+                <path 
+                  d="M 34,62 C 38,55 35,42 45,30 C 55,18 75,10 82,6 C 74,20 62,38 52,48 C 45,55 34,62 34,62" 
+                  fill="url(#kasakaBladeGrad)" 
+                  stroke="#22d3ee" 
+                  strokeWidth="1.5" 
+                  filter="url(#cyanGlowFilter)"
+                />
+              </g>
+            )}
+
+            {/* Front details / poison flows */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                {/* Venomous glowing core energy channel */}
+                <path d="M 40,55 C 45,45 52,32 68,18" fill="none" stroke="#a5f3fc" strokeWidth="1.5" strokeLinecap="round" />
+
+                {/* Venom Droplets dripping from blade tip */}
+                <circle cx="81" cy="9" r="1.5" fill="#10b981" className="animate-pulse" />
+                <path d="M 81,10 Q 82,15 80,18" fill="none" stroke="#10b981" strokeWidth="1" strokeLinecap="round" />
+              </g>
+            )}
+          </svg>
+        );
+
       case "igris_sword":
-        // Straight double-sided royal steel glowing deep crimson
-        paths = "M 15,65 L 28,52 M 22,48 L 32,58 M 28,52 L 72,8";
-        glowColor = "rgb(244, 63, 94)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="igrisBladeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#1e050b" />
+                <stop offset="50%" stopColor="#be123c" />
+                <stop offset="100%" stopColor="#f43f5e" />
+              </linearGradient>
+              <radialGradient id="bloodGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(244, 63, 94, 0.45)" />
+                <stop offset="100%" stopColor="rgba(244, 63, 94, 0)" />
+              </radialGradient>
+              <filter id="crimsonLaserGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Concentric royal seal circles */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="40" fill="url(#bloodGlow)" />
+                <circle cx="50" cy="50" r="36" fill="none" stroke="rgba(244, 63, 94, 0.2)" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(244, 63, 94, 0.15)" strokeWidth="1" strokeDasharray="6,4" />
+              </>
+            )}
+
+            {/* Red Lightning Arcs around sword */}
+            {(layer === "all" || layer === "sparks") && (
+              <g className="opacity-80">
+                <path d="M 30,35 L 34,31 L 30,27" fill="none" stroke="#f43f5e" strokeWidth="1" />
+                <path d="M 68,75 L 72,71 L 68,67" fill="none" stroke="#f43f5e" strokeWidth="1" />
+                <path d="M 58,25 L 62,18 L 57,14" fill="none" stroke="#f43f5e" strokeWidth="1" />
+              </g>
+            )}
+
+            {/* Longsword Assembly - Base */}
+            {(layer === "all" || layer === "base") && (
+              <g>
+                {/* Two Handed royal handle hilt */}
+                <path d="M 15,85 L 35,65" stroke="#090d16" strokeWidth="5.5" strokeLinecap="round" />
+                <path d="M 16,84 L 18,82 M 20,80 L 22,78 M 24,76 L 26,74 M 28,72 L 30,70 M 32,68 L 34,66" stroke="#4c0519" strokeWidth="2" />
+
+                {/* Ruby Pommel */}
+                <circle cx="13" cy="87" r="4.5" fill="#e11d48" stroke="#fda4af" strokeWidth="1.2" />
+
+                {/* Winged forward-spiked gold guard */}
+                <path d="M 26,69 L 40,55 L 43,58 L 29,72 Z" fill="#ca8a04" stroke="#ca8a04" strokeWidth="1" />
+                <path d="M 31,61 Q 25,54 18,52 C 24,58 31,61 31,61" fill="#ca8a04" stroke="#ca8a04" strokeWidth="1" />
+                <path d="M 39,69 Q 46,76 48,83 C 42,77 39,69 39,69" fill="#ca8a04" stroke="#ca8a04" strokeWidth="1" />
+
+                {/* Royal Blood Blade with fuller and laser thunder */}
+                <path 
+                  d="M 34,61 L 84,11 L 81,8 L 31,58 Z" 
+                  fill="url(#igrisBladeGrad)" 
+                  stroke="#f43f5e" 
+                  strokeWidth="1.5" 
+                  filter="url(#crimsonLaserGlow)"
+                />
+              </g>
+            )}
+
+            {/* Front lightning/laser line */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                {/* Shining White Fuller centerline laser */}
+                <path d="M 32,59 L 82,9" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                
+                {/* Embedded runic engravings along blade */}
+                <g stroke="#fda4af" strokeWidth="1" fill="none" className="opacity-80">
+                  <path d="M 45,46 L 47,44" />
+                  <path d="M 53,38 L 55,36" />
+                  <path d="M 61,30 L 63,28" />
+                  <path d="M 69,22 L 71,20" />
+                </g>
+              </g>
+            )}
+          </svg>
+        );
+
       case "demon_dagger":
-        // Brutalist spiked dual daggers glowing electric violet
-        paths = "M 12,68 L 24,56 M 24,56 L 34,58 L 48,36 L 45,28 L 68,10 C 58,20 44,30 36,33 L 34,45 Z";
-        glowColor = "rgb(99, 102, 241)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="demonBladeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#1e1b4b" />
+                <stop offset="40%" stopColor="#4338ca" />
+                <stop offset="100%" stopColor="#818cf8" />
+              </linearGradient>
+              <radialGradient id="violetDemonGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(99, 102, 241, 0.45)" />
+                <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
+              </radialGradient>
+              <filter id="demonicPurpleGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Demonic portal circle background */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="41" fill="url(#violetDemonGlow)" />
+                <path d="M 50,12 A 38,38 0 1,1 12,50" fill="none" stroke="rgba(99, 102, 241, 0.22)" strokeWidth="1.2" strokeDasharray="3,1" />
+                <path d="M 32,32 L 68,68 M 32,68 L 68,32" stroke="rgba(99, 102, 241, 0.12)" strokeWidth="1" />
+              </>
+            )}
+
+            {/* Demonic flames */}
+            {(layer === "all" || layer === "sparks") && (
+              <g className="opacity-70">
+                <path d="M 23,45 Q 16,36 21,30 C 26,34 23,45 23,45" fill="rgba(129, 140, 248, 0.4)" stroke="#818cf8" strokeWidth="0.8" />
+                <path d="M 77,55 Q 84,64 79,70 C 74,66 77,55 77,55" fill="rgba(129, 140, 248, 0.4)" stroke="#818cf8" strokeWidth="0.8" />
+              </g>
+            )}
+
+            {/* Gothic Brutalist Demon Dagger - Base */}
+            {(layer === "all" || layer === "base") && (
+              <g>
+                {/* Spiked pummel ring handle */}
+                <circle cx="16" cy="84" r="5" fill="none" stroke="#4f46e5" strokeWidth="3" />
+                <path d="M 14,81 L 11,78 M 18,87 L 21,90" stroke="#818cf8" strokeWidth="1.5" />
+
+                {/* Gothic leather bound handle */}
+                <path d="M 18,82 L 36,64" stroke="#0f172a" strokeWidth="6" strokeLinecap="round" />
+                <path d="M 21,79 L 24,76 M 26,74 L 29,71 M 31,69 L 34,66" stroke="#312e81" strokeWidth="2.2" />
+
+                {/* Horned beast skull guards with violet eye */}
+                <path d="M 28,68 Q 24,58 34,56 Q 44,54 40,64 Z" fill="#111827" stroke="#4f46e5" strokeWidth="1.5" />
+                <path d="M 26,60 L 18,52 M 42,66 L 50,74" fill="none" stroke="#818cf8" strokeWidth="1.8" />
+
+                {/* Aggressive serrated void blades */}
+                <path 
+                  d="M 36,60 L 46,62 L 52,48 L 47,43 L 64,28 L 61,22 L 86,6 C 72,18 64,28 66,35 L 53,40 L 58,46 L 46,50 Z" 
+                  fill="url(#demonBladeGrad)" 
+                  stroke="#818cf8" 
+                  strokeWidth="1.5" 
+                  filter="url(#demonicPurpleGlow)"
+                />
+              </g>
+            )}
+
+            {/* Front Details (Violet Eye & Center Energy Ridge) */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                <circle cx="34" cy="62" r="2.5" fill="#c084fc" className="animate-pulse" />
+                {/* High-intensity pure white energy ridge down center */}
+                <path d="M 38,58 L 76,14" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
+              </g>
+            )}
+          </svg>
+        );
+
       case "kamish_fang":
-        // Spiked bone fragment curved dragon weapon glowing fuchsia
-        paths = "M 12,68 L 24,56 M 24,56 C 29,51 28,36 36,24 C 44,12 70,4 76,2 C 66,14 54,24 44,31 C 34,38 24,56 24,56";
-        glowColor = "rgb(168, 85, 247)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="kamishBladeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#4c0519" />
+                <stop offset="50%" stopColor="#ca8a04" />
+                <stop offset="100%" stopColor="#db2777" />
+              </linearGradient>
+              <radialGradient id="dragonFireGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(219, 39, 119, 0.5)" />
+                <stop offset="100%" stopColor="rgba(219, 39, 119, 0)" />
+              </radialGradient>
+              <filter id="kamishAestheticGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Epic dragon fire storm backdrop */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="42" fill="url(#dragonFireGlow)" />
+                <path d="M 50,8 A 42,42 0 0,1 92,50 A 42,42 0 0,1 50,92 A 42,42 0 0,1 8,50" fill="none" stroke="rgba(219, 39, 119, 0.25)" strokeWidth="1.5" strokeDasharray="8,5" />
+              </>
+            )}
+            
+            {/* Floating embers */}
+            {(layer === "all" || layer === "sparks") && (
+              <g className="opacity-90">
+                <circle cx="45" cy="18" r="1.5" fill="#f43f5e" />
+                <circle cx="78" cy="28" r="1" fill="#facc15" />
+                <circle cx="30" cy="72" r="1.2" fill="#ca8a04" />
+                <circle cx="68" cy="80" r="1.8" fill="#fda4af" />
+              </g>
+            )}
+
+            {/* Dragon Bone Kamish Fang - Base */}
+            {(layer === "all" || layer === "base") && (
+              <g>
+                {/* Dragon claw bound bone tail grip segment */}
+                <path d="M 16,84 L 32,68" stroke="#1c1917" strokeWidth="7" strokeLinecap="round" />
+                <path d="M 15,83 L 13,85 M 19,79 L 18,81 M 23,75 L 22,77 M 27,71 L 26,73" stroke="#ca8a04" strokeWidth="2.5" />
+                <circle cx="13" cy="87" r="3.2" fill="#881337" />
+
+                {/* Skull spinal dragon vertebrae guard */}
+                <path d="M 26,72 C 22,66 28,58 35,62 C 41,56 46,65 38,72 Z" fill="#292524" stroke="#db2777" strokeWidth="1.5" />
+                <circle cx="31" cy="65" r="2" fill="#db2777" />
+
+                {/* Curved organic spiky bone dragon edge blade */}
+                <path 
+                  d="M 32,68 C 36,60 32,48 42,32 C 52,16 78,8 85,5 C 72,18 58,28 48,38 C 38,48 32,68 32,68" 
+                  fill="url(#kamishBladeGrad)" 
+                  stroke="#db2777" 
+                  strokeWidth="1.8" 
+                  filter="url(#kamishAestheticGlow)"
+                />
+                {/* Spine spikes jutting out the outer curve */}
+                <path d="M 46,31 Q 50,22 45,26 M 55,21 Q 62,13 56,17 L 68,10" fill="none" stroke="#db2777" strokeWidth="1.5" />
+              </g>
+            )}
+
+            {/* High energy front mana line */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                {/* Mana transmission core line - glowing pure yellow/hot pink */}
+                <path d="M 36,60 Q 45,46 72,15" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M 36,60 Q 45,46 72,15" fill="none" stroke="#facc15" strokeWidth="3" className="opacity-45" style={{ filter: "blur(2px)" }} />
+              </g>
+            )}
+          </svg>
+        );
+
       case "sovereigns_wrath":
-        // Ethereal Monarch dual celestial sabers radiating pink astral aura
-        paths = "M 5,65 L 18,52 L 50,20 L 55,25 L 22,58 Z M 25,75 L 38,62 L 70,30 L 75,35 L 42,68 Z";
-        glowColor = "rgb(236, 72, 153)";
-        break;
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className={`w-full h-full pointer-events-none mx-auto transition-all duration-300 select-none ${animate ? "animate-pulse" : ""}`}
+          >
+            <defs>
+              <linearGradient id="sovereignBlade1" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#020617" />
+                <stop offset="40%" stopColor="#581c87" />
+                <stop offset="80%" stopColor="#db2777" />
+                <stop offset="100%" stopColor="#ec4899" />
+              </linearGradient>
+              <linearGradient id="sovereignBlade2" x1="100%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#020617" />
+                <stop offset="40%" stopColor="#31105e" />
+                <stop offset="80%" stopColor="#db2777" />
+                <stop offset="100%" stopColor="#f472b6" />
+              </linearGradient>
+              <radialGradient id="voidAura" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(236, 72, 153, 0.55)" />
+                <stop offset="50%" stopColor="rgba(88, 28, 135, 0.3)" />
+                <stop offset="100%" stopColor="rgba(2, 6, 23, 0)" />
+              </radialGradient>
+              <filter id="etherealAstralFilter" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="4.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Sovereign crown & Void nebula backdrop */}
+            {(layer === "all" || layer === "back") && (
+              <>
+                <circle cx="50" cy="50" r="45" fill="url(#voidAura)" />
+                {/* Concentric mystical runic star map */}
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(244, 114, 182, 0.28)" strokeWidth="1" strokeDasharray="3,1" />
+                <path d="M 50,5 L 50,95 M 5,50 L 95,50" stroke="rgba(244, 114, 182, 0.12)" strokeWidth="1.2" strokeDasharray="2,5" />
+              </>
+            )}
+            
+            {/* Floating violet-pink sparkles / Crown details */}
+            {(layer === "all" || layer === "sparks") && (
+              <g>
+                <g className="opacity-95">
+                  <circle cx="50" cy="18" r="2" fill="#ffffff" />
+                  <circle cx="25" cy="35" r="1.5" fill="#f472b6" />
+                  <circle cx="75" cy="35" r="1.2" fill="#db2777" />
+                  <circle cx="18" cy="62" r="1.8" fill="#e879f9" />
+                  <circle cx="82" cy="62" r="1.5" fill="#ffffff" />
+                  <circle cx="35" cy="80" r="1.0" fill="#f472b6" />
+                  <circle cx="65" cy="80" r="1.2" fill="#c084fc" />
+                </g>
+                {/* Floating crown insignia centered at top */}
+                <g transform="translate(42, 8)" stroke="#ec4899" strokeWidth="1" fill="none" className="opacity-80">
+                  <path d="M 2,12 L 14,12 L 16,5 L 11,8 L 8,2 L 5,8 L 0,5 Z" fill="rgba(236,72,153,0.15)" />
+                </g>
+              </g>
+            )}
+
+            {/* Twin Void blades intersecting elegantly - Base structure */}
+            {(layer === "all" || layer === "base") && (
+              <g>
+                {/* 1. LEFT HAND SABER */}
+                <g transform="translate(0, 0)">
+                  <path d="M 12,88 L 32,68" stroke="#090514" strokeWidth="5" strokeLinecap="round" />
+                  <path d="M 13,87 L 15,85 M 18,82 L 20,80 M 23,77 L 25,75 M 28,72 L 30,70" stroke="#db2777" strokeWidth="1.8" />
+                  <circle cx="10" cy="90" r="4" fill="#ec4899" stroke="#f472b6" strokeWidth="1" />
+
+                  <path d="M 22,72 L 34,60 M 23,73 C 25,65 31,68 31,68" stroke="#ca8a04" strokeWidth="1.2" fill="none" />
+                  
+                  <path 
+                    d="M 30,70 L 60,40 L 78,12 L 48,34 L 30,70" 
+                    fill="url(#sovereignBlade1)" 
+                    stroke="#ec4899" 
+                    strokeWidth="1.5" 
+                    filter="url(#etherealAstralFilter)"
+                  />
+                </g>
+
+                {/* 2. RIGHT HAND SABER */}
+                <g transform="translate(0, 0)">
+                  <path d="M 88,88 L 68,68" stroke="#090514" strokeWidth="5" strokeLinecap="round" />
+                  <path d="M 87,87 L 85,85 M 82,82 L 80,80 M 77,77 L 75,75 M 72,72 L 70,70" stroke="#db2777" strokeWidth="1.8" />
+                  <circle cx="90" cy="90" r="4" fill="#ec4899" stroke="#f472b6" strokeWidth="1" />
+
+                  <path d="M 78,72 L 66,60 M 77,73 C 75,65 69,68 69,68" stroke="#ca8a04" strokeWidth="1.2" fill="none" />
+                  
+                  <path 
+                    d="M 70,70 L 40,40 L 22,12 L 52,34 L 70,70" 
+                    fill="url(#sovereignBlade2)" 
+                    stroke="#ec4899" 
+                    strokeWidth="1.5" 
+                    filter="url(#etherealAstralFilter)"
+                  />
+                </g>
+              </g>
+            )}
+
+            {/* High intensity White central beams */}
+            {(layer === "all" || layer === "front") && (
+              <g>
+                <path d="M 32,68 L 72,18" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M 68,68 L 28,18" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
+              </g>
+            )}
+          </svg>
+        );
+
       default:
-        paths = "M 15,65 L 65,15";
+        return (
+          <svg 
+            viewBox="0 0 100 100" 
+            className="w-16 h-16 pointer-events-none mx-auto"
+          >
+            <circle cx="50" cy="50" r="2" fill="#fff" />
+          </svg>
+        );
     }
+  };
+
+  // Rotatable 3D Weapon inspector stage utilizing layered parallax Z-axial translation offsets
+  const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
+    const [rotation, setRotation] = useState({ x: -10, y: 35, z: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStart = useRef({ x: 0, y: 0 });
+    const currentRotationStart = useRef({ x: 0, y: 0 });
+    const autoSpinActive = useRef(true);
+    const animationFrameRef = useRef<number | null>(null);
+
+    // Passive slow idle spin/wobble
+    useEffect(() => {
+      let lastTime = performance.now();
+      const updateRef = () => {
+        const now = performance.now();
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        if (!isDragging && autoSpinActive.current) {
+          setRotation((prev) => ({
+            x: -10 + Math.sin(now * 0.001) * 8, // subtle elegant floating wobble
+            y: (prev.y + delta * 25) % 360,     // slow continuous passive Y rotation (25 deg/sec)
+            z: Math.cos(now * 0.0007) * 4       // micro wobble
+          }));
+        }
+        animationFrameRef.current = requestAnimationFrame(updateRef);
+      };
+
+      animationFrameRef.current = requestAnimationFrame(updateRef);
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    }, [isDragging]);
+
+    // Handle mouse/touch down
+    const handleDragStart = (clientX: number, clientY: number) => {
+      setIsDragging(true);
+      autoSpinActive.current = false;
+      dragStart.current = { x: clientX, y: clientY };
+      currentRotationStart.current = { x: rotation.x, y: rotation.y };
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      handleDragStart(e.clientX, e.clientY);
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      if (e.pointerType === "mouse" || (e.touches && e.touches[0])) {
+        const clientX = e.touches ? e.touches[0].clientX : (e as any).clientX;
+        const clientY = e.touches ? e.touches[0].clientY : (e as any).clientY;
+        handleDragStart(clientX, clientY);
+      }
+    };
+
+    // Handle mouse/touch move
+    const handleDragMove = (clientX: number, clientY: number) => {
+      if (!isDragging) return;
+      const deltaX = clientX - dragStart.current.x;
+      const deltaY = clientY - dragStart.current.y;
+
+      // Sensitivity: 0.6 degrees per pixel
+      const newRotationY = currentRotationStart.current.y + deltaX * 0.6;
+      // Clamp X rotation to prevent flipping upside down (-60 to 60 is perfect)
+      const newRotationX = Math.max(-60, Math.min(60, currentRotationStart.current.x - deltaY * 0.6));
+
+      setRotation((prev) => ({
+        ...prev,
+        x: newRotationX,
+        y: newRotationY,
+      }));
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+      handleDragMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : (e as any).clientX;
+      const clientY = e.touches ? e.touches[0].clientY : (e as any).clientY;
+      handleDragMove(clientX, clientY);
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      // Resume auto spin after short delay
+      setTimeout(() => {
+        autoSpinActive.current = true;
+      }, 1500);
+    };
+
+    const resetRotation = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setRotation({ x: -10, y: 35, z: 0 });
+      autoSpinActive.current = true;
+    };
 
     return (
-      <svg 
-        viewBox="0 0 80 80" 
-        className={`w-16 h-16 pointer-events-none mx-auto transition-all duration-300 ${animate ? "animate-pulse" : ""}`}
-      >
-        <g fill="none" strokeLinecap="round" strokeLinejoin="round">
-          {/* Layer 1: Massive thick background energy spill (4px blur) */}
-          <path d={paths} stroke={glowColor} strokeWidth="7.5" className="opacity-55" style={{ filter: "blur(4.5px)" }} />
-          {/* Layer 2: Core hot neon outline (1px blur) */}
-          <path d={paths} stroke={glowColor} strokeWidth="4" className="opacity-85" style={{ filter: "blur(1.2px)" }} />
-          {/* Layer 3: High intensity luminous pure-white wire code core */}
-          <path d={paths} stroke="#ffffff" strokeWidth="1.5" className="opacity-95" />
-        </g>
-      </svg>
+      <div className="relative w-full h-full flex flex-col items-center justify-between pointer-events-auto">
+        {/* Helper instructions overlay */}
+        <div className="absolute top-2 right-2 flex items-center gap-2 z-30 select-none">
+          <button 
+            type="button"
+            onClick={resetRotation}
+            className="text-[9px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded border border-slate-800 hover:bg-slate-800 hover:text-white transition-colors flex items-center gap-1 cursor-pointer z-40"
+            title="Reset Vector Perspective"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            ALIGN VIEW
+          </button>
+        </div>
+
+        {/* Outer Perspective Wrapper */}
+        <div 
+          className="relative w-full aspect-square flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+          style={{ perspective: "1000px" }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleDragEnd}
+        >
+          {/* Main 3D rotatable staging plate */}
+          <div 
+            className="relative w-full h-full max-w-[280px] max-h-[280px] flex items-center justify-center"
+            style={{ 
+              transformStyle: "preserve-3d",
+              transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg)`
+            }}
+          >
+            {/* Layer 1: Radiant Back Aura Layer (Deepest Z) */}
+            <div 
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center"
+              style={{ 
+                transform: "translateZ(-45px)", 
+                transformStyle: "preserve-3d",
+                backfaceVisibility: "visible"
+              }}
+            >
+              <div className="w-[120%] h-[120%] opacity-90 blur-[6px] flex items-center justify-center">
+                {renderNeonWeaponPreview(itemId, false, "back")}
+              </div>
+            </div>
+
+            {/* Layer 2: Sparks & Particle Cloud Layer */}
+            <div 
+              className="absolute inset-0 pointer-events-none flex items-center justify-center animate-pulse"
+              style={{ 
+                transform: "translateZ(-20px)",
+                transformStyle: "preserve-3d",
+                backfaceVisibility: "visible"
+              }}
+            >
+              <div className="w-[110%] h-[110%]">
+                {renderNeonWeaponPreview(itemId, false, "sparks")}
+              </div>
+            </div>
+
+            {/* Layer 3: Main Armament Geometry Core Layer */}
+            <div 
+              className="absolute inset-0 pointer-events-none flex items-center justify-center"
+              style={{ 
+                transform: "translateZ(5px)", 
+                transformStyle: "preserve-3d",
+                backfaceVisibility: "visible",
+                filter: "drop-shadow(0 8px 25px rgba(0,0,0,0.65))"
+              }}
+            >
+              <div className="w-full h-full">
+                {renderNeonWeaponPreview(itemId, false, "base")}
+              </div>
+            </div>
+
+            {/* Layer 4: Floating Star Edge & Laser High-Voltage Front Layer */}
+            <div 
+              className="absolute inset-0 pointer-events-none flex items-center justify-center"
+              style={{ 
+                transform: "translateZ(30px)", 
+                transformStyle: "preserve-3d",
+                backfaceVisibility: "visible"
+              }}
+            >
+              <div className="w-[98%] h-[98%]">
+                {renderNeonWeaponPreview(itemId, false, "front")}
+              </div>
+            </div>
+
+            {/* Holographic Staging Grid (Floor plate to ground the 3D look) */}
+            <div 
+              className="absolute bottom-1 w-[80%] h-[12%] rounded-full border border-cyan-500/15 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"
+              style={{ 
+                transform: "rotateX(90deg) translateZ(-65px)",
+                transformStyle: "preserve-3d",
+                boxShadow: "0 0 20px rgba(6,182,212,0.1), inset 0 0 10px rgba(6,182,212,0.05)"
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Interaction drag tooltip at bottom */}
+        <span className="text-[9px] text-slate-500 tracking-widest uppercase mb-1 pointer-events-none select-none z-10 flex items-center gap-1.5 font-bold">
+          <svg className="w-3 h-3 text-slate-600 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+          DRAG TO INSPECT VECTOR 3D VOLUME
+        </span>
+      </div>
     );
   };
 
@@ -1188,7 +2009,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
 
     if (gameState.gold < shopMeta.cost) {
-      triggerSystemToast(`⚠️ RESOURCE ERR: Insufficient gold! Required: ${shopMeta.cost} CG.`);
+      triggerSystemToast(`⚠️ RESOURCE ERR: Insufficient Mana! Required: ${shopMeta.cost} MP.`);
       return;
     }
 
@@ -1443,7 +2264,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
       
       {/* 🚨 SOVEREIGN PENALTY INTERCEPT PROTOCOL OVERLAY */}
-      {isInPenaltyZone && (
+      {false && (
         <div id="penalty_sentinel_overlay" className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-4 md:p-8 font-mono select-none overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.12)_0%,rgba(0,0,0,0)_75%)] pointer-events-none" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(244,63,94,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(244,63,94,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
@@ -1542,9 +2363,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       {/* Header Panel */}
       <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
-          <div id="glow_brand_badge" className="p-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-xl">
-            <Crown className="w-5 h-5 text-white animate-pulse" />
-          </div>
           <div>
             <span className="text-xs text-slate-500 font-mono tracking-widest block uppercase">WARRIOR REGISTRY</span>
             <div id="player_info_title" className="text-base font-extrabold text-cyan-400 font-mono">
@@ -1556,8 +2374,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         {/* Currency displays */}
         <div className="flex items-center gap-4">
           <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 text-xs font-mono">
-            <span className="text-slate-500 mr-2 uppercase">GOLD:</span>
-            <span className="text-yellow-400 font-bold">{gameState.gold} CG</span>
+            <span className="text-indigo-400 font-bold mr-2 uppercase">MANA:</span>
+            <span className="text-indigo-400 font-bold">{gameState.gold} MP</span>
           </div>
 
           <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 text-xs font-mono">
@@ -1577,133 +2395,30 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </header>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
-        {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
+        <div className="relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+
           
-          <div className={`rounded-3xl border p-6 relative overflow-hidden transition-all duration-700 bg-gradient-to-b ${currentTier.colorClass}`}>
-            
-            {/* Realtime aura ripple effect depending on tier level */}
-            <div className={`absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.1)_0%,rgba(0,0,0,0)_60%)] animate-pulse pointer-events-none ${currentTier.auraStyle}`} />
-            
-            <div className="flex justify-between items-start z-10 relative">
-              <span className="text-[10px] bg-slate-950/60 font-mono font-bold text-slate-400 px-2.5 py-1 rounded-full uppercase">
-                TIER EVOLUTION
-              </span>
-              <span className="text-xs font-mono text-cyan-400 font-bold">
-                RANK {gameState.rank.substring(0, 8)}
-              </span>
-            </div>
+          <button 
+            className="absolute top-2 right-2 p-1 bg-slate-900 rounded-full border border-slate-700 text-slate-400 hover:text-white"
+            onClick={() => {/* Need a way to close this panel - maybe toggle visibility state? */}}
+          >
+            <span className="sr-only">Close Panel</span>
+            {/* Need an icon - will use X if imported or just text for now */}
+            X
+          </button>
 
-            {/* Animated High Impact Neon Color Level Based Animation */}
-            <div className="my-8 flex justify-center relative">
-              <div className={`w-40 h-40 rounded-full border border-slate-900/60 flex items-center justify-center relative overflow-visible transition-all duration-700 bg-slate-950/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]`}>
-                
-                {/* Embedded animated holographic elements */}
-                <div className="relative w-full h-full flex items-center justify-center">
-                  {/* Rotating portal circles behind */}
-                  <div className="absolute inset-0 rounded-full border border-dashed border-cyan-500/10 animate-spin" style={{ animationDuration: "35s" }} />
-                  <div className="absolute inset-2 rounded-full border border-dotted border-purple-500/10 animate-spin" style={{ animationDuration: "12s" }} />
-
-                  {/* Concentric Neon Rings & Waves Level Animation */}
-                  <div className="absolute inset-0 flex items-center justify-center p-2 rounded-full overflow-hidden">
-                    {/* Pulsing neon center aura */}
-                    <div 
-                      className="absolute w-24 h-24 rounded-full transition-all duration-500 opacity-25 filter blur-xl animate-pulse"
-                      style={{ backgroundColor: neonStyle.border }}
-                    />
-                    
-                    {/* Ring 1 - Outer slow neon circle */}
-                    <motion.div 
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
-                      className="absolute w-32 h-32 rounded-full border border-dashed transition-all duration-500 opacity-40" 
-                      style={{ borderColor: neonStyle.border, boxShadow: `0 0 10px ${neonStyle.glow}` }}
-                    />
-
-                    {/* Ring 2 - Inner fast neon circle with a cut-out border style */}
-                    <motion.div 
-                      animate={{ rotate: -360 }}
-                      transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                      className="absolute w-24 h-24 rounded-full border-2 border-dotted transition-all duration-500 opacity-70" 
-                      style={{ borderColor: neonStyle.border, boxShadow: `inset 0 0 15px ${neonStyle.glow}, 0 0 15px ${neonStyle.glow}` }}
-                    />
-
-                    {/* Shockwave Active Pulse Rings expanding outward */}
-                    {[...Array(3)].map((_, idx) => (
-                      <motion.div
-                        key={idx}
-                        className="absolute rounded-full border transition-all duration-500"
-                        style={{ borderColor: neonStyle.border }}
-                        initial={{ scale: 0.6, opacity: 0.8 }}
-                        animate={{ 
-                          scale: [0.6, 1.5],
-                          opacity: [0.8, 0],
-                        }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 2.5,
-                          delay: idx * 0.8,
-                          ease: "easeOut"
-                        }}
-                      />
-                    ))}
-
-                    {/* Orbiting Tech Coordinates (Neon points) */}
-                    {[...Array(4)].map((_, idx) => {
-                      const angle = (idx * Math.PI) / 2;
-                      const radius = 48;
-                      return (
-                        <motion.div
-                          key={`coord-${idx}`}
-                          className="absolute w-1.5 h-1.5 rounded-full transition-all duration-500"
-                          style={{
-                            backgroundColor: neonStyle.border,
-                            boxShadow: `0 0 10px ${neonStyle.glow}`,
-                            x: radius * Math.cos(angle),
-                            y: radius * Math.sin(angle),
-                          }}
-                          animate={{ 
-                            scale: [0.8, 1.4, 0.8]
-                          }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 2,
-                            delay: idx * 0.5
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* Central Rank Badge Emblem in the middle of neon matrix */}
-                  <div className="absolute z-10 flex flex-col items-center justify-center text-center select-none bg-slate-950/95 p-2 rounded-xl border transition-all duration-500 backdrop-blur-md shadow-2xl" style={{ borderColor: `${neonStyle.border}40`, boxShadow: `0 0 20px ${neonStyle.glow}` }}>
-                    <Crown className="w-4 h-4 animate-pulse" style={{ color: neonStyle.border }} />
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Glowing Eyes Accent layer */}
-              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none font-mono ${currentTier.eyes}`}>
-                🔷 🔷
-              </div>
-            </div>
-
-
-            {/* Titles removed as requested */}
-
-          </div>
 
           {/* Level Exp Progress Section */}
-          <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
-            <div className="flex justify-between items-center text-[10px] text-slate-500">
-              <span>PROGRESS TILL NEXT EVOLUTION</span>
-              <span className="text-cyan-400 font-bold">{gameState.exp} / {gameState.maxExp} XP</span>
+          <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
+            <div className="flex justify-between items-center text-[8px] text-slate-500">
+              <span className="tracking-wider">XP PROGRESS</span>
+              <span className="text-cyan-400 font-bold">{gameState.exp}/{gameState.maxExp}</span>
             </div>
             
-            <div id="player_lvl_xp_meter" className="h-3 bg-slate-900 rounded-full overflow-hidden relative">
+            <div id="player_lvl_xp_meter" className="h-1 bg-slate-900 rounded-full overflow-hidden relative">
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-600 rounded-full"
                 animate={{ width: `${(gameState.exp / gameState.maxExp) * 100}%` }}
@@ -1711,61 +2426,96 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               />
             </div>
 
-            <div className="flex justify-between text-[10px] text-slate-500 border-t border-slate-900 pt-3">
-              <span>POWERSCALING TIER:</span>
-              <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
+            <div className="flex justify-between text-[8px] text-slate-500 border-t border-slate-900/60 pt-1.5">
+              <span>TIER:</span>
+              <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
             </div>
-            <p className="text-[10px] text-slate-500 uppercase leading-relaxed">{powerScaling.desc}</p>
+          </div>
+
+          {/* Sovereign Mana (MP) Progress Section */}
+          <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
+            <div className="flex justify-between items-center text-[8px] text-slate-500">
+              <span className="tracking-wider">MANA (MP)</span>
+              <span className="text-indigo-400 font-bold">{playerMp}/{playerMaxMp}</span>
+            </div>
+            
+            <div id="player_mana_mp_meter" className="h-1 bg-slate-900 rounded-full overflow-hidden relative">
+              <motion.div 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
+                animate={{ width: `${(playerMp / playerMaxMp) * 100}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
           </div>
 
           {/* Story Campaigns Indicator */}
-          <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
-            <h4 className="text-[11px] uppercase font-bold text-slate-400">Campaign Story Milestones</h4>
-            <div className="space-y-2 text-[11px]">
+          <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
+            <h4 className="text-[8px] uppercase font-bold text-slate-500 tracking-wider">Campaign Milestones</h4>
+            <div className="space-y-1 text-[8.5px]">
               
-              <div className="flex justify-between items-center p-2.5 bg-slate-905 rounded-lg">
-                <span className={gameState.level >= 1 ? "text-cyan-400" : "text-slate-600"}>1. Double Dungeon Survival</span>
-                <span className="text-cyan-400 font-bold">COMPLETED</span>
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
+                <span className={gameState.level >= 1 ? "text-cyan-450" : "text-slate-650"}>1. Double Dungeon</span>
+                <span className="text-cyan-450 font-bold text-[7px] tracking-wider uppercase">CLEARED</span>
               </div>
 
-              <div className="flex justify-between items-center p-2.5 bg-slate-905 rounded-lg">
-                <span className={gameState.level >= 25 ? "text-cyan-400" : "text-slate-600"}>2. Red Gate Siege [B-Rank Equivalent]</span>
-                <span className={gameState.level >= 25 ? "text-cyan-400 font-bold" : "text-slate-600"}>
-                  {gameState.level >= 25 ? "AWAKENED" : `Lv 25 Required`}
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
+                <span className={gameState.level >= 25 ? "text-cyan-450" : "text-slate-600"}>2. Red Gate [B]</span>
+                <span className={gameState.level >= 25 ? "text-cyan-450 font-bold text-[7px] tracking-wider uppercase" : "text-slate-600 text-[7.5px]"}>
+                  {gameState.level >= 25 ? "AWAKENED" : `Lv 25`}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center p-2.5 bg-slate-905 rounded-lg">
-                <span className={gameState.level >= 70 ? "text-cyan-400" : "text-slate-600"}>3. Shadow Monarch Awakening [Jeju Arc]</span>
-                <span className={gameState.level >= 70 ? "text-cyan-400 font-bold" : "text-slate-600"}>
-                  {gameState.level >= 70 ? "SOVEREIGN CLASS" : `Lv 70 Required`}
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
+                <span className={gameState.level >= 70 ? "text-cyan-450" : "text-slate-600"}>3. Monarch [Jeju]</span>
+                <span className={gameState.level >= 70 ? "text-cyan-450 font-bold text-[7px] tracking-wider uppercase" : "text-slate-600 text-[7.5px]"}>
+                  {gameState.level >= 70 ? "SOVEREIGN" : `Lv 70`}
                 </span>
               </div>
 
+            </div>
+          </div>
+
+          {/* System Messages & Directives */}
+          <div className="bg-slate-950/75 border border-amber-900/40 p-2.5 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-2 relative overflow-hidden">
+            <div className="flex items-center gap-1.5 pb-1.5 border-b border-amber-900/50">
+              <span className="text-amber-400/80">🔔</span>
+              <span className="text-amber-400 font-bold uppercase tracking-widest text-[8px]">System Messages</span>
+            </div>
+            
+            <div className="space-y-2 text-[8.5px] leading-relaxed text-slate-300">
+              <div className="bg-slate-950/50 p-1.5 rounded border border-red-900/30">
+                <p className="text-red-400 font-bold uppercase mb-0.5 text-[8px]">Daily Penalty Directive</p>
+                <p className="text-slate-400">Failure to complete all daily quests before midnight triggers a severe penalty to Sovereign Mana (MP), Gold, and XP.</p>
+              </div>
+              
+              <div className="bg-slate-950/50 p-1.5 rounded border border-cyan-900/30">
+                <p className="text-cyan-400 font-bold uppercase mb-0.5 text-[8px]">Growth Algorithm</p>
+                <p className="text-slate-400">Complete Life Forge pomodoros to mutate intelligence and gain restorative stats.</p>
+              </div>
             </div>
           </div>
 
           {/* Special trigger bonus button at Level 90 */}
           {gameState.level >= 90 && !gameState.inventory.some(i => i.id === "sovereigns_wrath") && (
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              className="w-full py-4 bg-gradient-to-r from-yellow-500 via-purple-600 to-indigo-600 rounded-xl text-xs font-mono font-black tracking-widest text-white uppercase animate-bounce cursor-pointer border border-yellow-400/20"
+              whileHover={{ scale: 1.02 }}
+              className="w-full py-1.5 bg-gradient-to-r from-yellow-500 via-purple-600 to-indigo-600 rounded-lg text-[8px] font-mono font-black tracking-widest text-white uppercase animate-pulse cursor-pointer border border-yellow-400/20"
               onClick={summonSovereignsWrath}
             >
-              🌌 Claim Ethereal "Sovereign's Wrath"
+              🌌 Claim Wrath
             </motion.button>
           )}
 
         </div>
 
-        {/* TAB CONTROLLERS & DETAILED TAB CONTENT (RIGHT PANEL) */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* TAB CONTROLLERS & DETAILED TAB CONTENT (RIGHT PANEL - EXPANDED GRIDS) */}
+        <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
           {/* Tabs header row */}
           <div className="flex flex-wrap gap-2 border-b border-slate-900 pb-3" id="tab_navigation">
             {[
-              { id: "status", label: "Status" },
               { id: "quests", label: "Quests" },
+              { id: "status", label: "Status" },
               { id: "life_forge", label: "Life Forge" },
               { id: "dungeons", label: "Gates" },
               { id: "shadows", label: "Shadows" },
@@ -2049,10 +2799,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             {quest.completed ? (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
-                                className="bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 px-4 py-2 rounded-xl text-[10px] font-black uppercase cursor-pointer border border-yellow-300/20"
+                                className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase cursor-pointer border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                                 onClick={() => claimQuestReward(quest)}
                               >
-                                Claim Reward (+{quest.rewardExp} XP)
+                                Claim Reward (+{quest.rewardExp} XP, +{quest.rewardGold} MP)
                               </motion.button>
                             ) : (
                               <div className="flex gap-1.5">
@@ -2087,12 +2837,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 {/* DAILY SOVEREIGN ALLOCATION & COMPLIANCE HUD PANEL */}
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl relative overflow-hidden flex flex-wrap justify-between items-center gap-4 font-mono backdrop-blur-md">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(234,179,8,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
                   <div className="flex-1 space-y-1">
-                    <span className="text-[10px] text-yellow-500 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
+                    <span className="text-[10px] text-indigo-400 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
                     <h4 className="text-sm font-bold text-slate-100 uppercase">SOVEREIGN ALLOCATION BOUNTY</h4>
                     <p className="text-[10px] text-slate-400 max-w-sm font-sans leading-relaxed">
-                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 500 gold and 200 character experience points.
+                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 500 Mana (MP) and 200 character experience points.
                     </p>
                   </div>
 
@@ -2109,13 +2859,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <button 
                       className="px-4 py-3 bg-red-950/20 border border-red-500/20 text-red-400 font-extrabold uppercase text-[10px] tracking-wider rounded-xl hover:bg-slate-900 hover:border-red-500/50 cursor-pointer transition-all duration-300"
                       onClick={() => {
-                        setIsInPenaltyZone(true);
-                        localStorage.setItem(`monarch_penalty_zone_${playerName}`, "true");
-                        setPenaltyTimeLeft(125);
-                        localStorage.setItem(`monarch_penalty_time_${playerName}`, "125");
-                        setPenaltyClicks(0);
-                        setPenaltyDescription("SIMULATED PENALTY PROTOCOL: Demanded by System Overlord command override directory parameters! Protect your life in the Sentinel sandstorm!");
-                        setShowPenaltyNotice(true);
+                        const incompleteCount = gameState.quests.filter((q: any) => q.current < q.target).length || 2;
+                        const manaDeduct = incompleteCount * 25;
+                        setPlayerMp(prev => Math.max(0, prev - manaDeduct));
+                        triggerSystemToast(`🚨 SYSTEM FAILURE SIMULATION: Missed daily grinds detected! Internals punctured. Lost -${manaDeduct} Mana (MP)!`);
                       }}
                     >
                       Simulate Penalty Fail
@@ -2131,10 +2878,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-[10px] uppercase py-3 px-6 rounded-xl cursor-pointer shadow-[0_0_20px_rgba(234,179,8,0.2)] tracking-widest block text-center"
+                            className="bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-500 text-white font-black text-[10px] uppercase py-3 px-6 rounded-xl cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.2)] tracking-widest block text-center animate-pulse"
                             onClick={claimDailyAllocation}
                           >
-                            CLAIM GOLD ALLOCATION (+500 CG)
+                            CLAIM MANA ALLOCATE (+500 MP)
                           </motion.button>
                         ) : (
                           <span className="bg-slate-900 border border-slate-800 text-slate-550 font-extrabold text-[10px] uppercase py-3 px-5 rounded-xl block tracking-widest text-center">
@@ -2326,7 +3073,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               <span className="text-emerald-400 font-extrabold text-sm block tracking-widest">🏆 GATE CLEARED SUCCESSFULLY</span>
                               {earnedLoot && (
                                 <div className="max-w-xs mx-auto p-3.5 bg-slate-950/75 border border-emerald-900/60 rounded-xl space-y-2 leading-relaxed backdrop-blur-md">
-                                  <div className="text-slate-300 text-[11px]">System Gold Claimed: <span className="text-yellow-400 font-bold font-mono">+{earnedLoot.gold} CG</span></div>
+                                  <div className="text-slate-300 text-[11px]">System Mana Claimed: <span className="text-indigo-400 font-bold font-mono">+{earnedLoot.gold} MP</span></div>
                                   <div className="text-slate-300 text-[11px]">Experience Gained: <span className="text-cyan-400 font-bold font-mono">+{earnedLoot.xp} XP</span></div>
                                   
                                   {earnedLoot.weapon && (
@@ -2340,7 +3087,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           ) : (
                             <div className="font-mono text-xs">
                               <span className="text-red-500 font-bold text-sm block uppercase tracking-wider">☠️ YOU SUSTAINED MASSIVE CELL DEATH</span>
-                              <span className="text-slate-400 text-[10px] block mt-1">Losing 10% Gold reserves back to system keys. Optimize health parameters via Vitality points.</span>
+                              <span className="text-slate-400 text-[10px] block mt-1">Losing 10% Sovereign Mana reserves back to system keys. Optimize health parameters via Vitality points.</span>
                             </div>
                           )}
 
@@ -2412,7 +3159,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
-                    Use gold retrieved from successful dungeon sweeps to summon shadow soldiers. Deployed shadows assist attacks in real combat.
+                    Use Sovereign Mana retrieved from successful dungeon sweeps to summon shadow soldiers. Deployed shadows assist attacks in real combat.
                   </p>
                 </div>
 
@@ -2433,7 +3180,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
 
                       <div className="text-right flex flex-col justify-between h-full gap-2 pl-3">
-                        <div className="text-yellow-400 font-semibold text-xs">{shadow.cost} CG</div>
+                        <div className="text-indigo-400 font-semibold text-xs">{shadow.cost} MP</div>
                         <button
                           className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-[10px] text-slate-300 uppercase font-black cursor-pointer disabled:opacity-20"
                           disabled={gameState.gold < shadow.cost}
@@ -2477,7 +3224,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
 
                       <div className="mt-5 flex justify-between items-center pt-3 border-t border-slate-900">
-                        <span className="text-yellow-400 font-black">{skill.cost} CG</span>
+                        <span className="text-indigo-400 font-black">{skill.cost} MP</span>
                         
                         {skill.unlocked ? (
                           <span className="text-emerald-400 font-extrabold uppercase text-[10px] tracking-wider bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/10 flex items-center gap-1.5">
@@ -2541,40 +3288,43 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       ) : (
                         <div id="backpack_items_list" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {/* 1. Owned items */}
-                          {gameState.inventory.map((item) => (
-                            <div 
-                              key={item.id} 
-                              className="group relative bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs hover:border-cyan-400 cursor-pointer transition-all duration-300 animate-fade-in"
-                              onClick={() => setSelectedWeaponDetails(item)}
-                            >
-                              {/* Inner soft glow if equipped */}
-                              {item.equipped && (
-                                <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
-                              )}
-                              
-                              <div className="flex-1 space-y-2 pr-4">
-                                <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-400">
-                                  <span>Rank: {item.rarity}</span>
-                                  {item.equipped && <span className="text-cyan-400 font-extrabold">EQUIPPED</span>}
-                                </div>
-                                <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">{item.name}</h4>
-                                <p className="text-[10px] text-slate-350 leading-relaxed line-clamp-1">{item.description}</p>
-                                
-                                {item.statBonus && (
-                                  <div className="text-[9px] text-cyan-400 font-bold space-x-2">
-                                    {item.statBonus.strength && <span>+{item.statBonus.strength} STR</span>}
-                                    {item.statBonus.agility && <span>+{item.statBonus.agility} AGI</span>}
-                                    {item.statBonus.vitality && <span>+{item.statBonus.vitality} VIT</span>}
-                                  </div>
+                          {gameState.inventory.map((item) => {
+                            const colors = getWeaponColorClasses(item.id);
+                            return (
+                              <div 
+                                key={item.id} 
+                                className={`group relative bg-slate-950/75 border border-slate-900/60 p-5 rounded-2xl backdrop-blur-md flex items-center justify-between font-mono text-xs cursor-pointer transition-all duration-300 animate-fade-in ${colors.border} ${colors.bg} ${colors.glow}`}
+                                onClick={() => setSelectedWeaponDetails(item)}
+                              >
+                                {/* Inner soft glow if equipped or high level */}
+                                {item.equipped && (
+                                  <div className="absolute inset-0 bg-cyan-500/5 rounded-2xl pointer-events-none" />
                                 )}
-                              </div>
+                                
+                                <div className="flex-1 space-y-2 pr-4">
+                                  <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-400">
+                                    <span className={`px-2 py-0.5 rounded border ${colors.badge}`}>RANK: {item.rarity}</span>
+                                    {item.equipped && <span className="text-cyan-400 font-extrabold tracking-wider animate-pulse flex items-center gap-1"><span>✦</span> EQUIPPED</span>}
+                                  </div>
+                                  <h4 className={`text-sm font-bold text-white transition-colors group-hover:${colors.text}`}>{item.name}</h4>
+                                  <p className="text-[10px] text-slate-350 leading-relaxed line-clamp-1">{item.description}</p>
+                                  
+                                  {item.statBonus && (
+                                    <div className="text-[9px] text-cyan-420 font-bold space-x-2 flex flex-wrap gap-1 mt-1">
+                                      {item.statBonus.strength && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-slate-300">+{item.statBonus.strength} STR</span>}
+                                      {item.statBonus.agility && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-cyan-400">+{item.statBonus.agility} AGI</span>}
+                                      {item.statBonus.vitality && <span className="bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-800/60 text-indigo-400">+{item.statBonus.vitality} VIT</span>}
+                                    </div>
+                                  )}
+                                </div>
 
-                              {/* Neon Blue Weapon Preview */}
-                              <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
-                                {renderNeonWeaponPreview(item.id, item.equipped)}
+                                {/* Neon Blue/Dynamic Color Weapon Preview */}
+                                <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-slate-500/20 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
+                                  {renderNeonWeaponPreview(item.id, item.equipped)}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
 
                           {/* 2. Interactive Empty Slots */}
                           {emptySlotsCount > 0 && Array.from({ length: emptySlotsCount }).map((_, idx) => (
@@ -2630,14 +3380,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         const isOwned = gameState.inventory.some(i => i.id === weaponTemplate.id);
                         const shopMeta = WEAPON_SHOP_DETAILS[weaponTemplate.id] || { cost: 0, levelReq: 1 };
                         const isUnlocked = gameState.level >= shopMeta.levelReq;
+                        const colors = getWeaponColorClasses(weaponTemplate.id);
 
                         return (
                           <div 
                             key={weaponTemplate.id} 
-                            className={`relative bg-slate-950/75 border border-slate-900/60 backdrop-blur-md p-5 rounded-2xl flex items-center justify-between font-mono text-xs transition-all duration-300 ${
-                              isOwned ? "opacity-65" : 
-                              !isUnlocked ? "opacity-40 bg-slate-900/10" : 
-                              "hover:border-yellow-500/50 cursor-pointer"
+                            className={`group relative bg-slate-950/75 border border-slate-900/60 backdrop-blur-md p-5 rounded-2xl flex items-center justify-between font-mono text-xs transition-all duration-300 ${
+                              isOwned ? "opacity-65 cursor-pointer hover:bg-slate-950/90" : 
+                              !isUnlocked ? "opacity-40 bg-slate-900/10 cursor-not-allowed" : 
+                              `cursor-pointer ${colors.border} ${colors.bg} ${colors.glow}`
                             }`}
                             onClick={() => {
                               if (!isOwned && isUnlocked) {
@@ -2650,31 +3401,34 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           >
                             <div className="flex-1 space-y-2 pr-4">
                               <div className="flex justify-between items-center text-[9px] font-bold uppercase text-slate-500">
-                                <span>{weaponTemplate.rarity} Rarity</span>
-                                <span className={isOwned ? "text-slate-500" : isUnlocked ? "text-yellow-400" : "text-red-500"}>
+                                <span className={`px-2 py-0.5 rounded border ${isOwned ? "bg-slate-900 text-slate-400 border-slate-800" : colors.badge}`}>{weaponTemplate.rarity} Rarity</span>
+                                <span className={isOwned ? "text-slate-500" : isUnlocked ? "text-yellow-400 font-extrabold" : "text-red-500 font-extrabold"}>
                                   {isOwned ? "ACQUIRED" : isUnlocked ? "AVAILABLE" : `UNLOCKS AT LV ${shopMeta.levelReq}`}
                                 </span>
                               </div>
-                              <h4 className="text-sm font-bold text-slate-200">{weaponTemplate.name}</h4>
+                              <h4 className={`text-sm font-bold text-slate-200 transition-colors group-hover:${colors.text}`}>{weaponTemplate.name}</h4>
                               
                               <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-1">{weaponTemplate.description}</p>
                               
                               {!isOwned && (
-                                <div className="text-yellow-400 text-xs font-bold mt-1">
-                                  Price: {shopMeta.cost} CG
+                                <div className="text-indigo-400 text-xs font-bold mt-1 flex items-center gap-1.5">
+                                  Price: <span className="text-cyan-400 font-extrabold">{shopMeta.cost} MP</span>
                                 </div>
                               )}
                             </div>
 
-                            {/* Neon Outline Silhouette preview */}
-                            <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80">
+                            {/* Neon Outline Silhouette preview with colored shadow */}
+                            <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-slate-500/20 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
                               {renderNeonWeaponPreview(weaponTemplate.id, false)}
                             </div>
 
                             {/* Lock Icon Overlay if Locked */}
                             {!isUnlocked && !isOwned && (
-                              <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center pointer-events-none">
-                                <Lock className="w-5 h-5 text-slate-600" />
+                              <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center pointer-events-none">
+                                <div className="bg-slate-950/90 border border-red-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
+                                  <Lock className="w-3.5 h-3.5 text-red-500" />
+                                  <span className="text-[8px] font-extrabold text-white tracking-widest uppercase">LOCKED (LV {shopMeta.levelReq})</span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -3438,6 +4192,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </motion.div>
             )}
 
+
+
           </div>
 
         </div>
@@ -3460,26 +4216,60 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               animate={{ scale: 1, y: 0, rotateX: 0 }}
               exit={{ scale: 0.8, y: 50, opacity: 0, rotateX: -20 }}
               transition={{ type: "spring", damping: 20, stiffness: 100 }}
-              className="w-full max-w-4xl bg-slate-950/80 border border-cyan-500/40 p-3 sm:p-6 md:p-8 rounded-[1.5rem] sm:rounded-[2rem] relative shadow-[0_0_80px_rgba(6,182,212,0.15)] text-left font-mono cursor-default min-h-[70vh] flex flex-col justify-between"
+              className={`w-full max-w-2xl bg-slate-950/90 border p-3 sm:p-6 md:p-8 rounded-[1.5rem] sm:rounded-[2rem] relative text-left font-mono cursor-default max-h-[85vh] overflow-y-auto flex flex-col justify-between transition-all duration-500 ${
+                selectedWeaponDetails.id === "rusty_dagger" ? "border-amber-500/50 shadow-[0_0_80px_rgba(234,179,8,0.2)]" :
+                selectedWeaponDetails.id === "kasaka_fang" ? "border-cyan-500/50 shadow-[0_0_80px_rgba(6,182,212,0.2)]" :
+                selectedWeaponDetails.id === "igris_sword" ? "border-rose-500/50 shadow-[0_0_80px_rgba(244,63,94,0.2)]" :
+                selectedWeaponDetails.id === "demon_dagger" ? "border-indigo-400/50 shadow-[0_0_80px_rgba(99,102,241,0.2)]" :
+                selectedWeaponDetails.id === "kamish_fang" ? "border-purple-500/50 shadow-[0_0_80px_rgba(168,85,247,0.2)]" :
+                selectedWeaponDetails.id === "sovereigns_wrath" ? "border-pink-500/50 shadow-[0_0_90px_rgba(236,72,153,0.25)]" :
+                "border-cyan-500/40 shadow-[0_0_80px_rgba(6,182,212,0.15)]"
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Inner Decorative Sci-Fi Cyber Grid & Radial Aura */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(18,24,38,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(18,24,38,0.3)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none rounded-[2rem]" />
-              <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+              
+              {/* Dynamic Aura background based on model ID */}
+              <div className={`absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[100px] pointer-events-none opacity-40 transition-all duration-500 ${
+                selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/20" :
+                selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-500/20" :
+                selectedWeaponDetails.id === "igris_sword" ? "bg-rose-500/20" :
+                selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-500/20" :
+                selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-500/20" :
+                selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-500/25" :
+                "bg-cyan-500/10"
+              }`} />
+              <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-slate-900/40 rounded-full blur-[100px] pointer-events-none" />
 
               {/* Modal Header */}
-              <div className="flex justify-between items-start mb-6 border-b border-cyan-500/20 pb-4 relative z-10">
+              <div className="flex justify-between items-start mb-6 border-b border-slate-900 pb-4 relative z-10">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-cyan-400 tracking-[0.3em] font-black uppercase bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30">
-                      SYSTEM ANALYSIS MATCH
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-[9px] tracking-[0.25em] font-black uppercase px-2.5 py-1 rounded border ${
+                      selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 bg-amber-950/40 border-amber-500/30" :
+                      selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 bg-cyan-950/40 border-cyan-500/30" :
+                      selectedWeaponDetails.id === "igris_sword" ? "text-rose-450 bg-rose-950/40 border-rose-500/30" :
+                      selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 bg-indigo-950/40 border-indigo-500/30" :
+                      selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 bg-purple-950/40 border-purple-500/30" :
+                      selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 bg-pink-950/40 border-pink-500/30 animate-pulse" :
+                      "text-cyan-400 bg-cyan-950/40 border-cyan-500/30"
+                    }`}>
+                      SYSTEM VECTOR DIAGNOSIS
                     </span>
-                    <span className="text-[10px] text-purple-400 tracking-widest font-bold uppercase bg-purple-950/50 px-2 py-0.5 rounded border border-purple-500/30">
+                    <span className="text-[9px] text-slate-400 tracking-widest font-black uppercase bg-slate-900/60 px-2 py-1 rounded border border-slate-800">
                       ID: {selectedWeaponDetails.id.toUpperCase()}
                     </span>
                   </div>
-                  <h3 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-wider drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+                  <h3 className={`text-3xl sm:text-4xl font-extrabold uppercase mt-1.5 tracking-wider transition-colors drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] ${
+                    selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-300" :
+                    selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-300" :
+                    selectedWeaponDetails.id === "igris_sword" ? "text-rose-300" :
+                    selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-300" :
+                    selectedWeaponDetails.id === "kamish_fang" ? "text-purple-300" :
+                    selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-300" :
+                    "text-white"
+                  }`}>
                     {selectedWeaponDetails.name}
                   </h3>
                 </div>
@@ -3498,46 +4288,57 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 
                 {/* Left Column: Visual Projection */}
                 <div className="lg:col-span-5 flex flex-col gap-4">
-                  <div className="relative w-full aspect-square bg-slate-950/60 border border-cyan-500/20 rounded-2xl flex items-center justify-center shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] overflow-hidden group">
-                    <div className="absolute inset-0 bg-cyan-500/5 backdrop-blur-[2px]" />
-                    <div className="absolute top-2 left-2 text-[10px] text-cyan-500/60 font-black tracking-widest">VISUAL PROJECTION_</div>
-                    {/* Big scaled up vector */}
-                    <motion.div 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 2.2, opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                      className="origin-center"
-                    >
-                      {renderNeonWeaponPreview(selectedWeaponDetails.id, true)}
-                    </motion.div>
+                  <div className={`relative w-full aspect-square bg-slate-950/80 border rounded-2xl flex items-center justify-center shadow-[inset_0_0_50px_rgba(0,0,0,0.85)] overflow-hidden group transition-colors p-4 ${
+                    selectedWeaponDetails.id === "rusty_dagger" ? "border-amber-500/30" :
+                    selectedWeaponDetails.id === "kasaka_fang" ? "border-cyan-500/30" :
+                    selectedWeaponDetails.id === "igris_sword" ? "border-rose-500/30" :
+                    selectedWeaponDetails.id === "demon_dagger" ? "border-indigo-500/30" :
+                    selectedWeaponDetails.id === "kamish_fang" ? "border-purple-500/30" :
+                    selectedWeaponDetails.id === "sovereigns_wrath" ? "border-pink-500/30" :
+                    "border-cyan-500/20"
+                  }`}>
+                    <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]" />
+                    <div className={`absolute top-2 left-2 text-[10px] font-black tracking-widest z-30 ${
+                      selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400/60" :
+                      selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400/60" :
+                      selectedWeaponDetails.id === "igris_sword" ? "text-rose-400/60" :
+                      selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400/60" :
+                      selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400/60" :
+                      selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400/60" :
+                      "text-cyan-500/60"
+                    }`}>HOLOGRAPHIC VECTOR FIELD_</div>
                     
-                    {/* Scanning Line overlay */}
-                    <motion.div 
-                      animate={{ y: ["0%", "100%", "0%"] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="absolute left-0 right-0 h-[2px] bg-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.8)] z-20"
-                    />
+                    {/* Immersive 3D rotatable weapon staging */}
+                    <Rotatable3DWeapon itemId={selectedWeaponDetails.id} />
                   </div>
 
                   {/* High Level Stats Summary */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-[9px] text-slate-500 block mb-1">CLASSIFICATION</span>
-                      <span className="text-cyan-300 font-bold text-sm tracking-widest">{selectedWeaponDetails.rarity} RANK</span>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 block mb-0.5 uppercase">RANK CLASSIFY</span>
+                      <span className={`font-bold text-sm tracking-widest ${
+                        selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400" :
+                        selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400" :
+                        selectedWeaponDetails.id === "igris_sword" ? "text-rose-400" :
+                        selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400" :
+                        selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400" :
+                        selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400" :
+                        "text-cyan-400"
+                      }`}>{selectedWeaponDetails.rarity} RANK</span>
                     </div>
-                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-[9px] text-slate-500 block mb-1">TYPE DOMAIN</span>
-                      <span className="text-indigo-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.type}</span>
+                    <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 block mb-0.5 uppercase">ARMAMENT FIELD</span>
+                      <span className="text-white font-bold text-sm tracking-widest">{selectedWeaponDetails.type}</span>
                     </div>
                     {selectedWeaponDetails.weaponDetails && (
                       <>
-                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                          <span className="text-[9px] text-slate-500 block mb-1">SCALING TIER</span>
+                        <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+                          <span className="text-[9px] text-slate-500 block mb-0.5 uppercase">SCALING RATE</span>
                           <span className="text-purple-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.scalingModifier}</span>
                         </div>
-                        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                          <span className="text-[9px] text-slate-500 block mb-1">CRIT RATE</span>
-                          <span className="text-rose-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.criticalChance}</span>
+                        <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+                          <span className="text-[9px] text-slate-500 block mb-0.5 uppercase">CRITICAL FORCE</span>
+                          <span className="text-rose-450 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.criticalChance}</span>
                         </div>
                       </>
                     )}
@@ -3548,8 +4349,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 <div className="lg:col-span-7 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
                   
                   {/* Base Core Desc */}
-                  <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <span className="text-[10px] text-slate-400 tracking-widest font-bold">CORE STRUCTURE LOG</span>
+                  <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800/80 space-y-1">
+                    <span className="text-[9px] text-slate-400 tracking-wider font-extrabold uppercase">COGNITIVE DESCRIPTION STRAP</span>
                     <p className="text-slate-300 text-sm leading-relaxed">{selectedWeaponDetails.description}</p>
                   </div>
 
@@ -3557,64 +4358,121 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {selectedWeaponDetails.weaponDetails && (
                     <div className="space-y-4">
                       {/* Lore block */}
-                      <div className="border-l-2 border-cyan-500/50 pl-4 py-1">
-                        <span className="text-[10px] text-cyan-500/80 tracking-widest block mb-1">ARCHIVAL LORE ENTRY</span>
+                      <div className={`border-l-2 pl-4 py-1.5 ${
+                        selectedWeaponDetails.id === "rusty_dagger" ? "border-amber-500/50" :
+                        selectedWeaponDetails.id === "kasaka_fang" ? "border-cyan-500/50" :
+                        selectedWeaponDetails.id === "igris_sword" ? "border-rose-500/50" :
+                        selectedWeaponDetails.id === "demon_dagger" ? "border-indigo-500/50" :
+                        selectedWeaponDetails.id === "kamish_fang" ? "border-purple-500/50" :
+                        selectedWeaponDetails.id === "sovereigns_wrath" ? "border-pink-500/50" :
+                        "border-cyan-500/50"
+                      }`}>
+                        <span className="text-[9px] text-slate-450 tracking-widest uppercase block mb-1">CHRONICLE / ANCIENT LORE ARCHIVES</span>
                         <p className="text-slate-400 text-xs leading-relaxed italic">"{selectedWeaponDetails.weaponDetails.lore}"</p>
                       </div>
 
                       {/* Specs Grid */}
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
-                          <span className="text-slate-500">SPEED</span>
-                          <span className="text-white">{selectedWeaponDetails.weaponDetails.speed}</span>
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/80 flex justify-between">
+                          <span className="text-slate-500">ATTACK SPEED</span>
+                          <span className="text-white font-bold">{selectedWeaponDetails.weaponDetails.speed}</span>
                         </div>
-                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
-                          <span className="text-slate-500">DURABILITY</span>
-                          <span className="text-white">{selectedWeaponDetails.weaponDetails.durability}</span>
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/80 flex justify-between">
+                          <span className="text-slate-500">DURABILITY CAPACITY</span>
+                          <span className="text-white font-bold">{selectedWeaponDetails.weaponDetails.durability}</span>
                         </div>
-                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
-                          <span className="text-slate-500">WEIGHT</span>
-                          <span className="text-white">{selectedWeaponDetails.weaponDetails.weight}</span>
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/80 flex justify-between">
+                          <span className="text-slate-500">MASS WEIGHT</span>
+                          <span className="text-white font-bold">{selectedWeaponDetails.weaponDetails.weight}</span>
                         </div>
-                        <div className="bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80 flex justify-between">
-                          <span className="text-slate-500">ORIGIN</span>
-                          <span className="text-cyan-400 truncate ml-2" title={selectedWeaponDetails.weaponDetails.origin}>{selectedWeaponDetails.weaponDetails.origin}</span>
+                        <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/80 flex justify-between items-center overflow-hidden">
+                          <span className="text-slate-500">MANA ORIGIN</span>
+                          <span className={`font-bold truncate ml-2 text-[11px] ${
+                            selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-450" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-450" :
+                            selectedWeaponDetails.id === "igris_sword" ? "text-rose-450" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-455" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "text-purple-450" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-450" :
+                            "text-cyan-450"
+                          }`} title={selectedWeaponDetails.weaponDetails.origin}>{selectedWeaponDetails.weaponDetails.origin}</span>
                         </div>
                       </div>
 
-                      {/* Passive Ability Highlight */}
+                      {/* Passive Ability Highlight with custom match colors */}
                       <motion.div 
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-indigo-950/30 border border-indigo-500/40 p-4 rounded-xl flex items-start gap-4"
+                        whileHover={{ scale: 1.01 }}
+                        className={`p-4 rounded-xl flex items-start gap-3.5 border transition-all ${
+                          selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-950/20 border-amber-500/40" :
+                          selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-950/20 border-cyan-500/40" :
+                          selectedWeaponDetails.id === "igris_sword" ? "bg-rose-950/20 border-rose-500/40" :
+                          selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-950/20 border-indigo-500/40" :
+                          selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-950/20 border-purple-500/40" :
+                          selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-950/20 border-pink-500/50 shadow-md" :
+                          "bg-cyan-950/10 border-cyan-500/30"
+                        }`}
                       >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/50 mt-1">
-                          <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border mt-0.5 ${
+                          selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/10 border-amber-400/40 text-amber-300" :
+                          selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-500/10 border-cyan-400/40 text-cyan-300" :
+                          selectedWeaponDetails.id === "igris_sword" ? "bg-rose-500/10 border-rose-400/40 text-rose-300" :
+                          selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-500/10 border-indigo-400/40 text-indigo-300" :
+                          selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-500/10 border-purple-400/40 text-purple-300" :
+                          selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-500/15 border-pink-400/40 text-pink-300" :
+                          "bg-cyan-500/10 border-cyan-400/40 text-cyan-300"
+                        }`}>
+                          <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </div>
                         <div>
-                          <span className="text-[10px] text-indigo-400 tracking-widest font-black block mb-0.5">AWAKENED PASSIVE ABILITY</span>
-                          <p className="text-white text-sm font-bold shadow-indigo-500/50">{selectedWeaponDetails.weaponDetails.passiveAbility}</p>
+                          <span className={`text-[9px] tracking-widest font-black block mb-0.5 ${
+                            selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400" :
+                            selectedWeaponDetails.id === "igris_sword" ? "text-rose-400" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400" :
+                            "text-cyan-400"
+                          }`}>ACTIVE COGNITIVE PASSIVE MATRIX</span>
+                          <p className="text-white text-xs sm:text-sm font-extrabold tracking-wide">{selectedWeaponDetails.weaponDetails.passiveAbility}</p>
                         </div>
                       </motion.div>
 
                       {/* Elements and History */}
                       <div className="flex flex-col gap-3">
                         <div>
-                          <span className="text-[10px] text-slate-500 block mb-1.5 uppercase tracking-wider">Inherent Elements</span>
+                          <span className="text-[9px] text-slate-500 block mb-1 uppercase tracking-wider font-extrabold">Elemental Integration Core</span>
                           <div className="flex flex-wrap gap-2">
                             {selectedWeaponDetails.weaponDetails.elements.map((el: string, idx: number) => (
-                              <span key={idx} className="bg-slate-800 text-slate-300 px-3 py-1 text-[10px] rounded border border-slate-700 tracking-wider">
-                                {el}
+                              <span key={idx} className={`px-2.5 py-1 text-[10px] rounded border uppercase tracking-wider font-extrabold ${
+                                selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-950/20 text-amber-300 border-amber-500/20" :
+                                selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-950/20 text-cyan-300 border-cyan-500/20" :
+                                selectedWeaponDetails.id === "igris_sword" ? "bg-rose-950/20 text-rose-300 border-rose-500/20" :
+                                selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-950/20 text-indigo-300 border-indigo-500/20" :
+                                selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-950/20 text-purple-300 border-purple-500/20" :
+                                selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-950/20 text-pink-300 border-pink-500/30" :
+                                "bg-slate-800 text-slate-300 border-slate-700"
+                              }`}>
+                                ⚡ {el}
                               </span>
                             ))}
                           </div>
                         </div>
                         
-                        <div className="bg-slate-900/30 p-3 rounded-lg border border-slate-800/50">
-                          <span className="text-[10px] text-slate-500 block mb-1.5 uppercase tracking-wider">Item History Chain Log</span>
-                          <ul className="list-none space-y-1">
+                        <div className="bg-slate-900/30 p-3 rounded-xl border border-slate-900">
+                          <span className="text-[9px] text-slate-500 block mb-1.5 uppercase tracking-wider font-extrabold">COGNITIVE CHRONOLOGY STREAKS</span>
+                          <ul className="list-none space-y-1 bg-slate-950/40 p-2.5 rounded-lg border border-slate-900/60 font-mono text-[10px]">
                             {selectedWeaponDetails.weaponDetails.history.map((hist: string, idx: number) => (
-                              <li key={idx} className="text-[11px] text-slate-400 flex items-start gap-2">
-                                <span className="text-cyan-500 leading-tight block">&gt;</span> <span className="leading-tight">{hist}</span>
+                              <li key={idx} className="text-slate-400 flex items-start gap-1.5 py-0.5 border-b border-slate-900/40 last:border-0 leading-relaxed">
+                                <span className={`leading-normal shrink-0 font-extrabold ${
+                                  selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-500" :
+                                  selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-500" :
+                                  selectedWeaponDetails.id === "igris_sword" ? "text-rose-500" :
+                                  selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-500" :
+                                  selectedWeaponDetails.id === "kamish_fang" ? "text-purple-500" :
+                                  selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-500" :
+                                  "text-cyan-500"
+                                }`}>&gt;</span> 
+                                <span className="leading-tight text-[11px]">{hist}</span>
                               </li>
                             ))}
                           </ul>
@@ -3625,12 +4483,20 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                   {/* Raw Stat Additions */}
                   {selectedWeaponDetails.statBonus && (
-                    <div className="pt-2">
-                      <span className="text-[10px] text-slate-500 block mb-2 tracking-widest">METRIC BONUSES</span>
+                    <div className="pt-1">
+                      <span className="text-[9px] text-slate-500 block mb-1.5 tracking-wider font-bold">SPATIAL ATTRIBUTE COMPLEMENT_</span>
                       <div className="flex flex-wrap gap-2 text-cyan-400 font-bold text-xs">
                         {Object.entries(selectedWeaponDetails.statBonus).map(([key, val]) => (
-                          <div key={key} className="bg-cyan-950/40 px-3 py-1.5 rounded-md border border-cyan-500/30 flex gap-2 items-center">
-                            <span className="text-slate-300 uppercase text-[10px]">{key.slice(0,3)}</span>
+                          <div key={key} className={`px-3 py-1.5 rounded-lg border flex gap-2 items-center font-extrabold ${
+                            selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-950/20 text-amber-300 border-amber-500/30" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-950/20 text-cyan-300 border-cyan-500/30" :
+                            selectedWeaponDetails.id === "igris_sword" ? "bg-rose-950/20 text-rose-300 border-rose-500/30" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-950/20 text-indigo-300 border-indigo-500/30" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-950/20 text-purple-300 border-purple-500/30" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-950/20 text-pink-300 border-pink-500/35" :
+                            "bg-cyan-950/30 text-cyan-405 border-cyan-500/20"
+                          }`}>
+                            <span className="text-slate-400 uppercase text-[9px] tracking-wider">{key.slice(0,3)} ACCRUE</span>
                             <span>+{val}</span>
                           </div>
                         ))}
@@ -3642,37 +4508,69 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               </div>
 
               {/* Bottom Action buttons */}
-              <div className="mt-6 pt-5 border-t border-cyan-500/20 flex justify-end gap-4 z-10 relative">
+              <div className="mt-6 pt-5 border-t border-slate-900 flex justify-end gap-4 z-10 relative">
                 {selectedWeaponDetails.isShopTemplate ? (
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full lg:w-auto px-10 py-4 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 focus:outline-none hover:from-cyan-500 hover:to-purple-500 text-white font-extrabold text-sm uppercase rounded-xl cursor-pointer shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all"
+                    className={`w-full lg:w-auto px-10 py-4 focus:outline-none text-white font-extrabold text-xs uppercase tracking-widest rounded-xl cursor-pointer shadow-lg transition-all ${
+                      selectedWeaponDetails.id === "rusty_dagger" ? "bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.25)]" :
+                      selectedWeaponDetails.id === "kasaka_fang" ? "bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 shadow-[0_0_20px_rgba(6,182,212,0.25)]" :
+                      selectedWeaponDetails.id === "igris_sword" ? "bg-gradient-to-r from-rose-600 to-red-650 hover:from-rose-500 hover:to-red-600 shadow-[0_0_20px_rgba(244,63,94,0.25)]" :
+                      selectedWeaponDetails.id === "demon_dagger" ? "bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.25)]" :
+                      selectedWeaponDetails.id === "kamish_fang" ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,0.25)]" :
+                      selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 shadow-[0_0_30px_rgba(236,72,153,0.35)]" :
+                      "bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 shadow-md"
+                    }`}
                     onClick={() => {
                       buyWeapon(selectedWeaponDetails.id);
                       setSelectedWeaponDetails(null);
                     }}
                   >
-                    INTEGRATE WEAPON ARSENAL (-{selectedWeaponDetails.cost} CG)
+                    INTEGRATE SYSTEM ARSENAL (-{selectedWeaponDetails.cost} MP)
                   </motion.button>
                 ) : (
                   <>
                     {selectedWeaponDetails.equipped ? (
-                      <div className="w-full text-center text-cyan-400 font-bold text-sm py-4 border-2 border-cyan-500/40 bg-cyan-950/40 rounded-xl uppercase tracking-widest overflow-hidden relative">
-                        <div className="absolute inset-0 bg-cyan-500/10 animate-pulse pointer-events-none" />
-                        ACTIVE PRIMARY EQUIPMENT IN SLOT
+                      <div className={`w-full text-center font-bold text-xs py-4 border rounded-xl uppercase tracking-widest overflow-hidden relative ${
+                        selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/30 bg-amber-950/20" :
+                        selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/30 bg-cyan-950/20" :
+                        selectedWeaponDetails.id === "igris_sword" ? "text-rose-450 border-rose-500/30 bg-rose-950/20" :
+                        selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/30 bg-indigo-950/20" :
+                        selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/30 bg-purple-950/20" :
+                        selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/40 bg-pink-950/20" :
+                        "text-cyan-405 border-cyan-500/30 bg-cyan-950/20"
+                      }`}>
+                        <div className={`absolute inset-0 animate-pulse pointer-events-none ${
+                          selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/5" :
+                          selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-500/5" :
+                          selectedWeaponDetails.id === "igris_sword" ? "bg-rose-500/5" :
+                          selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-500/5" :
+                          selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-500/5" :
+                          selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-500/10" :
+                          "bg-cyan-500/5"
+                        }`} />
+                        ✓ ACTIVE PRIMARY ARSENAL ENGAGED IN SLOT
                       </div>
                     ) : (
                       <motion.button 
-                        whileHover={{ scale: 1.02, backgroundColor: "rgba(15, 23, 42, 0.8)" }}
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="w-full lg:w-auto px-12 py-4 bg-slate-900 border-2 border-cyan-500/50 text-cyan-400 hover:text-white hover:border-cyan-400 font-extrabold text-sm uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.1)] transition-all text-center tracking-widest relative overflow-hidden"
+                        className={`w-full lg:w-auto px-12 py-4 bg-slate-950 border text-center text-xs tracking-widest uppercase font-extrabold rounded-xl cursor-pointer shadow-md transition-all relative overflow-hidden ${
+                          selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/40 hover:text-white" :
+                          selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/40 hover:text-white" :
+                          selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/40 hover:text-white" :
+                          selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/40 hover:text-white" :
+                          selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/40 hover:text-white" :
+                          selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/50 hover:text-white" :
+                          "text-cyan-405 border-cyan-500/45 hover:text-white"
+                        }`}
                         onClick={() => {
                           equipWeapon(selectedWeaponDetails.id);
                           setSelectedWeaponDetails(null);
                         }}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />
+                        <div className={`absolute inset-0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 pointer-events-none opacity-20 bg-gradient-to-r from-transparent via-white to-transparent`} />
                         EQUIP ARSENAL UNIT
                       </motion.button>
                     )}
@@ -3761,6 +4659,74 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 onClick={() => setLevelUpOverlay(null)}
               >
                 Confirm Evolution [Accept]
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MILESTONE / NOTIFICATION OVERLAY */}
+      <AnimatePresence>
+        {milestoneOverlay && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center p-4 overflow-hidden"
+            onClick={() => setMilestoneOverlay(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-950/20 via-slate-950 to-slate-950 pointer-events-none" />
+            
+            {/* Massive back portal glowing aura rings */}
+            <div className="absolute w-[600px] h-[600px] border border-dashed border-amber-500/10 rounded-full animate-spin pointer-events-none" style={{ animationDuration: "50s", animationDirection: "reverse" }} />
+            <div className="absolute w-[450px] h-[450px] border border-dotted border-rose-500/15 rounded-full animate-spin pointer-events-none" style={{ animationDuration: "25s" }} />
+
+            {/* Floating ascending energy particles */}
+            {[...Array(15)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ y: 200, x: Math.random() * 320 - 160, opacity: 0, scale: 0.5 }}
+                animate={{ y: -300, opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2.2 + Math.random() * 1.5, delay: i * 0.1 }}
+                className="absolute w-2.5 h-2.5 rounded-full bg-gradient-to-t from-amber-400 to-rose-500 filter blur-[1px]"
+              />
+            ))}
+
+            <motion.div 
+              initial={{ scale: 0.8, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: 50, opacity: 0 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="text-center space-y-6 max-w-sm w-full font-mono relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Systems Prompt headers */}
+              <div className="space-y-1.5 uppercase font-extrabold text-[10px] tracking-widest text-slate-500">
+                <span>SYSTEM NOTIFICATION GRANTED</span>
+                <div className="h-[2px] w-12 bg-amber-500 mx-auto" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 tracking-tight uppercase">
+                  {milestoneOverlay.title}
+                </h2>
+                <div className="text-6xl my-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)] animate-bounce font-sans">{milestoneOverlay.icon || '🔥'}</div>
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-wider">
+                  {milestoneOverlay.subtitle}
+                </p>
+              </div>
+
+              <div className="p-6 bg-slate-900/60 border border-amber-900/30 rounded-3xl space-y-4 text-xs font-sans">
+                <p className="text-slate-300 leading-relaxed">
+                  {milestoneOverlay.desc}
+                </p>
+              </div>
+
+              <button 
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 hover:text-white font-extrabold text-xs cursor-pointer transition-all duration-300 uppercase block tracking-widest rounded-xl"
+                onClick={() => setMilestoneOverlay(null)}
+              >
+                Acknowledge Reward
               </button>
             </motion.div>
           </motion.div>

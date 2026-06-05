@@ -50,6 +50,7 @@ import {
   DIET_METABOLIC_GOALS
 } from "../data";
 
+// @ts-ignore
 import startupBg from "../assets/images/startup_background_1780493337816.png";
 
 import { MonarchLogo } from "./MonarchLogo";
