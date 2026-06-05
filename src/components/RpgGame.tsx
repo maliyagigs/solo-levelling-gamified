@@ -44,7 +44,8 @@ import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generate
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
 import { Smartphone, Copy, Check, Camera, Upload } from "lucide-react";
-import { saveToLeaderboard, fetchLeaderboard } from "../utils/firebase";
+import { saveToLeaderboard, fetchLeaderboard, db, handleFirestoreError, OperationType } from "../utils/firebase";
+import { onSnapshot, collection, doc } from "firebase/firestore";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -129,13 +130,13 @@ const renderCircularProgress = (
   colorTo: string,
   glowColor: string,
   label: string,
-  subText: string,
+  subText: React.ReactNode,
   icon: React.ReactNode,
   id: string
 ) => {
   const percentage = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   const radius = 24;
-  const strokeWidth = 4.5;
+  const strokeWidth = 3.5;
   const circumference = 2 * Math.PI * radius;
   const strokeOffset = circumference - (percentage / 100) * circumference;
 
@@ -177,7 +178,6 @@ const renderCircularProgress = (
 
         <div className="absolute flex flex-col items-center justify-center">
           {icon}
-          <span className="text-[9px] font-black text-slate-100 font-mono mt-0.5">{Math.round(percentage)}%</span>
         </div>
       </div>
       
@@ -281,6 +281,101 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     return [];
   };
   
+  // ==========================================
+  // REAL-TIME FIRESTORE ADMIN SYNC LISTENERS
+  // ==========================================
+  const [adminAnnouncements, setAdminAnnouncements] = useState<any[]>([]);
+  const [adminQuests, setAdminQuests] = useState<any[]>([]);
+  const [adminGates, setAdminGates] = useState<any[]>([]);
+
+  // Real-time tracking of admin quests progress inside client
+  const [adminQuestProgress, setAdminQuestProgress] = useState<Record<string, { current: number; completed: boolean; claimed: boolean }>>(() => {
+    const saved = localStorage.getItem(`monarch_admin_qst_progress_${playerName}`);
+    try {
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_admin_qst_progress_${playerName}`, JSON.stringify(adminQuestProgress));
+  }, [adminQuestProgress, playerName]);
+
+  useEffect(() => {
+    // 1. Listen live to Admin Announcements
+    const unsubAnn = onSnapshot(collection(db, "announcements"), (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      setAdminAnnouncements(list);
+    }, (err) => {
+      console.error("Announcements live sync failed:", err);
+      handleFirestoreError(err, OperationType.LIST, "announcements");
+    });
+
+    // 2. Listen live to Admin Custom Quests
+    const unsubQuests = onSnapshot(collection(db, "admin_quests"), (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      setAdminQuests(list);
+    }, (err) => {
+      console.error("Admin Quests live sync failed:", err);
+      handleFirestoreError(err, OperationType.LIST, "admin_quests");
+    });
+
+    // 3. Listen live to Admin Custom Gates
+    const unsubGates = onSnapshot(collection(db, "admin_gates"), (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      setAdminGates(list);
+    }, (err) => {
+      console.error("Admin Gates live sync failed:", err);
+      handleFirestoreError(err, OperationType.LIST, "admin_gates");
+    });
+
+    // 4. Listen live to Player Leaderboard profile to merge stats (Level, Gold, Job, Rank)
+    const unsubPlayer = onSnapshot(doc(db, "leaderboard", playerName), (docSnap) => {
+      if (docSnap.exists()) {
+        const d = docSnap.data();
+        setGameState(prev => {
+          // Compare to prevent loop re-renders
+          if (
+            prev.level === d.level &&
+            prev.gold === d.gold &&
+            prev.job === d.job &&
+            prev.rank === d.rank
+          ) {
+            return prev;
+          }
+          triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly (Gold: ${d.gold}, Level: ${d.level})!`);
+          return {
+            ...prev,
+            level: Number(d.level) || prev.level,
+            gold: Number(d.gold) || prev.gold,
+            job: d.job || prev.job,
+            rank: d.rank || prev.rank
+          };
+        });
+      }
+    }, (err) => {
+      console.error("Player live-sync failed:", err);
+      handleFirestoreError(err, OperationType.GET, `leaderboard/${playerName}`);
+    });
+
+    return () => {
+      unsubAnn();
+      unsubQuests();
+      unsubGates();
+      unsubPlayer();
+    };
+  }, [playerName]);
+
   // Calculate metabolic targets from profile values
   const weightKg = onboardProfile?.isMetricWeight ? onboardProfile.weight : Math.round(onboardProfile?.weight * 0.453592) || 75;
   const userPlan = generatePlan(onboardProfile?.focusGoal || "build_muscle", weightKg);
@@ -296,7 +391,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       try {
         const parsed = JSON.parse(saved);
         // Ensure starting user has zero gold if save in bad state or enforce started users
-        return parsed;
+        return {
+          ...parsed,
+          manaStaked: parsed.manaStaked ?? 0,
+          boosterMultiplier: parsed.boosterMultiplier ?? 1.0,
+          sigils: parsed.sigils ?? 0,
+          prestigePoints: parsed.prestigePoints ?? 0,
+          weeklyManaAccumulated: parsed.weeklyManaAccumulated ?? 0,
+        };
       } catch (e) {
         // Fallback
       }
@@ -327,7 +429,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         { id: "quest_serenity", name: "Abyssal Meditation & Breath", description: "Complete 15 minutes of uninterrupted mindful breathing/restoring", target: 15, current: 0, rewardExp: 50, rewardGold: 120, completed: false, type: "Daily" },
         { id: "quest_hydration", name: "Hydration & Vitality Calibration", description: "Consume 3 liters of water & log 7+ hours of deep, structured sleep", target: 3, current: 0, rewardExp: 30, rewardGold: 80, completed: false, type: "Daily" }
       ],
-      storyStep: 1
+      storyStep: 1,
+      manaStaked: 0,
+      boosterMultiplier: 1.0,
+      sigils: 0,
+      prestigePoints: 0,
+      weeklyManaAccumulated: 0
     };
   });
 
@@ -1138,6 +1245,43 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     localStorage.setItem(`monarch_save_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
 
+  // Auto-accumulate Weekly Mana Progress on gold (MP) gains
+  const prevGoldRef = useRef(gameState.gold);
+  useEffect(() => {
+    if (gameState.gold > prevGoldRef.current) {
+      const diff = gameState.gold - prevGoldRef.current;
+      prevGoldRef.current = gameState.gold;
+      
+      setGameState(prev => {
+        const curWeekAccum = prev.weeklyManaAccumulated ?? 0;
+        const target = prev.level * 800 + 1500;
+        const newAccum = curWeekAccum + diff;
+        
+        if (curWeekAccum < target && newAccum >= target) {
+          setTimeout(() => {
+            setMilestoneOverlay({
+              title: "WEEKLY TARGET COMPLETE 🏆",
+              subtitle: "Absolute Mana Zenith Unlocked",
+              desc: `Masterful! You accumulated ${newAccum} / ${target} MP this week, shattering your weekly target. Your Sovereign status and Premium Halo multiplier is stronger than ever! We have unlocked +1 Prestige Sigil symbol for your inventory.`,
+              icon: "👑"
+            });
+            setGameState(p => ({
+              ...p,
+              sigils: (p.sigils ?? 0) + 1
+            }));
+          }, 1200);
+        }
+
+        return {
+          ...prev,
+          weeklyManaAccumulated: newAccum
+        };
+      });
+    } else {
+      prevGoldRef.current = gameState.gold;
+    }
+  }, [gameState.gold, gameState.level]);
+
   // Firebase Leaderboard Synchronizer Effect
   useEffect(() => {
     let active = true;
@@ -1369,6 +1513,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (!quest.completed || quest.claimed) return;
     playLootSound();
     
+    // Calculate prestige halo multiplier and economic booster
+    const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
+    const sigilsCount = gameState.sigils ?? 0;
+    const rawBooster = gameState.boosterMultiplier ?? 1.0;
+    const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
+    const finalGoldAward = Math.round(quest.rewardGold * prestigeHaloMultiplier);
+
     // Add reward
     addExp(quest.rewardExp);
     setPlayerMp(prev => Math.min(playerMaxMp, prev + 25)); // Completing daily quest restores 25 MP!
@@ -1381,9 +1532,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       });
       return {
         ...prev,
-        gold: prev.gold + quest.rewardGold,
+        gold: prev.gold + finalGoldAward,
         quests: list
       };
+    });
+
+    // Trigger premium center level up overlay style cinematic popup
+    setMilestoneOverlay({
+      title: "QUEST BOUNTY CLAIMS",
+      subtitle: quest.name,
+      desc: `Sovereign discipline has granted +${quest.rewardExp} EXP and +${finalGoldAward} MP (Includes a ${Math.round((prestigeHaloMultiplier - 1.0) * 100)}% Prestige Halo & booster incentive!)`,
+      icon: "⚡"
     });
   };
 
@@ -1396,11 +1555,25 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setIsDailyAllocationClaimed(true);
     localStorage.setItem(`monarch_daily_claim_${playerName}`, new Date().toDateString());
 
+    const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
+    const sigilsCount = gameState.sigils ?? 0;
+    const rawBooster = gameState.boosterMultiplier ?? 1.0;
+    const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
+    const finalDailyGold = Math.round(500 * prestigeHaloMultiplier);
+
     addExp(200);
     setGameState(prev => ({
       ...prev,
-      gold: prev.gold + 500
+      gold: prev.gold + finalDailyGold
     }));
+
+    // Trigger premium full screen cinematic milestone overlay
+    setMilestoneOverlay({
+      title: "DAILY SYSTEM OVERLOAD",
+      subtitle: "Absolute Sovereignty Archive Complete",
+      desc: `Legendary! You cleared the entire Sovereign Grind today! Rewarded +200 EXP and +${finalDailyGold} MP. Prestige state: ${Math.round((prestigeHaloMultiplier - 1.0) * 100)}% reward multiplier. Keep leveling!`,
+      icon: "👑"
+    });
   };
 
   // Force system reset for next daily challenge sequence
@@ -1435,6 +1608,128 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         [statName]: prev.baseStats[statName] + 1
       }
     }));
+  };
+
+  // Passive Yield Timer for Staked Mana (Economic Compounding)
+  const [stakedYield, setStakedYield] = useState<number>(0);
+
+  useEffect(() => {
+    if (!gameState.manaStaked || gameState.manaStaked <= 0) return;
+    const interval = setInterval(() => {
+      const baseStaked = gameState.manaStaked || 0;
+      // Diminishing returns scaling: interest drops from 1.5% to 0.4% as pool grows to simulate liquidity traps
+      const rate = Math.max(0.003, 0.015 - (baseStaked / 100000) * 0.01);
+      const accrued = Math.max(1, Math.round(baseStaked * rate));
+      setStakedYield(prev => prev + accrued);
+    }, 10000); // Accrues yield every 10 seconds of active focus!
+    return () => clearInterval(interval);
+  }, [gameState.manaStaked]);
+
+  // Stake Mana into Central Sovereign Reserve
+  const stakeMana = (qty: number) => {
+    if (gameState.gold < qty) {
+      triggerSystemToast("❌ UNSUFFICIENT LIQUIDITY: You do not possess enough active MP to complete this stake transfer.");
+      return;
+    }
+    playSelectSound();
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold - qty,
+      manaStaked: (prev.manaStaked ?? 0) + qty
+    }));
+    triggerSystemToast(`🏦 LIQUIDITY SECURED: Transferred +${qty} MP into Sovereign Bond Vault! Receiving compounded periodic interest.`);
+  };
+
+  // Unstake Mana from Reserve (Simulating Exit Friction fee)
+  const unstakeMana = () => {
+    const totalStaked = gameState.manaStaked ?? 0;
+    if (totalStaked <= 0) return;
+    playSelectSound();
+    
+    // Simulate transaction costs in classical business models (1% friction tax)
+    const fee = Math.round(totalStaked * 0.015);
+    const returnQty = totalStaked - fee;
+
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + returnQty,
+      manaStaked: 0
+    }));
+    setStakedYield(0);
+    triggerSystemToast(`🏦 VAULT LIQUIDATED: Returned +${returnQty} MP to liquid check balance. A standard liquidity tax of -${fee} MP was retained by the core reserve.`);
+  };
+
+  // Harvest Compounded Yield Points on demand
+  const claimStakedYield = () => {
+    if (stakedYield <= 0) return;
+    playLootSound();
+    
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + stakedYield
+    }));
+    triggerSystemToast(`🌾 HARVEST SECURED: Formally claimed +${stakedYield} MP of accumulated compound spatial interest into liquid reserves!`);
+    setStakedYield(0);
+  };
+
+  // Scarcity Exchange Minting (MP to Sovereign Sigils)
+  const mintSigil = () => {
+    const exchangeRate = 1200; // 1200 Mana per Sigil (fixed gold standard rate)
+    if (gameState.gold < exchangeRate) {
+      triggerSystemToast(`❌ SCARCITY THRESHOLD BLOCKED: Minting a Sovereign Sigil requires exactly ${exchangeRate} MP (Reserve Standard).`);
+      return;
+    }
+    playLootSound();
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold - exchangeRate,
+      sigils: (prev.sigils ?? 0) + 1
+    }));
+    
+    // Trigger cinematic milestone overlay to emphasize high premium status (Halo Effect)
+    setMilestoneOverlay({
+      title: "PRESTIGE SIGNATURE INSCRIBED",
+      subtitle: "Sovereign Sigil Minted Successfully",
+      desc: "By locking down a colossal bundle of standard supply MP, you have claimed a legendary Sovereign Sigil. This scarce asset permanently radiates a +10% Prestige Halo multiplier boosting all standard activities!",
+      icon: "👑"
+    });
+  };
+
+  // Purchase Economy Boosters
+  const buyEconomyBooster = (type: "velocity" | "bond") => {
+    if (type === "velocity") {
+      const cost = 300;
+      if (gameState.gold < cost) {
+        triggerSystemToast(`❌ RESERVE BLOCK: Upgrading Velocity Contract requires ${cost} MP.`);
+        return;
+      }
+      playLootSound();
+      setGameState(prev => ({
+        ...prev,
+        gold: prev.gold - cost,
+        boosterMultiplier: (prev.boosterMultiplier ?? 1.0) + 0.05
+      }));
+      triggerSystemToast("📈 BOOSTER INSTALLED: Prestige Index increased by +5% standard yield multiplier!");
+    } else {
+      const costSigils = 2;
+      const currentSigils = gameState.sigils ?? 0;
+      if (currentSigils < costSigils) {
+        triggerSystemToast(`❌ SCARCITY DEFICIT: Securing a High-Yield Bond requires exactly ${costSigils} Sovereign Sigils.`);
+        return;
+      }
+      playLootSound();
+      setGameState(prev => ({
+        ...prev,
+        sigils: currentSigils - costSigils,
+        boosterMultiplier: (prev.boosterMultiplier ?? 1.0) + 0.15
+      }));
+      setMilestoneOverlay({
+        title: "BOND LIQUIDITY MATURED",
+        subtitle: "Sovereign Gold-Sovereign Inflation Hegde",
+        desc: "You signed a Sovereign Gold Reserve Contract using premium Sigils. Your multiplier on all activities experiences a massive permanent boost of +15%!",
+        icon: "⚜️"
+      });
+    }
   };
 
   // Skill purchase / activation
@@ -2637,7 +2932,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
 
         {/* Currency displays */}
-        <div className="flex items-center justify-end gap-2 pr-1 w-1/3 min-w-[80px]">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 pr-1 w-1/3 min-w-[80px]">
+          {gameState.sigils !== undefined && gameState.sigils > 0 && (
+            <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 px-2 sm:px-3 py-1 border border-yellow-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg flex items-center gap-1 animate-pulse">
+              <span className="text-yellow-400 font-black">👑 {gameState.sigils}</span>
+            </div>
+          )}
+
           <div className="bg-slate-900 px-2 sm:px-3 py-1 bg-slate-900/80 border border-slate-800 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg">
             <span className="text-indigo-400 font-bold">{gameState.gold} MP</span>
           </div>
@@ -2656,6 +2957,32 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           </button>
         </div>
       </header>
+
+      {/* REAL-TIME SYSTEM BROADCAST / ADMIN ANNOUNCEMENTS */}
+      {adminAnnouncements && adminAnnouncements.length > 0 && (
+        <div id="admin_announcements_ticker" className="bg-gradient-to-r from-purple-950/40 via-slate-950/60 to-purple-950/40 border-b border-purple-500/20 px-4 py-2.5 text-xs font-mono flex flex-col gap-1.5 relative overflow-hidden">
+          <div className="absolute top-0 bottom-0 left-0 bg-purple-500 w-1 animate-pulse" />
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] bg-purple-500/20 text-purple-400 border border-purple-400/30 px-1.5 py-0.5 rounded font-bold tracking-widest animate-pulse flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping" />
+              SYSTEM BROADCAST
+            </span>
+            <span className="text-[10px] text-slate-400">🚨 Administrator announcement received live:</span>
+          </div>
+          <div className="space-y-1 pl-4">
+            {adminAnnouncements.slice(-3).map((ann, idx) => (
+              <div key={idx} className="text-slate-200 flex items-center justify-between text-[11px]">
+                <span className="font-extrabold text-purple-300">&bull; {ann.message}</span>
+                {ann.createdAt && (
+                  <span className="text-[9px] text-slate-500 font-normal">
+                    {new Date(ann.createdAt).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main split dashboard area */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -2684,21 +3011,21 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               "rgba(34, 211, 238, 0.4)",
               "XP PROGRESS",
               `${gameState.exp}/${gameState.maxExp}`,
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />,
+              <Activity className="w-3 h-3 text-cyan-400" />,
               "xp-desktop"
             )}
             {renderCircularProgress(
-              playerMp,
-              playerMaxMp,
-              "#6366f1",
-              "#a855f7",
-              "rgba(99, 102, 241, 0.4)",
-              "MANA (MP)",
-              `${playerMp}/${playerMaxMp}`,
-              <Zap className="w-3.5 h-3.5 text-indigo-400" />,
-              "mp-desktop"
+              gameState.weeklyManaAccumulated ?? 0,
+              gameState.level * 800 + 1500,
+              "#eab308",
+              "#d97706",
+              "rgba(234, 179, 8, 0.4)",
+              "WEEK TARGET",
+              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+              <span className="text-yellow-400 font-bold block leading-none text-[10px]">👑</span>,
+              "weekly-desktop"
             )}
-            <div className="col-span-2 flex justify-between items-center text-[8px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
+            <div className="col-span-2 flex justify-between items-center text-[7px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
               <span>TIER:</span>
               <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
             </div>
@@ -2829,8 +3156,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 {/* Level Up details / player indicator */}
                 <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                      ⚡
+                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(6,182,212,0.2)] overflow-hidden">
+                      {profileImage ? (
+                        <img 
+                          src={profileImage} 
+                          alt={playerName} 
+                          className="w-full h-full object-cover" 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        "⚡"
+                      )}
                     </div>
                     <div>
                       <h4 className="text-xl font-bold font-mono text-cyan-400">{playerName}</h4>
@@ -2840,7 +3176,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </div>
 
                 {/* Level Exp & Mana Circular Progress Section */}
-                <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-3.5">
+                <div className="bg-slate-950/75 p-3 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-2">
                   {renderCircularProgress(
                     gameState.exp,
                     gameState.maxExp,
@@ -2853,15 +3189,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     "xp-mobile"
                   )}
                   {renderCircularProgress(
-                    playerMp,
-                    playerMaxMp,
-                    "#6366f1",
-                    "#a855f7",
-                    "rgba(99, 102, 241, 0.4)",
-                    "MANA (MP)",
-                    `${playerMp}/${playerMaxMp}`,
-                    <Zap className="w-4 h-4 text-indigo-400" />,
-                    "mp-mobile"
+                    gameState.weeklyManaAccumulated ?? 0,
+                    gameState.level * 800 + 1500,
+                    "#eab308",
+                    "#d97706",
+                    "rgba(234, 179, 8, 0.4)",
+                    "WEEK TARGET",
+                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+                    <span className="text-yellow-400 font-bold block leading-none text-xs">👑</span>,
+                    "weekly-mobile"
                   )}
 
                   <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
@@ -3077,6 +3413,181 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "status" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
+                {/* SOVEREIGN VAULT & PRESTIGE HALO ECONOMY DASHBOARD */}
+                {(() => {
+                  const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
+                  const sigilsCount = gameState.sigils ?? 0;
+                  const rawBooster = gameState.boosterMultiplier ?? 1.0;
+                  const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
+                  const baseStaked = gameState.manaStaked ?? 0;
+                  const currentRatePercent = Math.max(3, Math.round((0.015 - (baseStaked / 100000) * 0.01) * 1000)) / 10;
+
+                  return (
+                    <div className="bg-slate-950/75 border-2 border-yellow-500/10 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden font-mono text-xs space-y-6">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-yellow-500/5 to-transparent rounded-full pointer-events-none filter blur-2xl" />
+                      
+                      {/* Top Header */}
+                      <div className="flex flex-wrap justify-between items-start gap-4">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1 text-yellow-500 font-extrabold uppercase tracking-widest text-[10px]">
+                            <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping" />
+                            <span>Sovereign Prestige Vault & Reserve Matrix</span>
+                          </div>
+                          <h3 className="font-extrabold text-white text-lg font-sans tracking-wide">THE PREMIUM HALO ECONOMY</h3>
+                        </div>
+                        <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3">
+                          <span className="text-[10px] text-slate-500 uppercase font-black">Prestige Halo:</span>
+                          <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">
+                            {Math.round(prestigeHaloMultiplier * 100)}% ({prestigeHaloMultiplier.toFixed(2)}x Yield)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Columns Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        
+                        {/* Column Left: Prestige Halo and Scarcity Mechanism */}
+                        <div className="p-5 bg-gradient-to-rb from-slate-950 to-slate-900/40 border border-slate-900/80 rounded-2xl space-y-4 flex flex-col justify-between relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(234,179,8,0.02)_0%,transparent_60%)] pointer-events-none" />
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-yellow-400/90 font-bold">
+                              <span className="p-1 px-1.5 bg-yellow-500/10 rounded-lg text-yellow-400">⚜️</span>
+                              <span className="font-sans text-[13px] tracking-wide uppercase font-black">PRESTIGE HALO INDEX (Halo Effect)</span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed font-sans mt-1">
+                              <strong>The Halo Effect:</strong> Highly prestigious symbols (equipped rarity elements + scarce Sigils) cascade downstream, directly multiplying the utility of standard activities.
+                            </p>
+                            <div className="grid grid-cols-3 gap-2 pt-2 text-[10px]">
+                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
+                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Premium Items</span>
+                                <span className="text-cyan-400 font-extrabold text-sm">{equippedPremiumCount}</span>
+                              </div>
+                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
+                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Sigils Escrow</span>
+                                <span className="text-yellow-400 font-extrabold text-sm">{sigilsCount}</span>
+                              </div>
+                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
+                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Yield Bonus</span>
+                                <span className="text-emerald-400 font-extrabold text-sm font-semibold">+{Math.round((prestigeHaloMultiplier - 1.0) * 100)}%</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-900 space-y-3">
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="text-slate-400 font-semibold uppercase">SCARCITY MINT RATIO:</span>
+                              <span className="text-slate-200">1200 MP &rarr; 1 Sovereign Sigil</span>
+                            </div>
+                            <motion.button
+                              whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(234,179,8,0.15)" }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={mintSigil}
+                              disabled={gameState.gold < 1200}
+                              className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 disabled:from-slate-900 disabled:to-slate-900 disabled:text-slate-600 text-slate-950 disabled:border-slate-800 disabled:border font-black uppercase text-[10px] tracking-widest rounded-xl cursor-pointer shadow-lg shadow-yellow-500/5 transition-all text-center flex items-center justify-center gap-1.5"
+                            >
+                              <span>MINT SOVEREIGN SIGIL</span>
+                            </motion.button>
+                          </div>
+                        </div>
+
+                        {/* Column Right: Sovereign Vault Staking & Capital Reserves */}
+                        <div className="p-5 bg-gradient-to-rb from-slate-950 to-slate-900/40 border border-slate-900/80 rounded-2xl space-y-4 flex flex-col justify-between relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.02)_0%,transparent_60%)] pointer-events-none" />
+                          
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-2 text-indigo-400 font-bold">
+                                <span className="p-1 px-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">🏦</span>
+                                <span className="font-sans text-[13px] tracking-wide uppercase font-black">SOVEREIGN TRUST VAULT</span>
+                              </div>
+                              <span className="bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider animate-pulse">
+                                {currentRatePercent.toFixed(1)}% Compound Interest
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center bg-slate-900/40 p-3 border border-slate-900 rounded-xl">
+                              <div>
+                                <span className="text-[8px] text-slate-500 uppercase font-black tracking-wider block">STAKED CAPITAL RESERVES:</span>
+                                <span className="text-white text-base font-black tracking-wide">{baseStaked} MP</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[8px] text-slate-500 uppercase font-black tracking-wider block">ACCUMULATING INTEREST:</span>
+                                <span className="text-emerald-400 font-black text-sm uppercase">+{stakedYield} MP</span>
+                              </div>
+                            </div>
+                            
+                            <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
+                              🔒 <strong>Investment Friction Theory:</strong> Locking active MP prevents dynamic liquidity inflation. Standard APY scales downward gracefully (Diminishing Marginal Utility) based on pooled reserves. Unstakings bear a small 1.5% capital friction fee.
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-900 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => stakeMana(500)}
+                              disabled={gameState.gold < 500}
+                              className="py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 disabled:hover:bg-transparent disabled:opacity-20 border border-indigo-500/30 text-indigo-300 rounded-xl font-bold uppercase text-[9px] cursor-pointer transition-colors"
+                            >
+                              Stake 500 MP
+                            </button>
+                            <button
+                              onClick={claimStakedYield}
+                              disabled={stakedYield <= 0}
+                              className="py-2.5 bg-emerald-600/10 hover:bg-emerald-600/20 disabled:hover:bg-transparent disabled:opacity-20 border border-emerald-500/30 text-emerald-300 rounded-xl font-black uppercase text-[9px] cursor-pointer transition-colors"
+                            >
+                              Claim Yield (+{stakedYield})
+                            </button>
+                            <button
+                              onClick={unstakeMana}
+                              disabled={baseStaked <= 0}
+                              className="py-2 col-span-2 text-center text-slate-500 hover:text-red-400 hover:bg-red-400/5 duration-300 uppercase font-bold text-[8px] tracking-wider rounded-lg border border-slate-900 hover:border-red-500/20 transition-all cursor-pointer"
+                            >
+                              UNSTAKE ALL RESERVES (1.5% Liquidity Exit-Friction Fee applied)
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* Booster Contracts Upgrading (Anti-inflationary theories) */}
+                      <div className="p-4 bg-slate-900/35 border border-slate-900 rounded-2xl space-y-3 relative">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                          <span>📦 INFLATION SAFEGUARD SYSTEM CONTRACTS</span>
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="bg-slate-950/80 p-3.5 border border-slate-900 rounded-xl flex justify-between items-center gap-4">
+                            <div>
+                              <div className="font-bold text-white uppercase text-[10px]">Prestige Velocity Contract</div>
+                              <div className="text-[9px] text-slate-500 font-sans mt-0.5 leading-snug">Boosts Prestige Index by +5% permanently. Increases dynamic income velocity.</div>
+                            </div>
+                            <button
+                              onClick={() => buyEconomyBooster("velocity")}
+                              disabled={gameState.gold < 300}
+                              className="px-3 py-2 bg-slate-900 border border-slate-800 text-cyan-300 disabled:opacity-20 rounded-lg text-[9px] font-black uppercase cursor-pointer"
+                            >
+                              Buy (300 MP)
+                            </button>
+                          </div>
+                          <div className="bg-slate-950/80 p-3.5 border border-slate-900 rounded-xl flex justify-between items-center gap-4">
+                            <div>
+                              <div className="font-bold text-yellow-400 uppercase text-[10px]">Sovereign Inflation Safeguard Bond</div>
+                              <div className="text-[9px] text-slate-500 font-sans mt-0.5 leading-snug">Hedges currency depreciation. Spikes base Yield Index multiplier by +15% permanently.</div>
+                            </div>
+                            <button
+                              onClick={() => buyEconomyBooster("bond")}
+                              disabled={(gameState.sigils ?? 0) < 2}
+                              className="px-3 py-2 bg-slate-900 border border-slate-800 text-yellow-500 disabled:opacity-20 rounded-lg text-[9px] font-black uppercase cursor-pointer"
+                            >
+                              Buy (2 Sigils)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })()}
+
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex justify-between items-center">
                     <div>
@@ -3438,6 +3949,131 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   })}
                 </div>
 
+                {/* ADMINISTRATIVE OVERLORD CUSTOM QUESTS */}
+                {adminQuests && adminQuests.length > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-purple-500/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                      <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-purple-400 font-bold">
+                        OVERLORD SYSTEM QUESTS ({adminQuests.length})
+                      </h3>
+                    </div>
+                    {adminQuests.map((quest) => {
+                      const prog = adminQuestProgress[quest.id] || { current: 0, completed: false, claimed: false };
+                      const prgPercent = Math.min(100, (prog.current / quest.target) * 100);
+                      
+                      const incrementAdminQuest = (qty: number) => {
+                        const newCurrent = Math.min(quest.target, prog.current + qty);
+                        const isDone = newCurrent >= quest.target;
+                        setAdminQuestProgress(prev => ({
+                          ...prev,
+                          [quest.id]: {
+                            current: newCurrent,
+                            completed: isDone,
+                            claimed: prev[quest.id]?.claimed || false
+                          }
+                        }));
+                        if (isDone && !prog.completed) {
+                          try {
+                            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                            if (AudioCtx) {
+                              const ctx = new AudioCtx();
+                              const osc = ctx.createOscillator();
+                              const gain = ctx.createGain();
+                              osc.connect(gain);
+                              gain.connect(ctx.destination);
+                              osc.type = "sine";
+                              osc.frequency.setValueAtTime(880, ctx.currentTime);
+                              gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                              osc.start();
+                              osc.stop(ctx.currentTime + 0.3);
+                            }
+                          } catch (e) {}
+                          triggerSystemToast(`🔥 SYSTEM DECREE COMPLETED: "${quest.name}" completed! Cleared for compensation claiming!`);
+                        }
+                      };
+
+                      const claimAdminQuestReward = () => {
+                        if (prog.claimed || !prog.completed) return;
+                        playLootSound();
+                        
+                        // Add actual real game parameters!
+                        addExp(quest.rewardExp);
+                        setGameState(prev => ({
+                          ...prev,
+                          gold: prev.gold + quest.rewardGold
+                        }));
+
+                        setAdminQuestProgress(prev => ({
+                          ...prev,
+                          [quest.id]: {
+                            ...prev[quest.id],
+                            claimed: true
+                          }
+                        }));
+                        triggerSystemToast(`⭐ COMPENSATION RETRIEVED: Successfully claimed +${quest.rewardExp} EXP and +${quest.rewardGold} Mana MP from Admin Protocol!`);
+                      };
+
+                      return (
+                        <div key={quest.id} className="bg-gradient-to-r from-slate-950/90 to-purple-950/20 border-2 border-purple-500/10 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 animate-fade-in">
+                          <div className="flex flex-wrap justify-between items-start gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="bg-purple-500/10 text-purple-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-purple-400/20 animate-pulse">
+                                  ADMIN TASK
+                                </span>
+                                <h4 className="text-sm font-bold text-slate-100">{quest.name}</h4>
+                              </div>
+                              <p className="text-[10px] text-slate-300 mt-1 leading-relaxed">{quest.description}</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-xs font-bold text-purple-300">{prog.current} / {quest.target} reps</span>
+                              
+                              {prog.claimed ? (
+                                <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-500 px-3 py-1.5 rounded-xl uppercase font-bold">
+                                  CLAIMED ✔
+                                </span>
+                              ) : prog.completed ? (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase cursor-pointer border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.25)] font-bold"
+                                  onClick={claimAdminQuestReward}
+                                >
+                                  Claim Reward (+{quest.rewardExp} XP, +{quest.rewardGold} MP)
+                                </motion.button>
+                              ) : (
+                                <div className="flex gap-1.5">
+                                  <button
+                                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/40 text-slate-350 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                    onClick={() => incrementAdminQuest(5)}
+                                  >
+                                    +5 reps
+                                  </button>
+                                  <button
+                                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/40 text-slate-350 hover:text-white rounded-lg transition-colors cursor-pointer"
+                                    onClick={() => incrementAdminQuest(25)}
+                                  >
+                                    +25 reps
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Progress visual bar */}
+                          <div className="h-2 bg-slate-900 rounded-full overflow-hidden relative border border-purple-500/5">
+                            <motion.div 
+                              className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                              style={{ width: `${prgPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* DAILY SOVEREIGN ALLOCATION & COMPLIANCE HUD PANEL */}
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl relative overflow-hidden flex flex-wrap justify-between items-center gap-4 font-mono backdrop-blur-md">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
@@ -3544,7 +4180,27 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
 
                     <div id="dungeons_grid" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {DUNGEONS_CATALOG.map((dung) => {
+                      {[
+                        ...DUNGEONS_CATALOG,
+                        ...adminGates.map(g => ({
+                          id: g.id,
+                          name: g.name,
+                          rank: g.difficulty.includes("Rank") ? g.difficulty : `${g.difficulty}-Rank`,
+                          minLevel: g.minLevel,
+                          bossName: "Administrative Overlord Clone",
+                          difficulty: `${g.difficulty} Administrative Gate`,
+                          expReward: g.expReward,
+                          goldReward: g.goldReward,
+                          lootItem: {
+                            id: "kasaka_fang",
+                            name: g.lootItemName || "Monarch Twin-Blades",
+                            chance: 1.00
+                          },
+                          enemyHealth: g.minLevel * 80 + 200,
+                          enemyAttack: g.minLevel * 4 + 10,
+                          desc: `An S-class administrative fracture in the dimension. Defeat the Overseer memory clone to secure S-rank items!`
+                        }))
+                      ].map((dung) => {
                         const isLocked = gameState.level < dung.minLevel;
                         return (
                           <div 

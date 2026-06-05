@@ -129,4 +129,8 @@ export interface GameState {
   skills: SkillNode[];
   quests: Quest[];
   storyStep: number; // tracks narrative progression
+  manaStaked?: number;
+  boosterMultiplier?: number;
+  sigils?: number;
+  prestigePoints?: number;
 }

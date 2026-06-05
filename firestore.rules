@@ -10,21 +10,45 @@ service cloud.firestore {
     // Leaderboard entries
     match /leaderboard/{playerId} {
       allow read: if true;
-      allow create: if (
+      allow create, update: if (
         isValidId(playerId) &&
         isValidLeaderboardEntry(request.resource.data) &&
         request.resource.data.updatedAt == request.time
       );
-      allow update: if (
-        isValidId(playerId) &&
-        isValidLeaderboardEntry(request.resource.data) &&
-        request.resource.data.updatedAt == request.time &&
-        request.resource.data.playerName == resource.data.playerName
+      allow delete: if true; // Admin can delete from panel
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create, update: if (
+        isValidId(announcementId) &&
+        isValidAnnouncement(request.resource.data)
       );
-      allow delete: if false; // Deletion is locked
+      allow delete: if true;
+    }
+
+    // Admin Quests
+    match /admin_quests/{questId} {
+      allow read: if true;
+      allow create, update: if (
+        isValidId(questId) &&
+        isValidAdminQuest(request.resource.data)
+      );
+      allow delete: if true;
+    }
+
+    // Admin Gates
+    match /admin_gates/{gateId} {
+      allow read: if true;
+      allow create, update: if (
+        isValidId(gateId) &&
+        isValidAdminGate(request.resource.data)
+      );
+      allow delete: if true;
     }
     
-    // Helper Primitives
+    // Helper Primitives & ID Hardening
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_ -]+$'); 
     }
@@ -38,6 +62,46 @@ service cloud.firestore {
         data.gold is number && data.gold >= 0 &&
         data.job is string && data.job.size() <= 64 &&
         data.rank is string && data.rank.size() <= 64
+      );
+    }
+
+    function isValidAnnouncement(data) {
+      return (
+        data.keys().hasAll(['id', 'title', 'message', 'severity', 'createdAt']) &&
+        data.keys().size() == 5 &&
+        data.id is string && data.id.size() <= 128 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 128 &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 2048 &&
+        data.severity is string && (data.severity == 'info' || data.severity == 'warning' || data.severity == 'emergency')
+      );
+    }
+
+    function isValidAdminQuest(data) {
+      return (
+        data.keys().hasAll(['id', 'name', 'description', 'target', 'rewardExp', 'rewardGold', 'type', 'createdAt']) &&
+        data.keys().size() == 8 &&
+        data.id is string && data.id.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.description is string && data.description.size() > 0 && data.description.size() <= 1024 &&
+        data.target is number && data.target >= 0 &&
+        data.rewardExp is number && data.rewardExp >= 0 &&
+        data.rewardGold is number && data.rewardGold >= 0 &&
+        data.type is string && (data.type == 'Daily' || data.type == 'Emergency' || data.type == 'Story')
+      );
+    }
+
+    function isValidAdminGate(data) {
+      return (
+        data.keys().hasAll(['id', 'name', 'minLevel', 'difficulty', 'expReward', 'goldReward', 'lootItemName', 'isActive', 'createdAt']) &&
+        data.keys().size() == 9 &&
+        data.id is string && data.id.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.minLevel is number && data.minLevel >= 0 &&
+        data.difficulty is string && data.difficulty.size() <= 32 &&
+        data.expReward is number && data.expReward >= 0 &&
+        data.goldReward is number && data.goldReward >= 0 &&
+        data.lootItemName is string && data.lootItemName.size() <= 128 &&
+        data.isActive is bool
       );
     }
   }

@@ -42,14 +42,40 @@ export default function CosmicBackground() {
     }
 
     const particles: Particle[] = [];
-    const particleCount = Math.min(65, Math.floor((width * height) / 25000));
+    const particleCount = Math.min(180, Math.floor((width * height) / 9000));
 
     const colors = [
       "rgba(6, 182, 212, ",   // Cyan
       "rgba(99, 102, 241, ",  // Indigo
       "rgba(139, 92, 246, ",  // Violet
       "rgba(236, 72, 153, ",  // Pink / Fuchsia
+      "rgba(168, 85, 247, ",  // Purple
     ];
+
+    // Shooting stars
+    interface ShootingStar {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      length: number;
+      alpha: number;
+      speed: number;
+      active: boolean;
+    }
+    const shootingStars: ShootingStar[] = [];
+    for (let i = 0; i < 3; i++) {
+      shootingStars.push({
+        x: Math.random() * width,
+        y: Math.random() * height * 0.5,
+        vx: Math.random() * 4 + 4,
+        vy: Math.random() * 2 + 2,
+        length: Math.random() * 80 + 40,
+        alpha: 0,
+        speed: Math.random() * 0.02 + 0.01,
+        active: Math.random() > 0.5,
+      });
+    }
 
     for (let i = 0; i < particleCount; i++) {
       const baseRadius = Math.random() * 1.8 + 0.5;
@@ -135,6 +161,47 @@ export default function CosmicBackground() {
         ctx.shadowColor = p.baseRadius > 1.2 ? `${p.color}0.5)` : "transparent";
         ctx.fill();
         ctx.shadowBlur = 0; // reset
+      }
+
+      // Render shooting stars
+      for (let i = 0; i < shootingStars.length; i++) {
+        const s = shootingStars[i];
+        if (s.active) {
+          s.x += s.vx;
+          s.y += s.vy;
+          s.alpha += s.speed;
+
+          if (s.alpha > 0.8) {
+            s.speed = -Math.abs(s.speed);
+          }
+
+          if (s.alpha <= 0 || s.x > width || s.y > height) {
+            // Reset shooting star with new coords
+            s.x = Math.random() * width * 0.5;
+            s.y = Math.random() * height * 0.4;
+            s.alpha = 0;
+            s.speed = Math.abs(s.speed);
+            s.active = Math.random() > 0.4;
+          }
+
+          if (s.alpha > 0) {
+            const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.length, s.y - s.length);
+            grad.addColorStop(0, `rgba(168, 85, 247, ${s.alpha})`);
+            grad.addColorStop(0.5, `rgba(99, 102, 241, ${s.alpha * 0.5})`);
+            grad.addColorStop(1, `rgba(6, 182, 212, 0)`);
+            ctx.beginPath();
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(s.x, s.y);
+            ctx.lineTo(s.x - s.length, s.y - s.length);
+            ctx.stroke();
+          }
+        } else {
+          // Bring it to active state randomly
+          if (Math.random() < 0.005) {
+            s.active = true;
+          }
+        }
       }
 
       // Draw elegant constellation connectors between closest nodes

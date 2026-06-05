@@ -2,7 +2,7 @@
   "entities": {
     "LeaderboardEntry": {
       "title": "Leaderboard Entry",
-      "description": "Represents a user's stats on the global leaderboard",
+      "description": "Represents a user's stats on the global leaderboard, synced with client state",
       "type": "object",
       "properties": {
         "playerName": {
@@ -32,12 +32,70 @@
         }
       },
       "required": ["playerName", "level", "gold", "job", "rank", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "System Announcement",
+      "description": "Admin broadcast announcement displayed to all users live",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["info", "warning", "emergency"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "message", "severity", "createdAt"]
+    },
+    "AdminQuest": {
+      "title": "Admin Crisis Quest",
+      "description": "Custom administrative quests published directly from the admin panel",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "target": { "type": "integer" },
+        "rewardExp": { "type": "integer" },
+        "rewardGold": { "type": "integer" },
+        "type": { "type": "string", "enum": ["Daily", "Emergency", "Story"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "description", "target", "rewardExp", "rewardGold", "type", "createdAt"]
+    },
+    "AdminGate": {
+      "title": "Custom Dimensional Gate",
+      "description": "Overlord custom dungeons injected into players' systems",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "minLevel": { "type": "integer" },
+        "difficulty": { "type": "string" },
+        "expReward": { "type": "integer" },
+        "goldReward": { "type": "integer" },
+        "lootItemName": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "minLevel", "difficulty", "expReward", "goldReward", "lootItemName", "isActive", "createdAt"]
     }
   },
   "firestore": {
     "/leaderboard/{playerId}": {
       "schema": "LeaderboardEntry",
-      "description": "Firestore collection containing all players and their current stats for the global ranking"
+      "description": "Firestore collection containing all players and their current stats"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Global admin alerts broadcasted in real-time"
+    },
+    "/admin_quests/{questId}": {
+      "schema": "AdminQuest",
+      "description": "Administrative system emergency quests"
+    },
+    "/admin_gates/{gateId}": {
+      "schema": "AdminGate",
+      "description": "Custom dungeons injected by global system overrides"
     }
   }
 }
