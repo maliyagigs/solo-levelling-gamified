@@ -135,4 +135,8 @@ export interface GameState {
   prestigePoints?: number;
   dailyGatesCleared?: number;
   dailyFocusMinutes?: number;
+  weeklyManaAccumulated?: number;
+  weeklyExpAccumulated?: number;
+  weeklyCyclesCompleted?: number;
+  weeklyHistory?: { weekStart: string, mp: number, exp: number, targetMp: number, targetExp: number }[];
 }

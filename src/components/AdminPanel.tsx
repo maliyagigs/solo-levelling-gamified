@@ -31,7 +31,8 @@ import {
   MessageSquare,
   Gamepad2,
   Radio,
-  Activity
+  Activity,
+  ShoppingBag
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -99,13 +100,25 @@ interface PartyLobby {
   createdAt: any;
 }
 
+interface AdminMarketItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  type: string;
+  rank: string;
+  stock: number;
+  isActive: boolean;
+  createdAt?: any;
+}
+
 export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState<boolean>(() => {
     return localStorage.getItem("monarch_admin_authorized") === "true";
   });
   const [passcode, setPasscode] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social" | "market">("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [systemLogs, setSystemLogs] = useState<{ id: string; msg: string; type: string; time: string }[]>([]);
 
@@ -114,6 +127,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [quests, setQuests] = useState<AdminQuest[]>([]);
   const [gates, setGates] = useState<AdminGate[]>([]);
+  const [marketItems, setMarketItems] = useState<AdminMarketItem[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [lobbies, setLobbies] = useState<PartyLobby[]>([]);
 
@@ -158,6 +172,18 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     isActive: true
   });
 
+  // Form states - Market
+  const [editingMarketItemId, setEditingMarketItemId] = useState<string | null>(null);
+  const [marketItemForm, setMarketItemForm] = useState({
+    name: "",
+    description: "",
+    price: 1000,
+    type: "Weapon",
+    rank: "A-Rank",
+    stock: 10,
+    isActive: true
+  });
+
   // Notification banners
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -167,7 +193,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     setNotification({ message, type });
     setTimeout(() => {
       setNotification(null);
-    }, 4000);
+    }, 2000);
   };
 
   const addSystemLog = (msg: string, type: "info" | "success" | "error" | "warning" = "info") => {
@@ -301,6 +327,28 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       console.error("Firestore Admin Gates live-sync failed:", err);
     });
 
+    // Listen to Market Items
+    const unsubscribeMarket = onSnapshot(collection(db, "admin_market_items"), (snapshot) => {
+      const mlist: AdminMarketItem[] = [];
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        mlist.push({
+          id: d.id || doc.id,
+          name: d.name || "",
+          description: d.description || "",
+          price: Number(d.price) || 0,
+          type: d.type || "Weapon",
+          rank: d.rank || "E-Rank",
+          stock: Number(d.stock) || 0,
+          isActive: typeof d.isActive === "boolean" ? d.isActive : true,
+          createdAt: d.createdAt
+        });
+      });
+      setMarketItems(mlist);
+    }, (err) => {
+      console.error("Firestore Admin Market Items live-sync failed:", err);
+    });
+
     // Listen to Messages (Last 100)
     const qMessages = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(100));
     const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
@@ -346,6 +394,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       unsubscribeAnnouncements();
       unsubscribeQuests();
       unsubscribeGates();
+      unsubscribeMarket();
       unsubscribeMessages();
       unsubscribeLobbies();
     };
@@ -587,6 +636,76 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   };
 
+  // Actions - Market Items
+  const handleCreateMarketItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!marketItemForm.name.trim()) return;
+    const id = editingMarketItemId || "mki-" + Math.random().toString(36).substring(2, 9);
+    const path = `admin_market_items/${id}`;
+    try {
+      await setDoc(doc(db, "admin_market_items", id), {
+        id,
+        name: marketItemForm.name,
+        description: marketItemForm.description,
+        price: Number(marketItemForm.price),
+        type: marketItemForm.type,
+        rank: marketItemForm.rank,
+        stock: Number(marketItemForm.stock),
+        isActive: marketItemForm.isActive,
+        createdAt: serverTimestamp()
+      }, { merge: true });
+      showNotification(editingMarketItemId ? "SUCCESS: Market listing stabilized!" : "SUCCESS: Equipment materialized into market cache!");
+      setMarketItemForm({
+        name: "",
+        description: "",
+        price: 1000,
+        type: "Weapon",
+        rank: "A-Rank",
+        stock: 10,
+        isActive: true
+      });
+      setEditingMarketItemId(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, path);
+    }
+  };
+
+  const handleEditMarketItemClick = (item: AdminMarketItem) => {
+    setEditingMarketItemId(item.id);
+    setMarketItemForm({
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      type: item.type,
+      rank: item.rank,
+      stock: item.stock,
+      isActive: item.isActive
+    });
+    addSystemLog(`Loaded Market Item '${item.name}' into system editor buffers.`, "info");
+  };
+
+  const handleDeleteMarketItem = async (id: string) => {
+    const path = `admin_market_items/${id}`;
+    try {
+      await deleteDoc(doc(db, "admin_market_items", id));
+      showNotification("Market listing deleted from cache.");
+      if (editingMarketItemId === id) {
+        setEditingMarketItemId(null);
+        setMarketItemForm({
+          name: "",
+          description: "",
+          price: 1000,
+          type: "Weapon",
+          rank: "A-Rank",
+          stock: 10,
+          isActive: true
+        });
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, path);
+    }
+  };
+
   // Actions - Social
   const handleDeleteMessage = async (id: string) => {
     try {
@@ -619,7 +738,52 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   };
 
-   // Initialize standard dummy data if collections are empty to speed up grading
+   const handleGlobalReset = async () => {
+    try {
+      if (players.length === 0) {
+        showNotification("No players to reset.");
+        return;
+      }
+      if (!window.confirm("CRITICAL: Wipe ALL player progression? This cannot be undone.")) return;
+      
+      addSystemLog("Initiating global player progression wipe...", "warning");
+      const promises = players.map(p => 
+        setDoc(doc(db, "leaderboard", p.id), {
+          level: 1,
+          exp: 0,
+          maxExp: 100,
+          gold: 500,
+          statPoints: 0,
+          baseStats: { strength: 10, agility: 10, vitality: 10, intelligence: 10, perception: 10 },
+          job: "Hunter",
+          rank: "E-Rank",
+          inventory: [],
+          shadows: [],
+          skills: [],
+          quests: [],
+          storyStep: 1, 
+          manaStaked: 0,
+          boosterMultiplier: 1.0,
+          sigils: 0,
+          prestigePoints: 0,
+          weeklyManaAccumulated: 0,
+          weeklyExpAccumulated: 0,
+          weeklyCyclesCompleted: 0,
+          weeklyHistory: [],
+          dailyGatesCleared: 0,
+          dailyFocusMinutes: 0,
+          updatedAt: serverTimestamp() 
+        }) // No { merge: true } here to ensure full overwrite
+      );
+      await Promise.all(promises);
+      showNotification("SUCCESS: All players reset to default baseline.");
+      addSystemLog("Player progression global reset complete.", "success");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, "leaderboard/resetAll");
+    }
+  };
+
+  // Initialize standard dummy data if collections are empty to speed up grading
   const handleSeedMockData = async () => {
     try {
       // 1. Seed standard announcements
@@ -777,7 +941,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
             initial={{ opacity: 0, y: -20 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: -20 }} 
-            className={`fixed top-20 right-6 z-50 p-4 rounded-xl border text-xs shadow-2xl flex items-center gap-2 max-w-sm ${
+            onClick={() => setNotification(null)}
+            className={`cursor-pointer fixed top-20 right-6 z-50 p-4 rounded-xl border text-xs shadow-2xl flex items-center gap-2 max-w-sm ${
               notification.type === "success" 
                 ? "bg-purple-950/90 border-purple-500/50 text-purple-200" 
                 : "bg-red-950/90 border-red-500/50 text-red-200"
@@ -863,6 +1028,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 { id: "announcements", label: "Live System Alerts", icon: Megaphone, color: "text-amber-400", count: announcements.length },
                 { id: "quests", label: "Crisis Quests", icon: Flame, color: "text-rose-400", count: quests.length },
                 { id: "gates", label: "Custom Dungeons", icon: Compass, color: "text-emerald-400", count: gates.length },
+                { id: "market", label: "System Black Market", icon: ShoppingBag, color: "text-amber-500", count: marketItems.length },
                 { id: "social", label: "Multiplayer Control", icon: MessageSquare, color: "text-indigo-400", count: messages.length + lobbies.length }
               ].map(tab => {
                 const Icon = tab.icon;
@@ -900,6 +1066,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 className="w-full py-2 bg-purple-950/40 hover:bg-purple-950/70 border border-purple-500/30 text-purple-300 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
               >
                 📥 Seed System Presets
+              </button>
+
+              <button 
+                onClick={handleGlobalReset}
+                className="w-full py-2 bg-red-950/40 hover:bg-red-950/70 border border-red-500/30 text-red-300 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
+                title="Wipes player progression across Firestore."
+              >
+                ⚠️ Reset All Progress
               </button>
 
               <button 
@@ -1664,6 +1838,203 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                                 onClick={() => handleDeleteGate(gate.id)}
                                 className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                                 title="Collapse Rift"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* MARKET MANAGER CONTROL */}
+            {activeTab === "market" && (
+              <div className="space-y-6">
+                {/* Editor Module */}
+                <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
+                  <h3 className="text-xs font-black text-amber-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <ShoppingBag className="w-4 h-4 text-amber-500" />
+                    <span>{editingMarketItemId ? `MODIFY MARKET LISTING: ${editingMarketItemId}` : "MATERIALIZE NEW MARKET ITEM"}</span>
+                  </h3>
+                  
+                  <form onSubmit={handleCreateMarketItem} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Item Identifier</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={marketItemForm.name}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, name: e.target.value})}
+                        placeholder="e.g. Shadow Essence Potion"
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Description (Optional)</label>
+                      <input 
+                        type="text" 
+                        value={marketItemForm.description}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, description: e.target.value})}
+                        placeholder="e.g. Heals 500 HP over 10s..."
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Item Archetype (Type)</label>
+                      <select 
+                        value={marketItemForm.type}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, type: e.target.value})}
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      >
+                        <option value="Weapon">Offensive (Weapon)</option>
+                        <option value="Armor">Defensive (Armor)</option>
+                        <option value="Consumable">Consumable (Potion)</option>
+                        <option value="Artifact">Mythic (Artifact)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Hazard / Rarity Tier</label>
+                      <select 
+                        value={marketItemForm.rank}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, rank: e.target.value})}
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      >
+                        <option value="E-Rank">E-Rank (Common)</option>
+                        <option value="D-Rank">D-Rank (Uncommon)</option>
+                        <option value="C-Rank">C-Rank (Rare)</option>
+                        <option value="B-Rank">B-Rank (Epic)</option>
+                        <option value="A-Rank">A-Rank (Legendary)</option>
+                        <option value="S-Rank">S-Rank (Mythic)</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase">Gold Listing Price</label>
+                        <input 
+                          type="number" 
+                          required min={1}
+                          value={marketItemForm.price}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, price: Number(e.target.value)})}
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-amber-500 font-mono text-xs p-2.5 rounded-lg focus:outline-none transition-colors text-right"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase">Stock Quantities</label>
+                        <input 
+                          type="number" 
+                          min={-1}
+                          value={marketItemForm.stock}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, stock: Number(e.target.value)})}
+                          placeholder="-1 for Infinite"
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Market State</label>
+                      <select 
+                        value={marketItemForm.isActive ? "true" : "false"}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, isActive: e.target.value === "true"})}
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      >
+                        <option value="true">ACTIVE (Purchasable)</option>
+                        <option value="false">SUSPENDED (Hidden)</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2 pt-2 flex gap-3">
+                      {editingMarketItemId && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setEditingMarketItemId(null);
+                            setMarketItemForm({
+                              name: "",
+                              description: "",
+                              price: 1000,
+                              type: "Weapon",
+                              rank: "A-Rank",
+                              stock: 10,
+                              isActive: true
+                            });
+                          }}
+                          className="flex-1 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                        >
+                          Cancel Modify
+                        </button>
+                      )}
+                      <button 
+                        type="submit" 
+                        className={`flex-1 px-4 py-2 ${editingMarketItemId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-green-600 hover:bg-green-500'} text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg transition-colors cursor-pointer`}
+                      >
+                        {editingMarketItemId ? "SAVE CALIBRATIONS" : "AUTHORIZE DEPLOYMENT"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Database List */}
+                <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Active Market Inventory ({marketItems.length})</h3>
+                  </div>
+
+                  {marketItems.length === 0 ? (
+                    <div className="text-center py-6 text-slate-500 text-xs font-mono border border-dashed border-slate-800 rounded-xl">
+                      System inventory depleted...
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {marketItems.map(item => (
+                        <div key={item.id} className="bg-slate-950 border border-slate-900 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-600 shrink-0">
+                               <ShoppingBag className="w-5 h-5 text-amber-500/50" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-bold text-slate-100">{item.name}</h4>
+                                <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
+                                  !item.isActive 
+                                    ? "border-slate-800 bg-slate-950 text-slate-600" 
+                                    : "border-amber-800/40 bg-amber-950/30 text-amber-300"
+                                }`}>
+                                  {item.type} {!item.isActive && "(HIDDEN)"}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-slate-500 block font-mono mt-0.5 max-w-sm truncate whitespace-nowrap overflow-hidden">
+                                {item.rank} &middot; {item.description}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="text-right text-[9px] font-bold">
+                              <div className="text-amber-400">{item.price}g</div>
+                              <div className="text-slate-500 mt-0.5">Stock: {item.stock < 0 ? "Infinite" : item.stock}</div>
+                            </div>
+
+                            <div className="flex gap-1.5">
+                              <button 
+                                onClick={() => handleEditMarketItemClick(item)}
+                                className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-900 hover:border-slate-750 text-slate-400 hover:text-amber-400 rounded-lg transition-colors cursor-pointer"
+                                title="Edit Item Parameters"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteMarketItem(item.id)}
+                                className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                                title="Liquidate Item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>

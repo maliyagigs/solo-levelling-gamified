@@ -53,6 +53,11 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    // Admin Market Items
+    match /admin_market_items/{itemId} {
+      allow read, write: if true;
+    }
+
     // Chat Messages
     match /messages/{msgId} {
       allow read, write: if true;

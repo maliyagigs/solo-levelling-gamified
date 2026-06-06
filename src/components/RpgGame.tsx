@@ -49,7 +49,7 @@ import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
 import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, handleFirestoreError, OperationType } from "../utils/firebase";
-import { onSnapshot, collection, doc } from "firebase/firestore";
+import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -193,7 +193,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (tab === "social") return 1;
     if (tab === "home" || tab === "quests" || tab === "life_forge") return 2;
     if (tab === "shadows" || tab === "skills") return 3;
-    if (tab === "backpack" || tab === "profile") return 4;
+    if (tab === "backpack" || tab === "profile" || tab === "market") return 4;
     return 2;
   };
 
@@ -231,7 +231,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (currentSec !== 4) {
         setActiveTab("backpack");
       } else {
-        if (activeTab === "backpack") setActiveTab("profile");
+        if (activeTab === "backpack") setActiveTab("market");
+        else if (activeTab === "market") setActiveTab("profile");
         else setActiveTab("backpack");
       }
     }
@@ -266,6 +267,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (sec === 4) {
       return [
         { id: "backpack", label: "Backpack" },
+        { id: "market", label: "Market" },
         { id: "profile", label: "Profile" }
       ];
     }
@@ -278,6 +280,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [adminAnnouncements, setAdminAnnouncements] = useState<any[]>([]);
   const [adminQuests, setAdminQuests] = useState<any[]>([]);
   const [adminGates, setAdminGates] = useState<any[]>([]);
+  const [adminMarketItems, setAdminMarketItems] = useState<any[]>([]);
 
   // Real-time tracking of admin quests progress inside client
   const [adminQuestProgress, setAdminQuestProgress] = useState<Record<string, { current: number; completed: boolean; claimed: boolean }>>(() => {
@@ -330,6 +333,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       handleFirestoreError(err, OperationType.LIST, "admin_gates");
     });
 
+    // 3.5 Listen live to Admin Market Items
+    const unsubMarket = onSnapshot(collection(db, "admin_market_items"), (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+      });
+      setAdminMarketItems(list);
+    }, (err) => {
+      console.error("Admin Market Items live sync failed:", err);
+    });
+
     // 4. Listen live to Player Leaderboard profile to merge stats (Level, Gold, Job, Rank)
     const unsubPlayer = onSnapshot(doc(db, "leaderboard", playerName), (docSnap) => {
       if (docSnap.exists()) {
@@ -363,6 +377,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       unsubAnn();
       unsubQuests();
       unsubGates();
+      unsubMarket();
       unsubPlayer();
     };
   }, [playerName]);
@@ -376,7 +391,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Game States
   const [gameState, setGameState] = useState<GameState>(() => {
     // Attempt local storage load
-    const key = `monarch_save_${playerName}`;
+    const key = `monarch_save_v2_${playerName}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -417,6 +432,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           sigils: parsed.sigils ?? 0,
           prestigePoints: parsed.prestigePoints ?? 0,
           weeklyManaAccumulated: parsed.weeklyManaAccumulated ?? 0,
+          weeklyExpAccumulated: parsed.weeklyExpAccumulated ?? 0,
+          weeklyCyclesCompleted: parsed.weeklyCyclesCompleted ?? 0,
+          weeklyHistory: parsed.weeklyHistory || [],
         };
       } catch (e) {
         // Fallback
@@ -454,6 +472,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       sigils: 0,
       prestigePoints: 0,
       weeklyManaAccumulated: 0,
+      weeklyExpAccumulated: 0,
+      weeklyCyclesCompleted: 0,
+      weeklyHistory: [],
       dailyGatesCleared: 0,
       dailyFocusMinutes: 0
     };
@@ -490,7 +511,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     return onboardProfile?.workoutReminder ?? true;
   });
   const [selectedWeaponDetails, setSelectedWeaponDetails] = useState<any>(null);
-  const maxSlots = Math.max(0, gameState.level - 1);
+  const maxSlots = 5 + gameState.level;
   const emptySlotsCount = Math.max(0, maxSlots - gameState.inventory.length);
   const [isDailyAllocationClaimed, setIsDailyAllocationClaimed] = useState<boolean>(() => {
     return localStorage.getItem(`monarch_daily_claim_${playerName}`) === new Date().toDateString();
@@ -518,7 +539,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setSystemToast(msg);
     setTimeout(() => {
       setSystemToast(prev => prev === msg ? null : prev);
-    }, 4500);
+    }, 2000);
   };
 
   const [profileImage, setProfileImage] = useState<string | null>(() => {
@@ -1053,7 +1074,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         const comp = nextVal >= q.target;
         if (comp && !q.completed) {
           playLootSound();
-          addExp(100);
+          addExp(25);
           awardGold(5); // Balanced reward from 50 to 5 MP
           addIntellectPoints(1);
           triggerSystemToast(`🔮 INT EXPANSION: "${q.name}" cleared! permanent Intelligence +1 point obtained! (+5 MP)`);
@@ -1099,7 +1120,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         const comp = nextVal >= l.targetSets;
         if (comp && !l.completed) {
           playLootSound();
-          addExp(75);
+          addExp(15);
           awardGold(3); // Adjusted from 45 to 3 MP to be fair and balanced
           // Randomly reward STR or VIT
           const isStr = Math.random() > 0.5;
@@ -1134,7 +1155,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const completeResumeObjective = () => {
     if (careerMilestones.resumeScore > 0) return;
     playLootSound();
-    addExp(100);
+    addExp(25);
     awardGold(5); // Adjusted from 50 to 5 MP to match the micro-mana grid
     addAgilityPoints(1);
     setCareerMilestones(prev => ({ ...prev, resumeScore: 1 }));
@@ -1150,7 +1171,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (careerMilestones.portfolioProjects >= 2) return;
     playLootSound();
     const nextVal = careerMilestones.portfolioProjects + 1;
-    addExp(150);
+    addExp(35);
     awardGold(10); // Adjusted from 75 to 10 MP for balance
     addIntellectPoints(2);
     setCareerMilestones(prev => ({ ...prev, portfolioProjects: nextVal }));
@@ -1173,7 +1194,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     awardGold(2); // Balanced step reward
     if (nextVal === 5) {
       playLootSound();
-      addExp(150);
+      addExp(35);
       awardGold(5); // Completion bonus
       addPerceptionPoints(2);
       setMilestoneOverlay({
@@ -1195,7 +1216,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     awardGold(1); // Standard mini challenge reward
     if (nextVal === 10) {
       playLootSound();
-      addExp(300);
+      addExp(75);
       awardGold(5); // Decent completion bonus
       addIntellectPoints(3);
       setMilestoneOverlay({
@@ -1224,11 +1245,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     };
     setJobApplications(prev => [...prev, newApp]);
     awardGold(3); // Balanced reward from 35 to 3 MP
-    addExp(15);
+    addExp(5);
     setNewJobCompany("");
     setNewJobRole("");
     setNewJobNotes("");
-    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +3 Mana (MP) and +15 EXP!`);
+    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +3 Mana (MP) and +5 EXP!`);
   };
 
   const updateJobStatus = (id: string, nextStatus: string) => {
@@ -1236,9 +1257,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (app.id === id) {
         if (nextStatus === "Offer Unlocked" && app.status !== "Offer Unlocked") {
           playSovereignChime();
-          addExp(1000);
+          addExp(200);
           awardGold(50); // Balanced from 1000 to 50 MP (huge milestone equivalent to 2.5x average holdings)
-          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +50 Mana (MP) infused!");
+          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +200 EXP & +50 Mana (MP) infused!");
         } else {
           playSelectSound();
           triggerSystemToast(`💼 APPLICATION STATUS: ${app.company} status updated to [${nextStatus}].`);
@@ -1256,7 +1277,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   // Auto-save whenever gameState changes
   useEffect(() => {
-    localStorage.setItem(`monarch_save_${playerName}`, JSON.stringify(gameState));
+    localStorage.setItem(`monarch_save_v2_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
 
   // Auto-accumulate Weekly Mana Progress on gold (MP) gains
@@ -1266,35 +1287,60 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       const diff = gameState.gold - prevGoldRef.current;
       prevGoldRef.current = gameState.gold;
       
-      setGameState(prev => {
-        const curWeekAccum = prev.weeklyManaAccumulated ?? 0;
-        const target = prev.level * 800 + 1500;
-        const newAccum = curWeekAccum + diff;
-        
-        if (curWeekAccum < target && newAccum >= target) {
-          setTimeout(() => {
-            setMilestoneOverlay({
-              title: "WEEKLY TARGET COMPLETE 🏆",
-              subtitle: "Absolute Mana Zenith Unlocked",
-              desc: `Masterful! You accumulated ${newAccum} / ${target} MP this week, shattering your weekly target. Your Sovereign status and Premium Halo multiplier is stronger than ever! We have unlocked +1 Prestige Sigil symbol for your inventory.`,
-              icon: "👑"
-            });
-            setGameState(p => ({
-              ...p,
-              sigils: (p.sigils ?? 0) + 1
-            }));
-          }, 1200);
-        }
-
-        return {
-          ...prev,
-          weeklyManaAccumulated: newAccum
-        };
-      });
+      setGameState(prev => ({
+        ...prev,
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + diff
+      }));
     } else {
       prevGoldRef.current = gameState.gold;
     }
-  }, [gameState.gold, gameState.level]);
+  }, [gameState.gold]);
+
+  // Evaluate Weekly Completion & History Logging
+  useEffect(() => {
+    const curExp = gameState.weeklyExpAccumulated ?? 0;
+    const curMp = gameState.weeklyManaAccumulated ?? 0;
+    
+    // Evaluate realistic scaling bounds based on restructured XP paths
+    const targetExp = gameState.level * 300 + 1500; 
+    const targetMp  = gameState.level * 20 + 80;
+
+    if (curExp > 0 && curMp > 0 && curExp >= targetExp && curMp >= targetMp) {
+      
+      setTimeout(() => {
+        setMilestoneOverlay({
+          title: "WEEKLY ALLOCATION COMPLETE 🏆",
+          subtitle: "Absolute Sovereign Zenith",
+          desc: `Masterful! You shattered your weekly targets (${targetExp} XP / ${targetMp} MP). The system has permanently inscribed this victory and unlocked +1 Prestige Sigil symbol for your arsenal.`,
+          icon: "👑"
+        });
+        playSovereignChime();
+        
+        setGameState(p => {
+          const newHistory = [...(p.weeklyHistory || [])];
+          newHistory.unshift({
+             weekStart: new Date().toLocaleDateString(),
+             mp: curMp,
+             exp: curExp,
+             targetMp,
+             targetExp
+          });
+          
+          // Keep only history for the last 10 rounds
+          if (newHistory.length > 10) newHistory.pop();
+          
+          return {
+            ...p,
+            sigils: (p.sigils ?? 0) + 1,
+            weeklyManaAccumulated: 0,
+            weeklyExpAccumulated: 0,
+            weeklyCyclesCompleted: (p.weeklyCyclesCompleted ?? 0) + 1,
+            weeklyHistory: newHistory
+          };
+        });
+      }, 800);
+    }
+  }, [gameState.weeklyExpAccumulated, gameState.weeklyManaAccumulated, gameState.level]);
 
   // Firebase Leaderboard Synchronizer Effect
   useEffect(() => {
@@ -1472,12 +1518,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       let newLevel = prev.level;
       let max = prev.maxExp;
       let statPoints = prev.statPoints;
+      let newWeeklyExp = (prev.weeklyExpAccumulated ?? 0) + amt;
 
       while (newExp >= max) {
         newExp -= max;
         newLevel += 1;
         statPoints += 5; // Exactly 5 more stat points to allocate per level as requested
-        max = newLevel * 105 + 80;
+        max = newLevel * 250 + 150;
         leveledUp = true;
       }
       finalNewLevel = newLevel;
@@ -1498,7 +1545,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         level: newLevel,
         exp: newExp,
         maxExp: Math.round(max),
-        statPoints
+        statPoints,
+        weeklyExpAccumulated: newWeeklyExp
       };
     });
   };
@@ -1575,7 +1623,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
     const finalDailyGold = Math.round(5 * prestigeHaloMultiplier);
 
-    addExp(200);
+    addExp(50);
     setGameState(prev => ({
       ...prev,
       gold: prev.gold + finalDailyGold
@@ -2571,7 +2619,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
 
     // Dynamic slot ceiling limits (starts at 0 slots for level 1, increases by +1 slot each level)
-    const maxSlots = Math.max(0, gameState.level - 1);
+    const maxSlots = 5 + gameState.level;
     if (gameState.inventory.length >= maxSlots) {
       triggerSystemToast(`⚠️ INVENTORY SPACE CAP: Backpack is full (${gameState.inventory.length}/${maxSlots} slots). Level up to expand storage capacity!`);
       return;
@@ -2592,6 +2640,45 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       };
     });
     triggerSystemToast(`🔮 ARSENAL EXPANSION: Successfully integrated ${template.name} into your spatial compartment!`);
+  };
+
+  const handleBuyAdminMarketItem = async (item: any) => {
+    try {
+      playSelectSound();
+      if (gameState.gold < item.price) {
+        triggerSystemToast("INSUFFICIENT FUNDS: Need more gold to purchase from the black market.");
+        return;
+      }
+      if (item.stock === 0) {
+        triggerSystemToast("TRANSACTION FAILED: The system inventory for this item is depleted.");
+        return;
+      }
+      
+      const leaderRef = doc(db, "leaderboard", playerName);
+      await setDoc(leaderRef, { gold: gameState.gold - item.price }, { merge: true });
+      
+      // Decrease stock if not infinite (-1)
+      if (item.stock > 0) {
+         const marketItemRef = doc(db, "admin_market_items", item.id);
+         await setDoc(marketItemRef, { stock: item.stock - 1 }, { merge: true });
+      }
+
+      setGameState(prev => ({
+        ...prev,
+        gold: prev.gold - item.price,
+        inventory: [...prev.inventory, { 
+          id: item.id + "_" + Date.now(),
+          name: item.name,
+          type: "Item",
+          rarity: item.rank,
+          equipped: false
+        }]
+      }));
+      triggerSystemToast(`Successfully procured [${item.name}] from the Black Market!`);
+    } catch (err) {
+      console.error(err);
+      triggerSystemToast("Transaction failed.");
+    }
   };
 
   // Equipment selection
@@ -2993,30 +3080,42 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
 
           {/* Unified Round/Circular Progresses */}
-          <div className="bg-slate-950/75 p-2 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-2">
+          <div className="bg-slate-950/75 p-2 rounded-2xl backdrop-blur-md grid grid-cols-3 gap-2">
             {renderCircularProgress(
               gameState.exp,
               gameState.maxExp,
               "#22d3ee",
               "#4f46e5",
               "rgba(34, 211, 238, 0.4)",
-              "XP PROGRESS",
+              "LEVEL XP",
               `${gameState.exp}/${gameState.maxExp}`,
               <Activity className="w-3 h-3 text-cyan-400" />,
               "xp-desktop"
             )}
             {renderCircularProgress(
               gameState.weeklyManaAccumulated ?? 0,
-              gameState.level * 800 + 1500,
+              gameState.level * 20 + 80,
               "#eab308",
               "#d97706",
               "rgba(234, 179, 8, 0.4)",
-              "WEEKLY TARGET",
-              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+              "WEEKLY MP",
+              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 20 + 80}`,
               <Zap className="w-3 h-3 text-yellow-400" />,
               "wk-desktop"
             )}
-            <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
+            {renderCircularProgress(
+              gameState.weeklyExpAccumulated ?? 0,
+              gameState.level * 300 + 1500,
+              "#a855f7",
+              "#6366f1",
+              "rgba(168, 85, 247, 0.4)",
+              "WEEKLY XP",
+              `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
+              <TrendingUp className="w-3 h-3 text-purple-400" />,
+              "wexp-desktop"
+            )}
+            <div className="col-span-1" />
+            <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 mt-1 px-1 font-mono">
               <span>TIER:</span>
               <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
             </div>
@@ -3161,6 +3260,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               { id: "shadows", label: "Shadows" },
               { id: "skills", label: "Skill-Tree" },
               { id: "backpack", label: "Backpack" },
+              { id: "market", label: "Market" },
               { id: "profile", label: "Profile" }
             ].map(tab => (
               <button
@@ -3209,31 +3309,44 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </div>
 
                 {/* Level Exp & Mana Circular Progress Section */}
-                <div className="bg-slate-950/75 p-3 rounded-2xl backdrop-blur-md grid grid-cols-2 gap-2">
+                <div className="bg-slate-950/75 p-3 rounded-2xl backdrop-blur-md grid grid-cols-3 gap-2">
                   {renderCircularProgress(
                     gameState.exp,
                     gameState.maxExp,
                     "#22d3ee",
                     "#4f46e5",
                     "rgba(34, 211, 238, 0.4)",
-                    "XP PROGRESS",
+                    "LEVEL XP",
                     `${gameState.exp}/${gameState.maxExp}`,
                     <Activity className="w-4 h-4 text-cyan-400" />,
                     "xp-mobile"
                   )}
                   {renderCircularProgress(
                     gameState.weeklyManaAccumulated ?? 0,
-                    gameState.level * 800 + 1500,
+                    gameState.level * 20 + 80,
                     "#eab308",
                     "#d97706",
                     "rgba(234, 179, 8, 0.4)",
-                    "WEEKLY TARGET",
-                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+                    "WEEKLY MP",
+                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 20 + 80}`,
                     <Zap className="w-4 h-4 text-yellow-400" />,
                     "wk-mobile"
                   )}
+                  {renderCircularProgress(
+                    gameState.weeklyExpAccumulated ?? 0,
+                    gameState.level * 300 + 1500,
+                    "#a855f7",
+                    "#6366f1",
+                    "rgba(168, 85, 247, 0.4)",
+                    "WEEKLY XP",
+                    `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
+                    <TrendingUp className="w-4 h-4 text-purple-400" />,
+                    "wexp-mobile"
+                  )}
 
-                  <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
+                  <div className="col-span-1" />
+
+                  <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 mt-1 px-1 font-mono">
                     <span>REGISTRY TIER:</span>
                     <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
                   </div>
@@ -4490,6 +4603,83 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
                   </div>
 
+                </div>
+
+              </motion.div>
+            )}
+
+            {/* C_2. THE MARKET SYSTEM PORTAL */}
+            {activeTab === "market" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                
+                {/* Visual Header */}
+                <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.08)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <span className="text-[10px] font-mono text-amber-500 block tracking-widest font-extrabold uppercase mb-1"> Black Market System</span>
+                  <h3 className="font-extrabold text-lg flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-amber-500" />
+                    DIMENSIONAL EXCHANGE
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
+                    Purchase exclusive artifacts and items manifested by the System Monarch. All transactions require pure gold tokens.
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-mono font-black text-slate-300 bg-slate-900/60 p-4 border border-slate-800 rounded-xl">
+                   <span>AVAILABLE FUNDS:</span>
+                   <span className="text-amber-400">{gameState.gold.toLocaleString()} G</span>
+                </div>
+
+                <div className="space-y-4">
+                  {adminMarketItems.filter(item => item.isActive).length === 0 ? (
+                    <div className="text-center py-12 bg-slate-950/50 border border-slate-900 border-dashed rounded-[2rem] text-slate-500 font-mono text-xs uppercase tracking-widest shadow-inner">
+                      The market is currently empty...
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {adminMarketItems.filter(i => i.isActive).map(item => (
+                        <div key={item.id} className="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 hover:border-amber-500/30 transition-all flex flex-col justify-between group overflow-hidden relative shadow-lg">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl pointer-events-none rounded-full" />
+                          
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="text-sm font-bold text-white uppercase tracking-tight">{item.name}</h4>
+                              <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded ${
+                                item.rank === 'S-Rank' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                                item.rank === 'A-Rank' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                item.rank === 'B-Rank' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                item.rank === 'C-Rank' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                'bg-slate-800 text-slate-400'
+                              }`}>{item.rank}</span>
+                            </div>
+                            
+                            <p className="text-[10px] text-slate-400 font-mono line-clamp-2 leading-relaxed mb-4">
+                              {item.description || "A mysterious item vibrating with spatial energy."}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-end justify-between mt-4">
+                            <div>
+                               <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">{item.type}</div>
+                               <div className="font-mono text-sm font-black text-amber-400">{item.price.toLocaleString()} G</div>
+                            </div>
+                            
+                            <button
+                              onClick={() => handleBuyAdminMarketItem(item)}
+                              disabled={gameState.gold < item.price || (item.stock === 0)}
+                              className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-lg ${
+                                gameState.gold < item.price || item.stock === 0
+                                  ? "bg-slate-900 text-slate-600 cursor-not-allowed" 
+                                  : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/20 active:scale-95"
+                              }`}
+                            >
+                              {item.stock === 0 ? "SOLD OUT" : gameState.gold < item.price ? "NO FUNDS" : "PURCHASE"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
               </motion.div>
@@ -5868,7 +6058,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 <button 
                   className="py-2.5 bg-red-900/80 hover:bg-red-950 border border-red-500 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={() => {
-                    localStorage.removeItem(`monarch_save_${playerName}`);
+                    localStorage.removeItem(`monarch_save_v2_${playerName}`);
                     localStorage.removeItem(`monarch_daily_claim_${playerName}`);
                     localStorage.removeItem("monarch_active_player");
                     localStorage.removeItem("monarch_onboard_profile");
@@ -5944,8 +6134,30 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
                 </div>
 
+                {/* WEEKLY ACCOMPLISHMENTS LOG */}
+                <div className="space-y-2 mt-4">
+                  <label className="text-slate-500 text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5"><Shield className="w-3 h-3 text-amber-500" /> WEEKLY TARGET HISTORY ARCHIVE</label>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 space-y-2">
+                    {!(gameState.weeklyHistory?.length) ? (
+                      <div className="text-[10px] text-slate-600 italic text-center py-2">No weekly target milestones inscribed yet.</div>
+                    ) : (
+                      gameState.weeklyHistory.map((hist, idx) => (
+                        <div key={idx} className="flex flex-col gap-1 border-b border-slate-800 pb-2 last:border-0 last:pb-0">
+                           <div className="flex justify-between items-center w-full">
+                             <span className="text-[9px] text-amber-500 font-bold tracking-wider">[ CYCLE {gameState.weeklyCyclesCompleted! - idx} &middot; {hist.weekStart} ]</span>
+                           </div>
+                           <div className="flex justify-between items-center w-full text-[10px] text-slate-400">
+                             <span className="flex-1">XP Achieved: <span className="text-cyan-400">{hist.exp.toLocaleString()}</span> / {hist.targetExp}</span>
+                             <span>MP Mined: <span className="text-cyan-400">{hist.mp.toLocaleString()}</span> / {hist.targetMp}</span>
+                           </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 {/* SETTINGS OPTIONS PORTFOLIO LIST */}
-                <div className="space-y-5 text-left text-xs">
+                <div className="space-y-5 text-left text-xs mt-2">
                   
                   {/* OPTION 1: Player Name Updating */}
                   <div className="space-y-1.5">
@@ -6116,7 +6328,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
         {[
           { icon: Activity, idx: 0 },
           { icon: Users, idx: 1 },
