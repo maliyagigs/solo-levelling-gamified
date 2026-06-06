@@ -7,6 +7,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Game Data
+    match /game_data/{docId} {
+      allow read, write: if true;
+    }
+
     // Leaderboard entries
     match /leaderboard/{playerId} {
       allow read: if true;

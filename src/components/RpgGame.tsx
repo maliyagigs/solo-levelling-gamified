@@ -37,7 +37,9 @@ import {
   Trash2,
   Pause,
   Target,
-  Trophy
+  Trophy,
+  Bell,
+  Radio
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
@@ -55,139 +57,7 @@ import {
   playHurtSound 
 } from "../utils/audio";
 
-const getWeaponColorClasses = (itemId: string) => {
-  switch (itemId) {
-    case "rusty_dagger":
-      return {
-        border: "hover:border-amber-500/50",
-        bg: "hover:bg-amber-950/20",
-        glow: "hover:shadow-[0_0_25px_rgba(234,179,8,0.25)]",
-        text: "text-amber-400",
-        textLight: "text-amber-300",
-        badge: "bg-amber-950/50 text-amber-300 border-amber-500/30"
-      };
-    case "kasaka_fang":
-      return {
-        border: "hover:border-cyan-500/50",
-        bg: "hover:bg-cyan-950/20",
-        glow: "hover:shadow-[0_0_25px_rgba(6,182,212,0.25)]",
-        text: "text-cyan-400",
-        textLight: "text-cyan-300",
-        badge: "bg-cyan-950/50 text-cyan-300 border-cyan-500/30"
-      };
-    case "igris_sword":
-      return {
-        border: "hover:border-rose-500/50",
-        bg: "hover:bg-rose-950/20",
-        glow: "hover:shadow-[0_0_25px_rgba(244,63,94,0.25)]",
-        text: "text-rose-400",
-        textLight: "text-rose-300",
-        badge: "bg-rose-950/50 text-rose-300 border-rose-500/30"
-      };
-    case "demon_dagger":
-      return {
-        border: "hover:border-indigo-500/50",
-        bg: "hover:bg-indigo-950/20",
-        glow: "hover:shadow-[0_0_25px_rgba(99,102,241,0.25)]",
-        text: "text-indigo-400",
-        textLight: "text-indigo-300",
-        badge: "bg-indigo-950/50 text-indigo-300 border-indigo-500/30"
-      };
-    case "kamish_fang":
-      return {
-        border: "hover:border-purple-500/50",
-        bg: "hover:bg-purple-950/20",
-        glow: "hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]",
-        text: "text-purple-400",
-        textLight: "text-purple-300",
-        badge: "bg-purple-950/50 text-purple-300 border-purple-500/30"
-      };
-    case "sovereigns_wrath":
-      return {
-        border: "hover:border-pink-500/60",
-        bg: "hover:bg-pink-950/20",
-        glow: "hover:shadow-[0_0_35px_rgba(236,72,153,0.35)]",
-        text: "text-pink-400",
-        textLight: "text-pink-300",
-        badge: "bg-pink-950/50 text-pink-300 border-pink-500/30 animate-pulse"
-      };
-    default:
-      return {
-        border: "hover:border-cyan-500/30",
-        bg: "hover:bg-slate-900/40",
-        glow: "hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]",
-        text: "text-slate-350",
-        textLight: "text-slate-200",
-        badge: "bg-slate-900 text-slate-300 border-slate-700"
-      };
-  }
-};
-
-const renderCircularProgress = (
-  value: number,
-  max: number,
-  colorFrom: string,
-  colorTo: string,
-  glowColor: string,
-  label: string,
-  subText: React.ReactNode,
-  icon: React.ReactNode,
-  id: string
-) => {
-  const percentage = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
-  const radius = 24;
-  const strokeWidth = 3.5;
-  const circumference = 2 * Math.PI * radius;
-  const strokeOffset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="flex flex-col items-center justify-center p-2.5 text-center bg-slate-950/20 backdrop-blur-sm rounded-xl w-full">
-      <div className="relative w-14 h-14 flex items-center justify-center">
-        <svg className="w-full h-full -rotate-90 select-none pointer-events-none" viewBox="0 0 64 64">
-          <circle
-            cx="32"
-            cy="32"
-            r={radius}
-            className="stroke-slate-900/60"
-            strokeWidth={strokeWidth}
-            fill="transparent"
-          />
-          <motion.circle
-            cx="32"
-            cy="32"
-            r={radius}
-            stroke={`url(#${id}-gradient)`}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: strokeOffset }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            strokeLinecap="round"
-            style={{
-              filter: `drop-shadow(0 0 3px ${glowColor})`,
-            }}
-          />
-          <defs>
-            <linearGradient id={`${id}-gradient`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={colorFrom} />
-              <stop offset="100%" stopColor={colorTo} />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        <div className="absolute flex flex-col items-center justify-center">
-          {icon}
-        </div>
-      </div>
-      
-      <div className="mt-1.5 font-mono text-center">
-        <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-bold">{label}</span>
-        <span className="text-[10px] font-bold text-cyan-400 mt-0.5 block truncate max-w-[70px]">{subText}</span>
-      </div>
-    </div>
-  );
-};
+import { getWeaponColorClasses, renderCircularProgress } from "./gameHelpers";
 
 interface RpgGameProps {
   playerName: string;
@@ -1408,7 +1278,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         effectText: "High-velocity cyan lightning mesh. Dark void power shockwaves.",
         desc: "Pure shadow force bends gravity inside dungeons. Absolute command.",
         eyes: "opacity-100 text-cyan-300",
-        graphics: "border-cyan-450/25 bg-cyan-950/20"
+        graphics: "border-cyan-400/25 bg-cyan-950/20"
       };
     }
     return {
@@ -2915,7 +2785,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
 
         {/* Dynamic Mobile & Desktop Page Title - centered */}
-        <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none z-10">
+        <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none z-10 hidden md:block">
           <span className="text-[10px] sm:text-xs font-mono font-black tracking-widest text-cyan-300 uppercase drop-shadow-[0_0_8px_rgba(6,182,212,0.4)] animate-pulse">
             {activeTab === "home" ? "HOME OVERVIEW" :
              activeTab === "quests" ? "DAILY QUESTS" :
@@ -2958,34 +2828,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
       </header>
 
-      {/* REAL-TIME SYSTEM BROADCAST / ADMIN ANNOUNCEMENTS */}
-      {adminAnnouncements && adminAnnouncements.length > 0 && (
-        <div id="admin_announcements_ticker" className="bg-gradient-to-r from-purple-950/40 via-slate-950/60 to-purple-950/40 border-b border-purple-500/20 px-4 py-2.5 text-xs font-mono flex flex-col gap-1.5 relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 bg-purple-500 w-1 animate-pulse" />
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] bg-purple-500/20 text-purple-400 border border-purple-400/30 px-1.5 py-0.5 rounded font-bold tracking-widest animate-pulse flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping" />
-              SYSTEM BROADCAST
-            </span>
-            <span className="text-[10px] text-slate-400">🚨 Administrator announcement received live:</span>
-          </div>
-          <div className="space-y-1 pl-4">
-            {adminAnnouncements.slice(-3).map((ann, idx) => (
-              <div key={idx} className="text-slate-200 flex items-center justify-between text-[11px]">
-                <span className="font-extrabold text-purple-300">&bull; {ann.message}</span>
-                {ann.createdAt && (
-                  <span className="text-[9px] text-slate-500 font-normal">
-                    {new Date(ann.createdAt).toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -3015,42 +2859,46 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               "xp-desktop"
             )}
             {renderCircularProgress(
+              playerMp,
+              playerMaxMp,
+              "#6366f1",
+              "#a855f7",
+              "rgba(99, 102, 241, 0.4)",
+              "MANA & WK",
+              `${playerMp}/${playerMaxMp}`,
+              <Zap className="w-3 h-3 text-indigo-400" />,
+              "mp-desktop",
               gameState.weeklyManaAccumulated ?? 0,
               gameState.level * 800 + 1500,
               "#eab308",
-              "#d97706",
-              "rgba(234, 179, 8, 0.4)",
-              "WEEK TARGET",
-              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
-              <span className="text-yellow-400 font-bold block leading-none text-[10px]">👑</span>,
-              "weekly-desktop"
+              "#d97706"
             )}
-            <div className="col-span-2 flex justify-between items-center text-[7px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
+            <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
               <span>TIER:</span>
-              <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
+              <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
             </div>
           </div>
 
           {/* Story Campaigns Indicator */}
           <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
-            <h4 className="text-[8px] uppercase font-bold text-slate-500 tracking-wider">Campaign Milestones</h4>
-            <div className="space-y-1 text-[8.5px]">
+            <h4 className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Campaign Milestones</h4>
+            <div className="space-y-1 text-[10px]">
               
-              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
-                <span className={gameState.level >= 1 ? "text-cyan-450" : "text-slate-650"}>1. Double Dungeon</span>
-                <span className="text-cyan-450 font-bold text-[7px] tracking-wider uppercase">CLEARED</span>
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-900 rounded border border-slate-900/50">
+                <span className={gameState.level >= 1 ? "text-cyan-400" : "text-slate-500"}>1. Double Dungeon</span>
+                <span className="text-cyan-400 font-bold text-[9px] tracking-wider uppercase">CLEARED</span>
               </div>
 
-              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
-                <span className={gameState.level >= 25 ? "text-cyan-450" : "text-slate-600"}>2. Red Gate [B]</span>
-                <span className={gameState.level >= 25 ? "text-cyan-450 font-bold text-[7px] tracking-wider uppercase" : "text-slate-600 text-[7.5px]"}>
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-900 rounded border border-slate-900/50">
+                <span className={gameState.level >= 25 ? "text-cyan-400" : "text-slate-600"}>2. Red Gate [B]</span>
+                <span className={gameState.level >= 25 ? "text-cyan-400 font-bold text-[9px] tracking-wider uppercase" : "text-slate-600 text-[9px]"}>
                   {gameState.level >= 25 ? "AWAKENED" : `Lv 25`}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-905 rounded border border-slate-900/50">
-                <span className={gameState.level >= 70 ? "text-cyan-450" : "text-slate-600"}>3. Monarch [Jeju]</span>
-                <span className={gameState.level >= 70 ? "text-cyan-450 font-bold text-[7px] tracking-wider uppercase" : "text-slate-600 text-[7.5px]"}>
+              <div className="flex justify-between items-center px-1.5 py-1 bg-slate-900 rounded border border-slate-900/50">
+                <span className={gameState.level >= 70 ? "text-cyan-400" : "text-slate-600"}>3. Monarch [Jeju]</span>
+                <span className={gameState.level >= 70 ? "text-cyan-400 font-bold text-[9px] tracking-wider uppercase" : "text-slate-600 text-[9px]"}>
                   {gameState.level >= 70 ? "SOVEREIGN" : `Lv 70`}
                 </span>
               </div>
@@ -3062,17 +2910,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           <div className="bg-slate-950/75 border border-amber-900/40 p-2.5 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-2 relative overflow-hidden">
             <div className="flex items-center gap-1.5 pb-1.5 border-b border-amber-900/50">
               <span className="text-amber-400/80">🔔</span>
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[8px]">System Messages</span>
+              <span className="text-amber-400 font-bold uppercase tracking-widest text-[10px]">System Messages</span>
             </div>
             
-            <div className="space-y-2 text-[8.5px] leading-relaxed text-slate-300">
+            <div className="space-y-2 text-[10px] leading-relaxed text-slate-300">
               <div className="bg-slate-950/50 p-1.5 rounded border border-red-900/30">
-                <p className="text-red-400 font-bold uppercase mb-0.5 text-[8px]">Daily Penalty Directive</p>
+                <p className="text-red-400 font-bold uppercase mb-0.5 text-[10px]">Daily Penalty Directive</p>
                 <p className="text-slate-400">Failure to complete all daily quests before midnight triggers a severe penalty to Sovereign Mana (MP), Gold, and XP.</p>
               </div>
               
               <div className="bg-slate-950/50 p-1.5 rounded border border-cyan-900/30">
-                <p className="text-cyan-400 font-bold uppercase mb-0.5 text-[8px]">Growth Algorithm</p>
+                <p className="text-cyan-400 font-bold uppercase mb-0.5 text-[10px]">Growth Algorithm</p>
                 <p className="text-slate-400">Complete Life Forge pomodoros to mutate intelligence and gain restorative stats.</p>
               </div>
             </div>
@@ -3082,7 +2930,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           {gameState.level >= 90 && !gameState.inventory.some(i => i.id === "sovereigns_wrath") && (
             <motion.button
               whileHover={{ scale: 1.02 }}
-              className="w-full py-1.5 bg-gradient-to-r from-yellow-500 via-purple-600 to-indigo-600 rounded-lg text-[8px] font-mono font-black tracking-widest text-white uppercase animate-pulse cursor-pointer border border-yellow-400/20"
+              className="w-full py-1.5 bg-gradient-to-r from-yellow-500 via-purple-600 to-indigo-600 rounded-lg text-[10px] font-mono font-black tracking-widest text-white uppercase animate-pulse cursor-pointer border border-yellow-400/20"
               onClick={summonSovereignsWrath}
             >
               🌌 Claim Wrath
@@ -3095,14 +2943,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
           {/* Mobile subtabs row */}
-          <div className="flex lg:hidden gap-1.5 border-b border-slate-900 pb-3" id="mobile_sub_navigation">
+          <div className="flex lg:hidden gap-2 border-b border-slate-900 pb-3" id="mobile_sub_navigation">
             {getMobileSubtabs().map(tab => (
               <button
                 key={tab.id}
-                className={`flex-1 px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-mono uppercase cursor-pointer tracking-wider transition-all font-bold text-center border ${
+                className={`flex-1 px-2.5 py-3 rounded-xl text-[10px] sm:text-xs font-mono uppercase cursor-pointer tracking-wider transition-all font-bold text-center border ${
                   activeTab === tab.id 
-                    ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]" 
-                    : "text-slate-500 bg-transparent border-transparent hover:text-slate-350"
+                    ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]" 
+                    : "text-slate-400 bg-slate-900/40 border-transparent hover:text-slate-200"
                 }`}
                 onClick={() => {
                   try {
@@ -3189,20 +3037,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     "xp-mobile"
                   )}
                   {renderCircularProgress(
+                    playerMp,
+                    playerMaxMp,
+                    "#6366f1",
+                    "#a855f7",
+                    "rgba(99, 102, 241, 0.4)",
+                    "MANA & WK",
+                    `${playerMp}/${playerMaxMp}`,
+                    <Zap className="w-4 h-4 text-indigo-400" />,
+                    "mp-mobile",
                     gameState.weeklyManaAccumulated ?? 0,
                     gameState.level * 800 + 1500,
                     "#eab308",
-                    "#d97706",
-                    "rgba(234, 179, 8, 0.4)",
-                    "WEEK TARGET",
-                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
-                    <span className="text-yellow-400 font-bold block leading-none text-xs">👑</span>,
-                    "weekly-mobile"
+                    "#d97706"
                   )}
 
                   <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
                     <span>REGISTRY TIER:</span>
-                    <span className="text-yellow-450 font-bold uppercase">{powerScaling.label}</span>
+                    <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
                   </div>
                 </div>
 
@@ -3460,15 +3312,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             </p>
                             <div className="grid grid-cols-3 gap-2 pt-2 text-[10px]">
                               <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Premium Items</span>
+                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Premium Items</span>
                                 <span className="text-cyan-400 font-extrabold text-sm">{equippedPremiumCount}</span>
                               </div>
                               <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Sigils Escrow</span>
+                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Sigils Escrow</span>
                                 <span className="text-yellow-400 font-extrabold text-sm">{sigilsCount}</span>
                               </div>
                               <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[8px] font-bold">Yield Bonus</span>
+                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Yield Bonus</span>
                                 <span className="text-emerald-400 font-extrabold text-sm font-semibold">+{Math.round((prestigeHaloMultiplier - 1.0) * 100)}%</span>
                               </div>
                             </div>
@@ -3501,18 +3353,18 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 <span className="p-1 px-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">🏦</span>
                                 <span className="font-sans text-[13px] tracking-wide uppercase font-black">SOVEREIGN TRUST VAULT</span>
                               </div>
-                              <span className="bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider animate-pulse">
+                              <span className="bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider animate-pulse">
                                 {currentRatePercent.toFixed(1)}% Compound Interest
                               </span>
                             </div>
                             
                             <div className="flex justify-between items-center bg-slate-900/40 p-3 border border-slate-900 rounded-xl">
                               <div>
-                                <span className="text-[8px] text-slate-500 uppercase font-black tracking-wider block">STAKED CAPITAL RESERVES:</span>
+                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">STAKED CAPITAL RESERVES:</span>
                                 <span className="text-white text-base font-black tracking-wide">{baseStaked} MP</span>
                               </div>
                               <div className="text-right">
-                                <span className="text-[8px] text-slate-500 uppercase font-black tracking-wider block">ACCUMULATING INTEREST:</span>
+                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">ACCUMULATING INTEREST:</span>
                                 <span className="text-emerald-400 font-black text-sm uppercase">+{stakedYield} MP</span>
                               </div>
                             </div>
@@ -3540,7 +3392,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <button
                               onClick={unstakeMana}
                               disabled={baseStaked <= 0}
-                              className="py-2 col-span-2 text-center text-slate-500 hover:text-red-400 hover:bg-red-400/5 duration-300 uppercase font-bold text-[8px] tracking-wider rounded-lg border border-slate-900 hover:border-red-500/20 transition-all cursor-pointer"
+                              className="py-2 col-span-2 text-center text-slate-500 hover:text-red-400 hover:bg-red-400/5 duration-300 uppercase font-bold text-[10px] tracking-wider rounded-lg border border-slate-900 hover:border-red-500/20 transition-all cursor-pointer"
                             >
                               UNSTAKE ALL RESERVES (1.5% Liquidity Exit-Friction Fee applied)
                             </button>
@@ -3859,7 +3711,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                       {hunter.playerName}
                                     </span>
                                     {isSelf && (
-                                      <span className="text-[7px] sm:text-[8px] bg-cyan-950 border border-cyan-500/30 text-cyan-400 font-bold uppercase px-1.5 py-0.5 rounded shrink-0">
+                                      <span className="text-[9px] sm:text-[10px] bg-cyan-950 border border-cyan-500/30 text-cyan-400 font-bold uppercase px-1.5 py-0.5 rounded shrink-0">
                                         You
                                       </span>
                                     )}
@@ -3927,7 +3779,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   +{quest.id === "quest_run" ? "1km" : "10 reps"}
                                 </button>
                                 <button
-                                  className="px-2.5 py-1.5 bg-slate-905 border border-slate-800 rounded-lg text-slate-400 hover:text-white"
+                                  className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white"
                                   onClick={() => incrementQuest(quest.id, quest.id === "quest_run" ? 3 : 25)}
                                 >
                                   +{quest.id === "quest_run" ? "3km" : "25 reps"}
@@ -4019,7 +3871,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <div className="flex flex-wrap justify-between items-start gap-2">
                             <div>
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="bg-purple-500/10 text-purple-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-purple-400/20 animate-pulse">
+                                <span className="bg-purple-500/10 text-purple-400 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-purple-400/20 animate-pulse">
                                   ADMIN TASK
                                 </span>
                                 <h4 className="text-sm font-bold text-slate-100">{quest.name}</h4>
@@ -4228,7 +4080,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   <span>Raid Boss:</span>
                                   <span className="text-slate-300 font-bold">{dung.bossName}</span>
                                 </div>
-                                <div className="flex justify-between text-slate-450">
+                                <div className="flex justify-between text-slate-400">
                                   <span>Weapon Loot Reward:</span>
                                   <span className="text-indigo-400 font-bold">Chance of {dung.lootItem.name.replace("Loot)", "")}</span>
                                 </div>
@@ -4298,7 +4150,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <span className="text-red-500 text-[10px] uppercase block">DUNGEON BOSS</span>
                             <span className="text-slate-200 text-sm font-extrabold">{selectedDungeon.bossName}</span>
                           </div>
-                          <span className="text-red-450 font-bold font-mono">{enemyHp} / {enemyMaxHp} HP</span>
+                          <span className="text-red-500 font-bold font-mono">{enemyHp} / {enemyMaxHp} HP</span>
                         </div>
                         {/* HP bar element */}
                         <div className="h-3 bg-slate-900 border border-slate-800 rounded-full overflow-hidden relative">
@@ -4426,7 +4278,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {gameState.shadows.map(shadow => (
                     <div key={shadow.id} className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md flex justify-between items-center font-mono text-xs">
                       <div className="space-y-1 text-left">
-                        <span className="text-[8px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-bold">
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-bold">
                           {shadow.tier}
                         </span>
                         <h4 className="text-sm font-bold text-slate-200 mt-1">{shadow.name}</h4>
@@ -4557,7 +4409,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 title={`${item.name} (${item.rarity}-Rank) \n${item.description}`}
                               >
                                 {item.equipped && (
-                                  <span className="absolute top-1 left-1 bg-cyan-950/80 border border-cyan-500/60 rounded text-[7px] text-cyan-300 px-1 py-0.5 font-black uppercase tracking-widest scale-90 z-10 animate-pulse">
+                                  <span className="absolute top-1 left-1 bg-cyan-950/80 border border-cyan-500/60 rounded text-[9px] text-cyan-300 px-1 py-0.5 font-black uppercase tracking-widest scale-90 z-10 animate-pulse">
                                     E
                                   </span>
                                 )}
@@ -4570,7 +4422,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   {renderNeonWeaponPreview(item.id, item.equipped)}
                                 </div>
 
-                                <span className="text-[8px] font-bold text-slate-350 truncate w-full text-center mt-1.5 px-1 group-hover:text-cyan-300">
+                                <span className="text-[10px] font-bold text-slate-350 truncate w-full text-center mt-1.5 px-1 group-hover:text-cyan-300">
                                   {item.name.replace("Sovereign's ", "S. ").replace("Commander ", "C. ").replace("Knight's ", "K. ").replace("Goblin ", "G. ")}
                                 </span>
                               </div>
@@ -4587,7 +4439,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               <div className="w-10 h-10 rounded-lg border border-dashed border-slate-800/30 flex items-center justify-center p-1 bg-slate-950/20 group-hover:border-cyan-500/20 transition-all">
                                 <Plus className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-500 group-hover:scale-110 transition-all" />
                               </div>
-                              <span className="text-[7px] text-slate-500 font-bold uppercase tracking-wider block mt-1 scale-90">SLOT {gameState.inventory.length + idx + 1}</span>
+                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-1 scale-90">SLOT {gameState.inventory.length + idx + 1}</span>
                             </div>
                           ))}
 
@@ -4603,7 +4455,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 <div className="w-10 h-10 rounded-lg border border-dashed border-red-950/10 flex flex-col items-center justify-center p-1 bg-slate-950/30">
                                   <Lock className="w-3.5 h-3.5 text-red-500/40 mb-0.5" />
                                 </div>
-                                <span className="text-[7px] text-red-500 font-extrabold uppercase scale-90 mt-1">LV {nextLvl}</span>
+                                <span className="text-[9px] text-red-500 font-extrabold uppercase scale-90 mt-1">LV {nextLvl}</span>
                               </div>
                             );
                           })}
@@ -4671,7 +4523,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center pointer-events-none">
                                 <div className="bg-slate-950/90 border border-red-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
                                   <Lock className="w-3.5 h-3.5 text-red-500" />
-                                  <span className="text-[8px] font-extrabold text-white tracking-widest uppercase">LOCKED (LV {shopMeta.levelReq})</span>
+                                  <span className="text-[10px] font-extrabold text-white tracking-widest uppercase">LOCKED (LV {shopMeta.levelReq})</span>
                                 </div>
                               </div>
                             )}
@@ -4703,7 +4555,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="mt-4 pt-4 border-t border-slate-900/60 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${forceSystemEnforcement ? "bg-red-500 animate-ping" : "bg-slate-700"}`} />
-                      <span className="text-[10px] text-slate-450 font-mono">
+                      <span className="text-[10px] text-slate-400 font-mono">
                         Status Directive: {forceSystemEnforcement ? "STRICT SYSTEM COMPLIANCE ACTIVE" : "MANUAL BYPASS COMMITTED"}
                       </span>
                     </div>
@@ -4887,7 +4739,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <Timer className="w-4 h-4 text-indigo-400" />
                           <h4 className="text-xs uppercase font-extrabold text-slate-350 tracking-wider">SYSTEM STUDY BOOST TERMINAL</h4>
                         </div>
-                        <span className="text-[10px] text-slate-555 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                        <span className="text-[10px] text-slate-500 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
                           Active State: {focusIsActive ? "COMPILING MIND" : "TERMINAL IDLE"}
                         </span>
                       </div>
@@ -4950,7 +4802,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                     className={`px-2 py-1.5 rounded-lg border text-[9px] uppercase font-bold text-center cursor-pointer transition-colors ${
                                       focusTarget === t.sec 
                                         ? "bg-slate-900 border-indigo-500/50 text-indigo-300"
-                                        : "bg-slate-900 border-slate-800 text-slate-450 hover:text-slate-350"
+                                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-350"
                                     }`}
                                     onClick={() => {
                                       playSelectSound();
@@ -5012,7 +4864,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Lifting Exercise Name</label>
                           <input 
                             type="text" 
-                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-205 outline-none focus:border-orange-500/50" 
+                            className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-orange-500/50" 
                             placeholder="e.g. Incline Bench Press"
                             value={newLiftName}
                             onChange={(e) => setNewLiftName(e.target.value)}
@@ -5022,7 +4874,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <label className="text-[10px] text-slate-500 uppercase font-black font-bold">Target Working Load (Weight)</label>
                           <input 
                             type="text" 
-                            className="w-full bg-slate-905 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-205 outline-none focus:border-orange-500/50" 
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-orange-500/50" 
                             placeholder="e.g. 75kg"
                             value={newLiftWeight}
                             onChange={(e) => setNewLiftWeight(e.target.value)}
@@ -5031,7 +4883,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-500 uppercase font-black font-mono font-bold">Target working Sets</label>
                           <select 
-                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-205 outline-none focus:border-orange-500/50 cursor-pointer text-[11px]"
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 outline-none focus:border-orange-500/50 cursor-pointer text-[11px]"
                             value={newLiftSets}
                             onChange={(e) => setNewLiftSets(parseInt(e.target.value, 10))}
                           >
@@ -5141,7 +4993,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             ].map(btn => (
                               <button
                                 key={btn.label}
-                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-850 rounded-lg text-[9px] font-bold text-slate-350 hover:text-white cursor-pointer"
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-[9px] font-bold text-slate-350 hover:text-white cursor-pointer"
                                 onClick={() => {
                                   playSelectSound();
                                   if (btn.val < 0) setIntakeCalories(0);
@@ -5157,7 +5009,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         {/* Protein tracker column */}
                         <div className="space-y-3">
                           <div className="flex justify-between text-xs">
-                            <span className="text-slate-355 font-bold uppercase">Synthesized Amino Acids:</span>
+                            <span className="text-slate-400 font-bold uppercase">Synthesized Amino Acids:</span>
                             <span className="text-amber-400 font-bold">{intakeProtein} / {targetProtein} grams</span>
                           </div>
 
@@ -5174,7 +5026,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             ].map(btn => (
                               <button
                                 key={btn.label}
-                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-850 rounded-lg text-[9px] font-bold text-slate-355 hover:text-white cursor-pointer"
+                                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-[9px] font-bold text-slate-400 hover:text-white cursor-pointer"
                                 onClick={() => {
                                   playSelectSound();
                                   if (btn.val < 0) setIntakeProtein(0);
@@ -5403,7 +5255,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                               <div className="flex items-center gap-3">
                                 <div className="space-y-1 min-w-[120px]">
-                                  <label className="text-[8px] text-slate-550 block font-bold uppercase">Update progress stage</label>
+                                  <label className="text-[10px] text-slate-550 block font-bold uppercase">Update progress stage</label>
                                   <select
                                     className="bg-slate-950 border border-slate-800 text-[10px] px-2 py-1 rounded-lg outline-none cursor-pointer text-slate-350"
                                     value={app.status}
@@ -5493,7 +5345,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <span className={`text-[9px] tracking-[0.25em] font-black uppercase px-2.5 py-1 rounded border ${
                       selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 bg-amber-950/40 border-amber-500/30" :
                       selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 bg-cyan-950/40 border-cyan-500/30" :
-                      selectedWeaponDetails.id === "igris_sword" ? "text-rose-450 bg-rose-950/40 border-rose-500/30" :
+                      selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 bg-rose-950/40 border-rose-500/30" :
                       selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 bg-indigo-950/40 border-indigo-500/30" :
                       selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 bg-purple-950/40 border-purple-500/30" :
                       selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 bg-pink-950/40 border-pink-500/30 animate-pulse" :
@@ -5568,7 +5420,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         </div>
                         <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800">
                           <span className="text-[9px] text-slate-500 block mb-0.5 uppercase">CRITICAL FORCE</span>
-                          <span className="text-rose-450 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.criticalChance}</span>
+                          <span className="text-rose-400 font-bold text-sm tracking-widest">{selectedWeaponDetails.weaponDetails.criticalChance}</span>
                         </div>
                       </>
                     )}
@@ -5597,7 +5449,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         selectedWeaponDetails.id === "sovereigns_wrath" ? "border-pink-500/50" :
                         "border-cyan-500/50"
                       }`}>
-                        <span className="text-[9px] text-slate-450 tracking-widest uppercase block mb-1">CHRONICLE / ANCIENT LORE ARCHIVES</span>
+                        <span className="text-[9px] text-slate-400 tracking-widest uppercase block mb-1">CHRONICLE / ANCIENT LORE ARCHIVES</span>
                         <p className="text-slate-400 text-xs leading-relaxed italic">"{selectedWeaponDetails.weaponDetails.lore}"</p>
                       </div>
 
@@ -5618,13 +5470,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         <div className="bg-slate-950/40 p-2.5 rounded-xl border border-slate-900/80 flex justify-between items-center overflow-hidden">
                           <span className="text-slate-500">MANA ORIGIN</span>
                           <span className={`font-bold truncate ml-2 text-[11px] ${
-                            selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-450" :
-                            selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-450" :
-                            selectedWeaponDetails.id === "igris_sword" ? "text-rose-450" :
-                            selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-455" :
-                            selectedWeaponDetails.id === "kamish_fang" ? "text-purple-450" :
-                            selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-450" :
-                            "text-cyan-450"
+                            selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400" :
+                            selectedWeaponDetails.id === "igris_sword" ? "text-rose-400" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400" :
+                            "text-cyan-400"
                           }`} title={selectedWeaponDetails.weaponDetails.origin}>{selectedWeaponDetails.weaponDetails.origin}</span>
                         </div>
                       </div>
@@ -5724,7 +5576,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-950/20 text-indigo-300 border-indigo-500/30" :
                             selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-950/20 text-purple-300 border-purple-500/30" :
                             selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-950/20 text-pink-300 border-pink-500/35" :
-                            "bg-cyan-950/30 text-cyan-405 border-cyan-500/20"
+                            "bg-cyan-950/30 text-cyan-400 border-cyan-500/20"
                           }`}>
                             <span className="text-slate-400 uppercase text-[9px] tracking-wider">{key.slice(0,3)} ACCRUE</span>
                             <span>+{val}</span>
@@ -5765,11 +5617,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       <div className={`w-full text-center font-bold text-xs py-4 border rounded-xl uppercase tracking-widest overflow-hidden relative ${
                         selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/30 bg-amber-950/20" :
                         selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/30 bg-cyan-950/20" :
-                        selectedWeaponDetails.id === "igris_sword" ? "text-rose-450 border-rose-500/30 bg-rose-950/20" :
+                        selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/30 bg-rose-950/20" :
                         selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/30 bg-indigo-950/20" :
                         selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/30 bg-purple-950/20" :
                         selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/40 bg-pink-950/20" :
-                        "text-cyan-405 border-cyan-500/30 bg-cyan-950/20"
+                        "text-cyan-400 border-cyan-500/30 bg-cyan-950/20"
                       }`}>
                         <div className={`absolute inset-0 animate-pulse pointer-events-none ${
                           selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/5" :
@@ -5793,7 +5645,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/40 hover:text-white" :
                           selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/40 hover:text-white" :
                           selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/50 hover:text-white" :
-                          "text-cyan-405 border-cyan-500/45 hover:text-white"
+                          "text-cyan-400 border-cyan-500/45 hover:text-white"
                         }`}
                         onClick={() => {
                           equipWeapon(selectedWeaponDetails.id);
@@ -6216,24 +6068,79 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         )}
       </AnimatePresence>
 
-      {/* HUD SYSTEM TOAST VIEWER NOTIFICATION PORT */}
-      <AnimatePresence>
-        {systemToast && (
-          <motion.div 
-            initial={{ opacity: 0, y: -45, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -45, scale: 0.95 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none"
-          >
-            <div className="bg-slate-950/90 border border-cyan-400 px-4 py-3.5 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.3)] backdrop-blur text-left pointer-events-auto flex items-center gap-3 font-mono">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping shrink-0" />
-              <div className="text-[10px] font-semibold text-slate-200 uppercase leading-relaxed text-slate-300">
-                {systemToast}
+      {/* ANDROID STYLE FLOATING NOTIFICATIONS PORT */}
+      <div className="fixed top-20 right-4 z-[60] flex flex-col gap-3 w-full max-w-[340px] pointer-events-none p-1">
+        <AnimatePresence>
+          {systemToast && (
+            <motion.div 
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 50, scale: 0.95 }}
+              layout
+              drag
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              dragElastic={1}
+              onDragEnd={(_e, info) => {
+                const isSignificant = Math.abs(info.offset.x) > 40 || Math.abs(info.offset.y) > 40 || Math.abs(info.velocity.x) > 400 || Math.abs(info.velocity.y) > 400;
+                if (isSignificant) {
+                  setSystemToast(null);
+                }
+              }}
+              className="pointer-events-auto touch-none shadow-[0_4px_24px_-4px_rgba(34,211,238,0.25)] rounded-[20px] bg-slate-900 border border-slate-700/60 p-3 sm:p-4 flex gap-3 font-sans relative overflow-hidden cursor-grab active:cursor-grabbing"
+            >
+              <div className="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 relative">
+                 <Bell className="w-4 h-4" />
+                 <div className="absolute top-0 right-0 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+                 <div className="absolute top-0 right-0 w-2 h-2 bg-cyan-400 rounded-full" />
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center mb-0.5">
+                  <span className="text-[12px] font-semibold text-slate-200">System Notification</span>
+                  <span className="text-[10px] text-slate-500">now</span>
+                </div>
+                <div className="text-[13px] font-medium text-slate-300 leading-snug break-words">
+                  {systemToast}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {adminAnnouncements && adminAnnouncements.length > 0 && adminAnnouncements.slice(-3).map((ann, idx) => (
+             <motion.div 
+              key={`admin_${ann.id || idx}`}
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 50, scale: 0.95 }}
+              layout
+              drag
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              dragElastic={1}
+              onDragEnd={(_e, info) => {
+                const isSignificant = Math.abs(info.offset.x) > 40 || Math.abs(info.offset.y) > 40 || Math.abs(info.velocity.x) > 400 || Math.abs(info.velocity.y) > 400;
+                if (isSignificant) {
+                  setAdminAnnouncements(prev => prev.filter((a, i) => (a.id || i) !== (ann.id || idx)));
+                }
+              }}
+              className="pointer-events-auto touch-none shadow-[0_4px_24px_-4px_rgba(168,85,247,0.2)] rounded-[20px] bg-slate-900 border border-purple-500/30 p-3 sm:p-4 flex gap-3 font-sans relative overflow-hidden cursor-grab active:cursor-grabbing"
+            >
+              <div className="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 relative">
+                 <Radio className="w-4 h-4" />
+                 <div className="absolute top-0 right-0 w-2 h-2 bg-purple-400 rounded-full animate-ping" />
+                 <div className="absolute top-0 right-0 w-2 h-2 bg-purple-400 rounded-full" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center mb-0.5">
+                  <span className="text-[12px] font-semibold text-slate-200">Monarch Admin</span>
+                  <span className="text-[10px] text-slate-500">{ann.createdAt ? new Date(ann.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "live"}</span>
+                </div>
+                <div className="text-[13px] font-medium text-slate-300 leading-snug break-words">
+                  {ann.message}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-15px_30px_rgba(0,0,0,0.65)] px-4">
