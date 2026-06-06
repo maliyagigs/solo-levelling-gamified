@@ -7,7 +7,10 @@ import {
   onSnapshot, 
   serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  limit,
+  writeBatch,
+  getDocs
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../utils/firebase";
 import { 
@@ -24,7 +27,11 @@ import {
   Lock, 
   ArrowLeft,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  MessageSquare,
+  Gamepad2,
+  Radio,
+  Activity
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -73,19 +80,40 @@ interface AdminGate {
   createdAt?: any;
 }
 
+interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: any;
+  channel: string;
+}
+
+interface PartyLobby {
+  id: string;
+  hostId: string;
+  hostName: string;
+  members: string[];
+  maxMembers: number;
+  status: string;
+  createdAt: any;
+}
+
 export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const [isAdminAuthorized, setIsAdminAuthorized] = useState<boolean>(() => {
     return localStorage.getItem("monarch_admin_authorized") === "true";
   });
   const [passcode, setPasscode] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"players" | "announcements" | "quests" | "gates">("players");
+  const [activeTab, setActiveTab] = useState<"players" | "announcements" | "quests" | "gates" | "social">("players");
 
   // Real-time states
   const [players, setPlayers] = useState<Player[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [quests, setQuests] = useState<AdminQuest[]>([]);
   const [gates, setGates] = useState<AdminGate[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [lobbies, setLobbies] = useState<PartyLobby[]>([]);
 
   // Form states - Players
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
@@ -239,11 +267,53 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       console.error("Firestore Admin Gates live-sync failed:", err);
     });
 
+    // Listen to Messages (Last 100)
+    const qMessages = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(100));
+    const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
+      const mlist: ChatMessage[] = [];
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        mlist.push({
+          id: doc.id,
+          senderId: d.senderId || "Unknown",
+          senderName: d.senderName || "Unknown",
+          text: d.text || "",
+          timestamp: d.timestamp,
+          channel: d.channel || "global"
+        });
+      });
+      setMessages(mlist);
+    }, (err) => {
+      console.error("Firestore Admin Messages live-sync failed:", err);
+    });
+
+    // Listen to Lobbies
+    const unsubscribeLobbies = onSnapshot(collection(db, "party_lobbies"), (snapshot) => {
+      const llist: PartyLobby[] = [];
+      snapshot.forEach((doc) => {
+        const d = doc.data();
+        llist.push({
+          id: doc.id,
+          hostId: d.hostId || "",
+          hostName: d.hostName || "Host",
+          members: d.members || [],
+          maxMembers: Number(d.maxMembers) || 4,
+          status: d.status || "open",
+          createdAt: d.createdAt
+        });
+      });
+      setLobbies(llist);
+    }, (err) => {
+      console.error("Firestore Admin Lobbies live-sync failed:", err);
+    });
+
     return () => {
       unsubscribePlayers();
       unsubscribeAnnouncements();
       unsubscribeQuests();
       unsubscribeGates();
+      unsubscribeMessages();
+      unsubscribeLobbies();
     };
   }, [isAdminAuthorized]);
 
@@ -415,6 +485,38 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   };
 
+  // Actions - Social
+  const handleDeleteMessage = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "messages", id));
+      showNotification("Sovereign transmission redacted.");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `messages/${id}`);
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!window.confirm("CRITICAL: Wipe ALL transmission history from global registers?")) return;
+    try {
+      const snap = await getDocs(query(collection(db, "messages"), limit(100)));
+      const batch = writeBatch(db);
+      snap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      showNotification("THE VOID HAS CONSUMED THE CONVERSATION.", "success");
+    } catch (err) {
+      showNotification("FAILED TO PURGE REGISTERS", "error");
+    }
+  };
+
+  const handleDeleteLobby = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "party_lobbies", id));
+      showNotification("Party lattice destabilized.");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `party_lobbies/${id}`);
+    }
+  };
+
   // Initialize standard dummy data if collections are empty to speed up grading
   const handleSeedMockData = async () => {
     try {
@@ -576,7 +678,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 { id: "players", label: "Hunter Directory", icon: User, color: "text-blue-400", count: players.length },
                 { id: "announcements", label: "Live System Alerts", icon: Megaphone, color: "text-amber-400", count: announcements.length },
                 { id: "quests", label: "Crisis Quests", icon: Flame, color: "text-rose-400", count: quests.length },
-                { id: "gates", label: "Custom Dungeons", icon: Compass, color: "text-emerald-400", count: gates.length }
+                { id: "gates", label: "Custom Dungeons", icon: Compass, color: "text-emerald-400", count: gates.length },
+                { id: "social", label: "Multiplayer Control", icon: MessageSquare, color: "text-indigo-400", count: messages.length + lobbies.length }
               ].map(tab => {
                 const Icon = tab.icon;
                 const isSel = activeTab === tab.id;
@@ -1190,6 +1293,89 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* SOCIAL & MODERATION CONTROL */}
+            {activeTab === "social" && (
+              <div className="space-y-6">
+                {/* Chat Moderation */}
+                <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
+                   <div className="flex justify-between items-center mb-6">
+                     <h3 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                       <MessageSquare className="w-4 h-4" />
+                       <span>Global Transmission Frequency</span>
+                     </h3>
+                     <button 
+                       onClick={handleClearChat}
+                       className="px-4 py-2 bg-red-950/20 hover:bg-red-950/40 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all flex items-center gap-1.5"
+                     >
+                       <Trash2 className="w-3 h-3" /> Purge registers
+                     </button>
+                   </div>
+
+                   <div className="bg-slate-950/50 border border-slate-900 rounded-xl max-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                     {messages.length === 0 ? (
+                       <div className="text-center py-10 text-slate-600 font-mono text-[10px] uppercase">Frequency analysis: Pure Void</div>
+                     ) : (
+                       messages.map(msg => (
+                         <div key={msg.id} className="group flex items-start justify-between gap-4 p-3 bg-slate-900/40 border border-slate-800/40 rounded-xl hover:border-indigo-500/30 transition-all">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-indigo-400">{msg.senderName}</span>
+                                <span className="text-[8px] text-slate-600 font-mono uppercase tracking-tighter">ID: {msg.senderId}</span>
+                                <span className="text-[8px] text-slate-700 font-mono italic">#{msg.channel}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-300 font-sans leading-relaxed">{msg.text}</p>
+                            </div>
+                            <button 
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 text-slate-600 hover:text-red-400 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                         </div>
+                       ))
+                     )}
+                   </div>
+                </div>
+
+                {/* Party Lobbies Control */}
+                <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
+                   <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-6 flex items-center gap-1.5">
+                     <Gamepad2 className="w-4 h-4" />
+                     <span>Active Dimensional Lobbies ({lobbies.length})</span>
+                   </h3>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {lobbies.length === 0 ? (
+                        <div className="col-span-full text-center py-10 border border-dashed border-slate-800 rounded-xl text-slate-600 text-[10px] uppercase">No active lattice structures found</div>
+                      ) : (
+                        lobbies.map(lobby => (
+                          <div key={lobby.id} className="p-4 bg-slate-950/40 border border-slate-900 rounded-2xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+                             <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-500">
+                                  <Radio className="w-5 h-5 animate-pulse" />
+                               </div>
+                               <div>
+                                  <h4 className="text-xs font-bold text-slate-200">{lobby.hostName}'s Group</h4>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">{lobby.status}</span>
+                                    <span className="text-[9px] text-slate-500 font-mono">{lobby.members?.length || 0}/{lobby.maxMembers} Members</span>
+                                  </div>
+                               </div>
+                             </div>
+                             <button 
+                               onClick={() => handleDeleteLobby(lobby.id)}
+                               className="p-2 bg-slate-900 hover:bg-red-950 border border-slate-800 text-slate-500 hover:text-red-400 rounded-xl transition-all cursor-pointer"
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </button>
+                          </div>
+                        ))
+                      )}
+                   </div>
                 </div>
               </div>
             )}
