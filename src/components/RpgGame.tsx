@@ -71,7 +71,15 @@ interface RpgGameProps {
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
   const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "social">("home");
-  const [economyState, setEconomyState] = useState<{ totalShares: number, circulatingMana: number, currentManaValue: number, marketCap: number } | null>(null);
+  const [economyState, setEconomyState] = useState<{
+    totalShares: number;
+    circulatingMana: number;
+    realUsersManaSum: number;
+    simulatedUsers: number;
+    currentManaValue: number;
+    marketCap: number;
+    shareCapBalance: number;
+  } | null>(null);
 
   // Active Gates for the day
   const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
@@ -166,7 +174,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     ];
     const interval = setInterval(() => {
       setSocialPulse(alerts[Math.floor(Math.random() * alerts.length)]);
-    }, 10000);
+    }, 20000);
     return () => clearInterval(interval);
   }, []);
 
@@ -373,9 +381,37 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure starting user has zero gold if save in bad state or enforce started users
+        
+        // Auto-update or migrate costs/power for shadows and skills from SHADOWS_LIST and SKILLS_LIST in data.ts
+        const migratedShadows = (parsed.shadows || []).map((s: any) => {
+          const fresh = SHADOWS_LIST.find(f => f.id === s.id);
+          return fresh ? { ...s, cost: fresh.cost, power: fresh.power } : s;
+        });
+        if (migratedShadows.length === 0) {
+          migratedShadows.push(...SHADOWS_LIST);
+        }
+        
+        const migratedSkills = (parsed.skills || []).map((sk: any) => {
+          const fresh = SKILLS_LIST.find(f => f.id === sk.id);
+          return fresh ? { ...sk, cost: fresh.cost, levelRequired: fresh.levelRequired } : sk;
+        });
+        if (migratedSkills.length === 0) {
+          migratedSkills.push(...SKILLS_LIST);
+        }
+
+        const migratedQuests = (parsed.quests || []).map((q: any) => {
+          if (q.id === "quest_physical") return { ...q, rewardGold: 1 };
+          if (q.id === "quest_intellect") return { ...q, rewardGold: 2 };
+          if (q.id === "quest_serenity") return { ...q, rewardGold: 2 };
+          if (q.id === "quest_hydration") return { ...q, rewardGold: 1 };
+          return q;
+        });
+
         return {
           ...parsed,
+          shadows: migratedShadows,
+          skills: migratedSkills,
+          quests: migratedQuests,
           manaStaked: parsed.manaStaked ?? 0,
           boosterMultiplier: parsed.boosterMultiplier ?? 1.0,
           sigils: parsed.sigils ?? 0,
@@ -407,10 +443,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       shadows: [...SHADOWS_LIST],
       skills: [...SKILLS_LIST],
       quests: [
-        { id: "quest_physical", name: "Sovereign Physical Grind", description: "Complete physical training checks (e.g. 40 push-ups, squats, or planks)", target: 40, current: 0, rewardExp: 40, rewardGold: 100, completed: false, type: "Daily" },
-        { id: "quest_intellect", name: "Sovereign Intellect Gate", description: "Study complex skills, write code, or read 15 pages of literature", target: 15, current: 0, rewardExp: 60, rewardGold: 150, completed: false, type: "Daily" },
-        { id: "quest_serenity", name: "Abyssal Meditation & Breath", description: "Complete 15 minutes of uninterrupted mindful breathing/restoring", target: 15, current: 0, rewardExp: 50, rewardGold: 120, completed: false, type: "Daily" },
-        { id: "quest_hydration", name: "Hydration & Vitality Calibration", description: "Consume 3 liters of water & log 7+ hours of deep, structured sleep", target: 3, current: 0, rewardExp: 30, rewardGold: 80, completed: false, type: "Daily" }
+        { id: "quest_physical", name: "Sovereign Physical Grind", description: "Complete physical training checks (e.g. 40 push-ups, squats, or planks)", target: 40, current: 0, rewardExp: 40, rewardGold: 1, completed: false, type: "Daily" },
+        { id: "quest_intellect", name: "Sovereign Intellect Gate", description: "Study complex skills, write code, or read 15 pages of literature", target: 15, current: 0, rewardExp: 60, rewardGold: 2, completed: false, type: "Daily" },
+        { id: "quest_serenity", name: "Abyssal Meditation & Breath", description: "Complete 15 minutes of uninterrupted mindful breathing/restoring", target: 15, current: 0, rewardExp: 50, rewardGold: 2, completed: false, type: "Daily" },
+        { id: "quest_hydration", name: "Hydration & Vitality Calibration", description: "Consume 3 liters of water & log 7+ hours of deep, structured sleep", target: 3, current: 0, rewardExp: 30, rewardGold: 1, completed: false, type: "Daily" }
       ],
       storyStep: 1,
       manaStaked: 0,
@@ -747,10 +783,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           const incompleteQuestsCount = prevGameState.quests.filter((q: any) => q.current < q.target).length;
           
           if (incompleteQuestsCount > 0) {
-            // Enforce the Mana depletion penalty protocol!
-            const expDeduct = incompleteQuestsCount * 25;
-            const goldDeduct = incompleteQuestsCount * 50;
-            const manaDeduct = incompleteQuestsCount * 25;
+            // Enforce the Mana depletion penalty protocol with fair micro-mana parameters
+            const expDeduct = incompleteQuestsCount * 15;
+            const goldDeduct = incompleteQuestsCount * 3; // Swapped 50 to 3 for balanced economy
+            const manaDeduct = incompleteQuestsCount * 5; // Reduced active MP reduction
             
             setPlayerMp(prevMp => Math.max(0, prevMp - manaDeduct));
             
@@ -787,7 +823,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               }
             } catch (e) {}
 
-            triggerSystemToast(`🚨 SYSTEM FAILURE DECREE: Missed daily grinds detected! Internals punctured: lost -${manaDeduct} Instinctual Mana (MP), -${expDeduct} XP, and -${goldDeduct} Sovereign Mana (MP)!`);
+            triggerSystemToast(`🚨 SYSTEM FAILURE DECREE: Missed daily grinds detected! Internals punctured: lost -${manaDeduct} Instinctual MP, -${expDeduct} XP, and -${goldDeduct} Sovereign Mana (MP) returned to pool!`);
 
             return {
               ...prevGameState,
@@ -887,7 +923,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     playSovereignChime();
     const durationMins = Math.round(focusTarget / 60);
     const expAward = durationMins * 3;
-    const goldAward = durationMins * 2;
+    const goldAward = Math.max(1, Math.round(durationMins * 0.2));
 
     // Grant rewards
     addExp(expAward);
@@ -1018,9 +1054,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         if (comp && !q.completed) {
           playLootSound();
           addExp(100);
-          awardGold(50);
+          awardGold(5); // Balanced reward from 50 to 5 MP
           addIntellectPoints(1);
-          triggerSystemToast(`🔮 INT EXPANSION: "${q.name}" cleared! permanent Intelligence +1 point obtained!`);
+          triggerSystemToast(`🔮 INT EXPANSION: "${q.name}" cleared! permanent Intelligence +1 point obtained! (+5 MP)`);
         } else {
           playSelectSound();
         }
@@ -1064,7 +1100,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         if (comp && !l.completed) {
           playLootSound();
           addExp(75);
-          awardGold(45);
+          awardGold(3); // Adjusted from 45 to 3 MP to be fair and balanced
           // Randomly reward STR or VIT
           const isStr = Math.random() > 0.5;
           if (isStr) {
@@ -1099,7 +1135,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (careerMilestones.resumeScore > 0) return;
     playLootSound();
     addExp(100);
-    awardGold(50);
+    awardGold(5); // Adjusted from 50 to 5 MP to match the micro-mana grid
     addAgilityPoints(1);
     setCareerMilestones(prev => ({ ...prev, resumeScore: 1 }));
     setMilestoneOverlay({
@@ -1115,7 +1151,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     playLootSound();
     const nextVal = careerMilestones.portfolioProjects + 1;
     addExp(150);
-    awardGold(75);
+    awardGold(10); // Adjusted from 75 to 10 MP for balance
     addIntellectPoints(2);
     setCareerMilestones(prev => ({ ...prev, portfolioProjects: nextVal }));
     if (nextVal >= 2) {
@@ -1134,10 +1170,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (careerMilestones.recruiterOutreach >= 5) return;
     playSelectSound();
     const nextVal = careerMilestones.recruiterOutreach + 1;
-    awardGold(15);
+    awardGold(2); // Balanced step reward
     if (nextVal === 5) {
       playLootSound();
       addExp(150);
+      awardGold(5); // Completion bonus
       addPerceptionPoints(2);
       setMilestoneOverlay({
         title: "NETWORKING CONQUERED",
@@ -1155,10 +1192,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (careerMilestones.leetcodeGrind >= 10) return;
     playSelectSound();
     const nextVal = careerMilestones.leetcodeGrind + 1;
-    awardGold(20);
+    awardGold(1); // Standard mini challenge reward
     if (nextVal === 10) {
       playLootSound();
       addExp(300);
+      awardGold(5); // Decent completion bonus
       addIntellectPoints(3);
       setMilestoneOverlay({
         title: "ALGORITHMIC MARSHAL",
@@ -1185,12 +1223,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       notes: newJobNotes || "Applied via guild board recruitment channels"
     };
     setJobApplications(prev => [...prev, newApp]);
-    awardGold(35);
+    awardGold(3); // Balanced reward from 35 to 3 MP
     addExp(15);
     setNewJobCompany("");
     setNewJobRole("");
     setNewJobNotes("");
-    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +35 Mana (MP) and +15 EXP!`);
+    triggerSystemToast(`💼 REGISTRATION BOUNTY: Tracked job at ${newJobCompany}! Gained +3 Mana (MP) and +15 EXP!`);
   };
 
   const updateJobStatus = (id: string, nextStatus: string) => {
@@ -1199,8 +1237,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         if (nextStatus === "Offer Unlocked" && app.status !== "Offer Unlocked") {
           playSovereignChime();
           addExp(1000);
-          awardGold(1000);
-          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +1000 Mana (MP) infused!");
+          awardGold(50); // Balanced from 1000 to 50 MP (huge milestone equivalent to 2.5x average holdings)
+          triggerSystemToast("👑 SOVEREIGN OFFER SECURED! You obtained an official guild career offer! +1000 EXP & +50 Mana (MP) infused!");
         } else {
           playSelectSound();
           triggerSystemToast(`💼 APPLICATION STATUS: ${app.company} status updated to [${nextStatus}].`);
@@ -1517,7 +1555,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setMilestoneOverlay({
       title: "QUEST BOUNTY CLAIMS",
       subtitle: quest.name,
-      desc: `Sovereign discipline has granted +${quest.rewardExp} EXP and +${finalGoldAward} MP (Includes a ${Math.round((prestigeHaloMultiplier - 1.0) * 100)}% Prestige Halo & booster incentive!)`,
+      desc: `Sovereign discipline has granted +${quest.rewardExp} EXP and +${finalGoldAward} MP!`,
       icon: "⚡"
     });
   };
@@ -1535,7 +1573,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const sigilsCount = gameState.sigils ?? 0;
     const rawBooster = gameState.boosterMultiplier ?? 1.0;
     const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
-    const finalDailyGold = Math.round(500 * prestigeHaloMultiplier);
+    const finalDailyGold = Math.round(5 * prestigeHaloMultiplier);
 
     addExp(200);
     setGameState(prev => ({
@@ -1547,7 +1585,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setMilestoneOverlay({
       title: "DAILY SYSTEM OVERLOAD",
       subtitle: "Absolute Sovereignty Archive Complete",
-      desc: `Legendary! You cleared the entire Sovereign Grind today! Rewarded +200 EXP and +${finalDailyGold} MP. Prestige state: ${Math.round((prestigeHaloMultiplier - 1.0) * 100)}% reward multiplier. Keep leveling!`,
+      desc: `Legendary! You cleared the entire Sovereign Grind today! Rewarded +200 EXP and +${finalDailyGold} MP. Keep leveling!`,
       icon: "👑"
     });
   };
@@ -1735,11 +1773,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // System weapon store parameters with costs and level gateways
   const WEAPON_SHOP_DETAILS: Record<string, { cost: number, levelReq: number }> = {
     rusty_dagger: { cost: 0, levelReq: 1 },
-    kasaka_fang: { cost: 1500, levelReq: 10 },
-    igris_sword: { cost: 4800, levelReq: 25 },
-    demon_dagger: { cost: 12000, levelReq: 50 },
-    kamish_fang: { cost: 35000, levelReq: 75 },
-    sovereigns_wrath: { cost: 80000, levelReq: 90 },
+    kasaka_fang: { cost: 15, levelReq: 10 },
+    igris_sword: { cost: 50, levelReq: 25 },
+    demon_dagger: { cost: 120, levelReq: 50 },
+    kamish_fang: { cost: 350, levelReq: 75 },
+    sovereigns_wrath: { cost: 800, levelReq: 90 },
   };
 
   // High quality vector contour neon renderings for weapon previews (1000x Detailed)
@@ -2938,7 +2976,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-28 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-48 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -3421,7 +3459,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
                       onClick={() => {
                         setShowDisconnectModal(true);
-                      }}
+                       }}
                     >
                       <LogOut className="w-4 h-4" />
                       DISCONNECT SESSION
@@ -3438,181 +3476,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {/* A. STATUS TAB: Stat allocator and character profiles */}
             {activeTab === "status" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                
-                {/* SOVEREIGN VAULT & PRESTIGE HALO ECONOMY DASHBOARD */}
-                {false && (() => {
-                  const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
-                  const sigilsCount = gameState.sigils ?? 0;
-                  const rawBooster = gameState.boosterMultiplier ?? 1.0;
-                  const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
-                  const baseStaked = gameState.manaStaked ?? 0;
-                  const currentRatePercent = Math.max(3, Math.round((0.015 - (baseStaked / 100000) * 0.01) * 1000)) / 10;
-
-                  return (
-                    <div className="bg-slate-950/75 border-2 border-yellow-500/10 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden font-mono text-xs space-y-6">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-yellow-500/5 to-transparent rounded-full pointer-events-none filter blur-2xl" />
-                      
-                      {/* Top Header */}
-                      <div className="flex flex-wrap justify-between items-start gap-4">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-1 text-yellow-500 font-extrabold uppercase tracking-widest text-[10px]">
-                            <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping" />
-                            <span>Sovereign Prestige Vault & Reserve Matrix</span>
-                          </div>
-                          <h3 className="font-extrabold text-white text-lg font-sans tracking-wide">THE PREMIUM HALO ECONOMY</h3>
-                        </div>
-                        <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-3">
-                          <span className="text-[10px] text-slate-500 uppercase font-black">Prestige Halo:</span>
-                          <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">
-                            {Math.round(prestigeHaloMultiplier * 100)}% ({prestigeHaloMultiplier.toFixed(2)}x Yield)
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Columns Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        
-                        {/* Column Left: Prestige Halo and Scarcity Mechanism */}
-                        <div className="p-5 bg-gradient-to-rb from-slate-950 to-slate-900/40 border border-slate-900/80 rounded-2xl space-y-4 flex flex-col justify-between relative overflow-hidden">
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(234,179,8,0.02)_0%,transparent_60%)] pointer-events-none" />
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-yellow-400/90 font-bold">
-                              <span className="p-1 px-1.5 bg-yellow-500/10 rounded-lg text-yellow-400">⚜️</span>
-                              <span className="font-sans text-[13px] tracking-wide uppercase font-black">PRESTIGE HALO INDEX (Halo Effect)</span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 leading-relaxed font-sans mt-1">
-                              <strong>The Halo Effect:</strong> Highly prestigious symbols (equipped rarity elements + scarce Sigils) cascade downstream, directly multiplying the utility of standard activities.
-                            </p>
-                            <div className="grid grid-cols-3 gap-2 pt-2 text-[10px]">
-                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Premium Items</span>
-                                <span className="text-cyan-400 font-extrabold text-sm">{equippedPremiumCount}</span>
-                              </div>
-                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Sigils Escrow</span>
-                                <span className="text-yellow-400 font-extrabold text-sm">{sigilsCount}</span>
-                              </div>
-                              <div className="bg-slate-900/60 p-2 border border-slate-900 rounded-xl text-center">
-                                <span className="text-slate-500 block uppercase text-[10px] font-bold">Yield Bonus</span>
-                                <span className="text-emerald-400 font-extrabold text-sm font-semibold">+{Math.round((prestigeHaloMultiplier - 1.0) * 100)}%</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="pt-3 border-t border-slate-900 space-y-3">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-slate-400 font-semibold uppercase">SCARCITY MINT RATIO:</span>
-                              <span className="text-slate-200">1200 MP &rarr; 1 Sovereign Sigil</span>
-                            </div>
-                            <motion.button
-                              whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(234,179,8,0.15)" }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={mintSigil}
-                              disabled={gameState.gold < 1200}
-                              className="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 disabled:from-slate-900 disabled:to-slate-900 disabled:text-slate-600 text-slate-950 disabled:border-slate-800 disabled:border font-black uppercase text-[10px] tracking-widest rounded-xl cursor-pointer shadow-lg shadow-yellow-500/5 transition-all text-center flex items-center justify-center gap-1.5"
-                            >
-                              <span>MINT SOVEREIGN SIGIL</span>
-                            </motion.button>
-                          </div>
-                        </div>
-
-                        {/* Column Right: Sovereign Vault Staking & Capital Reserves */}
-                        <div className="p-5 bg-gradient-to-rb from-slate-950 to-slate-900/40 border border-slate-900/80 rounded-2xl space-y-4 flex flex-col justify-between relative overflow-hidden">
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.02)_0%,transparent_60%)] pointer-events-none" />
-                          
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-center gap-2 text-indigo-400 font-bold">
-                                <span className="p-1 px-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">🏦</span>
-                                <span className="font-sans text-[13px] tracking-wide uppercase font-black">SOVEREIGN TRUST VAULT</span>
-                              </div>
-                              <span className="bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                                {currentRatePercent.toFixed(1)}% Compound Interest
-                              </span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center bg-slate-900/40 p-3 border border-slate-900 rounded-xl">
-                              <div>
-                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">STAKED CAPITAL RESERVES:</span>
-                                <span className="text-white text-base font-black tracking-wide">{baseStaked} MP</span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">ACCUMULATING INTEREST:</span>
-                                <span className="text-emerald-400 font-black text-sm uppercase">+{stakedYield} MP</span>
-                              </div>
-                            </div>
-                            
-                            <p className="text-[10px] text-slate-500 font-sans leading-relaxed">
-                              🔒 <strong>Investment Friction Theory:</strong> Locking active MP prevents dynamic liquidity inflation. Standard APY scales downward gracefully (Diminishing Marginal Utility) based on pooled reserves. Unstakings bear a small 1.5% capital friction fee.
-                            </p>
-                          </div>
-
-                          <div className="pt-2 border-t border-slate-900 grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => stakeMana(500)}
-                              disabled={gameState.gold < 500}
-                              className="py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 disabled:hover:bg-transparent disabled:opacity-20 border border-indigo-500/30 text-indigo-300 rounded-xl font-bold uppercase text-[9px] cursor-pointer transition-colors"
-                            >
-                              Stake 500 MP
-                            </button>
-                            <button
-                              onClick={claimStakedYield}
-                              disabled={stakedYield <= 0}
-                              className="py-2.5 bg-emerald-600/10 hover:bg-emerald-600/20 disabled:hover:bg-transparent disabled:opacity-20 border border-emerald-500/30 text-emerald-300 rounded-xl font-black uppercase text-[9px] cursor-pointer transition-colors"
-                            >
-                              Claim Yield (+{stakedYield})
-                            </button>
-                            <button
-                              onClick={unstakeMana}
-                              disabled={baseStaked <= 0}
-                              className="py-2 col-span-2 text-center text-slate-500 hover:text-red-400 hover:bg-red-400/5 duration-300 uppercase font-bold text-[10px] tracking-wider rounded-lg border border-slate-900 hover:border-red-500/20 transition-all cursor-pointer"
-                            >
-                              UNSTAKE ALL RESERVES (1.5% Liquidity Exit-Friction Fee applied)
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* Booster Contracts Upgrading (Anti-inflationary theories) */}
-                      <div className="p-4 bg-slate-900/35 border border-slate-900 rounded-2xl space-y-3 relative">
-                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                          <span>📦 INFLATION SAFEGUARD SYSTEM CONTRACTS</span>
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="bg-slate-950/80 p-3.5 border border-slate-900 rounded-xl flex justify-between items-center gap-4">
-                            <div>
-                              <div className="font-bold text-white uppercase text-[10px]">Prestige Velocity Contract</div>
-                              <div className="text-[9px] text-slate-500 font-sans mt-0.5 leading-snug">Boosts Prestige Index by +5% permanently. Increases dynamic income velocity.</div>
-                            </div>
-                            <button
-                              onClick={() => buyEconomyBooster("velocity")}
-                              disabled={gameState.gold < 300}
-                              className="px-3 py-2 bg-slate-900 border border-slate-800 text-cyan-300 disabled:opacity-20 rounded-lg text-[9px] font-black uppercase cursor-pointer"
-                            >
-                              Buy (300 MP)
-                            </button>
-                          </div>
-                          <div className="bg-slate-950/80 p-3.5 border border-slate-900 rounded-xl flex justify-between items-center gap-4">
-                            <div>
-                              <div className="font-bold text-yellow-400 uppercase text-[10px]">Sovereign Inflation Safeguard Bond</div>
-                              <div className="text-[9px] text-slate-500 font-sans mt-0.5 leading-snug">Hedges currency depreciation. Spikes base Yield Index multiplier by +15% permanently.</div>
-                            </div>
-                            <button
-                              onClick={() => buyEconomyBooster("bond")}
-                              disabled={(gameState.sigils ?? 0) < 2}
-                              className="px-3 py-2 bg-slate-900 border border-slate-800 text-yellow-500 disabled:opacity-20 rounded-lg text-[9px] font-black uppercase cursor-pointer"
-                            >
-                              Buy (2 Sigils)
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })()}
 
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex justify-between items-center">
@@ -4003,7 +3866,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <span className="text-[10px] text-indigo-400 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
                     <h4 className="text-sm font-bold text-slate-100 uppercase">SOVEREIGN ALLOCATION BOUNTY</h4>
                     <p className="text-[10px] text-slate-400 max-w-sm font-sans leading-relaxed">
-                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 500 Mana (MP) and 200 character experience points.
+                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 5 Mana (MP) and 200 character experience points.
                     </p>
                   </div>
 
@@ -4021,9 +3884,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       className="px-4 py-3 bg-red-950/20 border border-red-500/20 text-red-400 font-extrabold uppercase text-[10px] tracking-wider rounded-xl hover:bg-slate-900 hover:border-red-500/50 cursor-pointer transition-all duration-300"
                       onClick={() => {
                         const incompleteCount = gameState.quests.filter((q: any) => q.current < q.target).length || 2;
-                        const manaDeduct = incompleteCount * 25;
-                        setPlayerMp(prev => Math.max(0, prev - manaDeduct));
-                        triggerSystemToast(`🚨 SYSTEM FAILURE SIMULATION: Missed daily grinds detected! Internals punctured. Lost -${manaDeduct} Mana (MP)!`);
+                        const goldDeduct = incompleteCount * 3; // Keep aligned to realistic penalty parameters
+                        setGameState(prev => ({
+                          ...prev,
+                          gold: Math.max(0, prev.gold - goldDeduct)
+                        }));
+                        triggerSystemToast(`🚨 SYSTEM FAILURE SIMULATION: Missed daily grinds detected! Internals punctured. Lost -${goldDeduct} Sovereign Mana (MP)!`);
                       }}
                     >
                       Simulate Penalty Fail
@@ -5399,6 +5265,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
 
       </div>
+
+      {/* MOBILE NAV BAR BOTTOM SPACER */}
+      <div className="h-24 md:h-12 w-full shrink-0 block" aria-hidden="true" />
 
       {/* WEAPON DETAIL BLUE NEON GLOWING POPUP MODAL (1000x Detailed) */}
       <AnimatePresence>

@@ -128,6 +128,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   });
 
   // Form states - Announcements
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [announcementForm, setAnnouncementForm] = useState({
     title: "",
     message: "",
@@ -135,6 +136,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   });
 
   // Form states - Quests
+  const [editingQuestId, setEditingQuestId] = useState<string | null>(null);
   const [questForm, setQuestForm] = useState({
     name: "",
     description: "",
@@ -145,6 +147,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   });
 
   // Form states - Gates
+  const [editingGateId, setEditingGateId] = useState<string | null>(null);
   const [gateForm, setGateForm] = useState({
     name: "",
     minLevel: 10,
@@ -406,7 +409,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!announcementForm.title.trim() || !announcementForm.message.trim()) return;
-    const id = "ann-" + Math.random().toString(36).substring(2, 9);
+    const id = editingAnnouncementId || "ann-" + Math.random().toString(36).substring(2, 9);
     const path = `announcements/${id}`;
     try {
       await setDoc(doc(db, "announcements", id), {
@@ -415,12 +418,23 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         message: announcementForm.message,
         severity: announcementForm.severity,
         createdAt: serverTimestamp()
-      });
-      showNotification("SUCCESS: System-wide command broadcast published!");
+      }, { merge: true });
+      showNotification(editingAnnouncementId ? "SUCCESS: Command broadcast updated!" : "SUCCESS: System-wide command broadcast published!");
       setAnnouncementForm({ title: "", message: "", severity: "info" });
+      setEditingAnnouncementId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, path);
     }
+  };
+
+  const handleEditAnnouncementClick = (ann: Announcement) => {
+    setEditingAnnouncementId(ann.id);
+    setAnnouncementForm({
+      title: ann.title,
+      message: ann.message,
+      severity: ann.severity
+    });
+    addSystemLog(`Loaded announcement '${ann.title}' into system editor buffers.`, "info");
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
@@ -428,6 +442,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     try {
       await deleteDoc(doc(db, "announcements", id));
       showNotification("Broadcast transmission terminated.");
+      if (editingAnnouncementId === id) {
+        setEditingAnnouncementId(null);
+        setAnnouncementForm({ title: "", message: "", severity: "info" });
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -437,7 +455,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const handleCreateQuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!questForm.name.trim() || !questForm.description.trim()) return;
-    const id = "qst-" + Math.random().toString(36).substring(2, 9);
+    const id = editingQuestId || "qst-" + Math.random().toString(36).substring(2, 9);
     const path = `admin_quests/${id}`;
     try {
       await setDoc(doc(db, "admin_quests", id), {
@@ -449,8 +467,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         rewardGold: Number(questForm.rewardGold),
         type: questForm.type,
         createdAt: serverTimestamp()
-      });
-      showNotification("SUCCESS: Absolute Emergency Quest published Live!");
+      }, { merge: true });
+      showNotification(editingQuestId ? "SUCCESS: Emergency Quest parameters synchronized!" : "SUCCESS: Absolute Emergency Quest published Live!");
       setQuestForm({
         name: "",
         description: "",
@@ -459,9 +477,23 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         rewardGold: 1000,
         type: "Emergency"
       });
+      setEditingQuestId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, path);
     }
+  };
+
+  const handleEditQuestClick = (q: AdminQuest) => {
+    setEditingQuestId(q.id);
+    setQuestForm({
+      name: q.name,
+      description: q.description,
+      target: q.target,
+      rewardExp: q.rewardExp,
+      rewardGold: q.rewardGold,
+      type: q.type
+    });
+    addSystemLog(`Loaded Quest '${q.name}' into system editor buffers.`, "info");
   };
 
   const handleDeleteQuest = async (id: string) => {
@@ -469,6 +501,17 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     try {
       await deleteDoc(doc(db, "admin_quests", id));
       showNotification("System crisis quest deleted.");
+      if (editingQuestId === id) {
+        setEditingQuestId(null);
+        setQuestForm({
+          name: "",
+          description: "",
+          target: 10,
+          rewardExp: 500,
+          rewardGold: 1000,
+          type: "Emergency"
+        });
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -478,7 +521,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const handleCreateGate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gateForm.name.trim()) return;
-    const id = "gat-" + Math.random().toString(36).substring(2, 9);
+    const id = editingGateId || "gat-" + Math.random().toString(36).substring(2, 9);
     const path = `admin_gates/${id}`;
     try {
       await setDoc(doc(db, "admin_gates", id), {
@@ -491,8 +534,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         lootItemName: gateForm.lootItemName,
         isActive: gateForm.isActive,
         createdAt: serverTimestamp()
-      });
-      showNotification("SUCCESS: Dimensional Gate successfully forged!");
+      }, { merge: true });
+      showNotification(editingGateId ? "SUCCESS: Dimensional Gate spacetime stabilized!" : "SUCCESS: Dimensional Gate successfully forged!");
       setGateForm({
         name: "",
         minLevel: 10,
@@ -502,9 +545,24 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         lootItemName: "Kamish's Wrath",
         isActive: true
       });
+      setEditingGateId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, path);
     }
+  };
+
+  const handleEditGateClick = (gate: AdminGate) => {
+    setEditingGateId(gate.id);
+    setGateForm({
+      name: gate.name,
+      minLevel: gate.minLevel,
+      difficulty: gate.difficulty,
+      expReward: gate.expReward,
+      goldReward: gate.goldReward,
+      lootItemName: gate.lootItemName,
+      isActive: gate.isActive
+    });
+    addSystemLog(`Loaded Dimensional Gate '${gate.name}' into system editor buffers.`, "info");
   };
 
   const handleDeleteGate = async (id: string) => {
@@ -512,6 +570,18 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     try {
       await deleteDoc(doc(db, "admin_gates", id));
       showNotification("Dimensional spacetime gate collapsed.");
+      if (editingGateId === id) {
+        setEditingGateId(null);
+        setGateForm({
+          name: "",
+          minLevel: 10,
+          difficulty: "S-Rank",
+          expReward: 1500,
+          goldReward: 3000,
+          lootItemName: "Kamish's Wrath",
+          isActive: true
+        });
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -549,45 +619,126 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   };
 
-  // Initialize standard dummy data if collections are empty to speed up grading
+   // Initialize standard dummy data if collections are empty to speed up grading
   const handleSeedMockData = async () => {
     try {
-      // 1. Seed standard announcement
-      const annId = "ann-welcome";
-      await setDoc(doc(db, "announcements", annId), {
-        id: annId,
-        title: "⚡ SYSTEM DECK ONLINE",
-        message: "The ultimate administrator control network is online. Level multipliers, emergency alerts, and gate challenges are active.",
-        severity: "info",
-        createdAt: serverTimestamp()
-      });
+      // 1. Seed standard announcements
+      const announcementsData = [
+        {
+          id: "ann-welcome",
+          title: "⚡ SYSTEM DECK ONLINE",
+          message: "The ultimate administrator control network is online. Level multipliers, emergency alerts, and gate challenges are active in real-time.",
+          severity: "info"
+        },
+        {
+          id: "ann-season",
+          title: "📢 SEASON 3 HUNTER SPLIT ACTS",
+          message: "Register for S-Rank dimensional raids. Make sure to complete daily training grinds to satisfy the system quota checked at daily reset.",
+          severity: "warning"
+        },
+        {
+          id: "ann-crisis",
+          title: "⚠️ CRITICAL WAVE: DEFENSE STRATEGY",
+          message: "A massive outbreak has been detected in Sector Grand-17. Hunters below Level 15 must fall back under penalty of Level Drain containment cycles.",
+          severity: "emergency"
+        }
+      ];
 
-      // 2. Seed custom quest
-      const qId = "qst-monarch";
-      await setDoc(doc(db, "admin_quests", qId), {
-        id: qId,
-        name: "Admin Raid: Kamish's Shadow",
-        description: "Engage and subdue the Ancient S-Rank Sovereign Dragon memory clone.",
-        target: 1,
-        rewardExp: 5000,
-        rewardGold: 25000,
-        type: "Emergency",
-        createdAt: serverTimestamp()
-      });
+      for (const ann of announcementsData) {
+        await setDoc(doc(db, "announcements", ann.id), {
+          ...ann,
+          createdAt: serverTimestamp()
+        });
+      }
 
-      // 3. Seed custom gate
-      const gId = "gat-monarch";
-      await setDoc(doc(db, "admin_gates", gId), {
-        id: gId,
-        name: "Imperial Throne Room",
-        minLevel: 50,
-        difficulty: "Sovereign-Rank",
-        expReward: 10000,
-        goldReward: 50000,
-        lootItemName: "Monarch's Heart Core",
-        isActive: true,
-        createdAt: serverTimestamp()
-      });
+      // 2. Seed custom quests
+      const questsData = [
+        {
+          id: "qst-monarch",
+          name: "Admin Raid: Kamish's Shadow",
+          description: "Engage and subdue the Ancient S-Rank Sovereign Dragon memory clone inside the imperial palace core.",
+          target: 1,
+          rewardExp: 5000,
+          rewardGold: 25000,
+          type: "Emergency"
+        },
+        {
+          id: "qst-cognitive",
+          name: "Sovereign Elite: Cognitive Structuring Grind",
+          description: "Satisfy administrative focus nodes requirements by completing Pomodoro timers and brain tasks.",
+          target: 5,
+          rewardExp: 1000,
+          rewardGold: 5000,
+          type: "Daily"
+        },
+        {
+          id: "qst-story-act",
+          name: "Primary Story: Double Dungeon Awakening",
+          description: "Locate and activate the hidden architecture matrix beneath the standard C-Rank dungeon gates structure.",
+          target: 2,
+          rewardExp: 8000,
+          rewardGold: 40000,
+          type: "Story"
+        }
+      ];
+
+      for (const q of questsData) {
+        await setDoc(doc(db, "admin_quests", q.id), {
+          ...q,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 3. Seed custom gates
+      const gatesData = [
+        {
+          id: "gat-monarch",
+          name: "Imperial Throne Room",
+          minLevel: 50,
+          difficulty: "Kamish-Level",
+          expReward: 10000,
+          goldReward: 50000,
+          lootItemName: "Monarch's Heart Core",
+          isActive: true
+        },
+        {
+          id: "gat-dungeon-1",
+          name: "Sentinel Desert Plateau",
+          minLevel: 15,
+          difficulty: "B-Rank",
+          expReward: 2500,
+          goldReward: 6000,
+          lootItemName: "Demon King's Shortsword",
+          isActive: true
+        },
+        {
+          id: "gat-dungeon-2",
+          name: "Subzero Frost Rift Zone",
+          minLevel: 30,
+          difficulty: "S-Rank",
+          expReward: 6000,
+          goldReward: 15000,
+          lootItemName: "Frost Monarch's Ice Dagger",
+          isActive: true
+        },
+        {
+          id: "gat-dungeon-3",
+          name: "Double Dungeon Altar",
+          minLevel: 45,
+          difficulty: "Ultimate",
+          expReward: 12000,
+          goldReward: 32000,
+          lootItemName: "Ruler's Authority Sigil",
+          isActive: true
+        }
+      ];
+
+      for (const g of gatesData) {
+        await setDoc(doc(db, "admin_gates", g.id), {
+          ...g,
+          createdAt: serverTimestamp()
+        });
+      }
 
       showNotification("SUCCESS: Archetype templates loaded!");
     } catch (err) {
@@ -1058,7 +1209,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <Megaphone className="w-4 h-4 animate-bounce" />
-                    <span>BROADCAST SYSTEM WIDE ALERT</span>
+                    <span>{editingAnnouncementId ? `MODIFY ARCHETYPE DECREE: ${editingAnnouncementId}` : "BROADCAST SYSTEM WIDE ALERT"}</span>
                   </h3>
 
                   <form onSubmit={handleCreateAnnouncement} className="space-y-4">
@@ -1100,13 +1251,25 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       />
                     </div>
 
-                    <div className="flex justify-end pt-2">
+                    <div className="flex justify-end gap-2 pt-2">
+                      {editingAnnouncementId && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setEditingAnnouncementId(null);
+                            setAnnouncementForm({ title: "", message: "", severity: "info" });
+                          }}
+                          className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-xl text-xs text-slate-400 transition-colors uppercase cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button 
                         type="submit" 
                         className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-amber-950 flex items-center gap-1.5"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Deploy Command alert</span>
+                        {editingAnnouncementId ? <Sparkles className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        <span>{editingAnnouncementId ? "Update Decree" : "Deploy Command alert"}</span>
                       </button>
                     </div>
                   </form>
@@ -1145,12 +1308,20 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             <p className="text-[11px] text-slate-400 leading-relaxed font-sans">{ann.message}</p>
                           </div>
                           
-                          <button 
-                            onClick={() => handleDeleteAnnouncement(ann.id)}
-                            className="p-1 px-2.5 bg-slate-950 hover:bg-red-950 hover:text-red-400 border border-slate-900 transition-colors uppercase text-[9px] font-black text-slate-500 rounded-lg cursor-pointer"
-                          >
-                            Purge
-                          </button>
+                          <div className="flex gap-1.5 shrink-0 self-start">
+                            <button 
+                              onClick={() => handleEditAnnouncementClick(ann)}
+                              className="p-1 px-2.5 bg-slate-950 hover:bg-amber-950 hover:text-amber-400 border border-slate-900 transition-colors uppercase text-[9px] font-black text-slate-500 rounded-lg cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteAnnouncement(ann.id)}
+                              className="p-1 px-2.5 bg-slate-950 hover:bg-red-950 hover:text-red-400 border border-slate-900 transition-colors uppercase text-[9px] font-black text-slate-500 rounded-lg cursor-pointer"
+                            >
+                              Purge
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1165,7 +1336,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <h3 className="text-xs font-black text-rose-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <Flame className="w-4 h-4 animate-pulse" />
-                    <span>INJECT CUSTOM SYSTEM QUEST TASK</span>
+                    <span>{editingQuestId ? `MODIFY ARCHETYPE QUEST: ${editingQuestId}` : "INJECT CUSTOM SYSTEM QUEST TASK"}</span>
                   </h3>
 
                   <form onSubmit={handleCreateQuest} className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -1213,7 +1384,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         value={questForm.target} 
                         onChange={(e) => setQuestForm({...questForm, target: Number(e.target.value)})} 
                         min={1} 
-                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none opacity-100 placeholder:text-slate-600 block accent-rose-500"
                         required
                       />
                     </div>
@@ -1225,7 +1396,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         value={questForm.rewardExp} 
                         onChange={(e) => setQuestForm({...questForm, rewardExp: Number(e.target.value)})} 
                         min={0} 
-                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none opacity-100 placeholder:text-slate-600 block accent-rose-500"
                         required
                       />
                     </div>
@@ -1237,18 +1408,37 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         value={questForm.rewardGold} 
                         onChange={(e) => setQuestForm({...questForm, rewardGold: Number(e.target.value)})} 
                         min={0} 
-                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                        className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none opacity-100 placeholder:text-slate-600 block accent-rose-500"
                         required
                       />
                     </div>
 
-                    <div className="col-span-12 flex justify-end pt-2">
+                    <div className="col-span-12 flex justify-end gap-2 pt-2">
+                      {editingQuestId && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setEditingQuestId(null);
+                            setQuestForm({
+                              name: "",
+                              description: "",
+                              target: 10,
+                              rewardExp: 500,
+                              rewardGold: 1000,
+                              type: "Emergency"
+                            });
+                          }}
+                          className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-xl text-xs text-slate-400 transition-colors uppercase cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button 
                         type="submit" 
                         className="px-6 py-2 bg-rose-650 hover:bg-rose-600 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-rose-950 flex items-center gap-1.5"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Inject Quest</span>
+                        {editingQuestId ? <Sparkles className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        <span>{editingQuestId ? "Update Quest" : "Inject Quest"}</span>
                       </button>
                     </div>
                   </form>
@@ -1267,15 +1457,23 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           <div>
                             <div className="flex justify-between items-center">
                               <span className="text-[8px] px-1.5 py-0.5 rounded border border-rose-500/30 text-rose-400 uppercase tracking-wider font-extrabold">{q.type} ARCS</span>
-                              <button 
-                                onClick={() => handleDeleteQuest(q.id)}
-                                className="text-[9px] font-bold text-red-500 hover:text-red-400 hover:scale-105 transition-transform"
-                              >
-                                Delete
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleEditQuestClick(q)}
+                                  className="text-[9px] font-bold text-amber-500 hover:text-amber-400"
+                                >
+                                  Edit
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteQuest(q.id)}
+                                  className="text-[9px] font-bold text-red-500 hover:text-red-400 hover:scale-105 transition-transform"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                             <h4 className="text-xs font-bold text-white mt-1">{q.name}</h4>
-                            <p className="text-[10px] text-slate-450 mt-1 line-clamp-2 leading-relaxed font-sans">{q.description}</p>
+                            <p className="text-[10px] text-slate-455 mt-1 line-clamp-2 leading-relaxed font-sans">{q.description}</p>
                           </div>
 
                           <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-900/60 text-[9px]">
@@ -1299,7 +1497,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <Compass className="w-4 h-4 text-emerald-400" />
-                    <span>FORGE DYNAMIC SPACE TIME GATE</span>
+                    <span>{editingGateId ? `MODIFY ARCHETYPE GATE: ${editingGateId}` : "FORGE DYNAMIC SPACE TIME GATE"}</span>
                   </h3>
 
                   <form onSubmit={handleCreateGate} className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -1385,13 +1583,33 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       <label htmlFor="gate_is_active_box" className="text-[10px] text-slate-400 uppercase font-black cursor-pointer">Live Spawning Rift Active</label>
                     </div>
 
-                    <div className="col-span-12 flex justify-end pt-2">
+                    <div className="col-span-12 flex justify-end gap-2 pt-2">
+                      {editingGateId && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setEditingGateId(null);
+                            setGateForm({
+                              name: "",
+                              minLevel: 10,
+                              difficulty: "S-Rank",
+                              expReward: 1500,
+                              goldReward: 3000,
+                              lootItemName: "Kamish's Wrath",
+                              isActive: true
+                            });
+                          }}
+                          className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-xl text-xs text-slate-400 transition-colors uppercase cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button 
                         type="submit" 
                         className="px-6 py-2 bg-emerald-650 hover:bg-emerald-600 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-emerald-950 flex items-center gap-1.5"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Forge Dimensional Gate</span>
+                        {editingGateId ? <Sparkles className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        <span>{editingGateId ? "Update Gate Spacetime" : "Forge Dimensional Gate"}</span>
                       </button>
                     </div>
                   </form>
@@ -1414,11 +1632,15 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             <div>
                               <div className="flex items-center gap-2">
                                 <h4 className="text-xs font-bold text-slate-100">{gate.name}</h4>
-                                <span className="text-[8px] font-black px-1.5 py-0.2 rounded border border-emerald-800/40 bg-emerald-950/30 text-emerald-300">
-                                  {gate.difficulty}
+                                <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
+                                  !gate.isActive 
+                                    ? "border-slate-800 bg-slate-950 text-slate-600" 
+                                    : "border-emerald-800/40 bg-emerald-950/30 text-emerald-300"
+                                }`}>
+                                  {gate.difficulty} {!gate.isActive && "(INACTIVE)"}
                                 </span>
                               </div>
-                              <span className="text-[9px] text-slate-450 block font-mono mt-0.5">
+                              <span className="text-[9px] text-slate-455 block font-mono mt-0.5">
                                 Req: Lv {gate.minLevel} &middot; Loot Drop: <span className="text-amber-400 font-bold">{gate.lootItemName}</span>
                               </span>
                             </div>
@@ -1430,13 +1652,22 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               <div className="text-purple-400">+{gate.expReward} EXP</div>
                             </div>
 
-                            <button 
-                              onClick={() => handleDeleteGate(gate.id)}
-                              className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
-                              title="Collapse Rift"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex gap-1.5">
+                              <button 
+                                onClick={() => handleEditGateClick(gate)}
+                                className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-900 hover:border-slate-750 text-slate-400 hover:text-amber-400 rounded-lg transition-colors cursor-pointer"
+                                title="Edit Gate Spacetime Parameters"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteGate(gate.id)}
+                                className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                                title="Collapse Rift"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

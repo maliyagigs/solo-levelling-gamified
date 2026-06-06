@@ -45,8 +45,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMsg = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth.currentUser?.uid || null,
       email: auth.currentUser?.email || null,
@@ -61,8 +62,19 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+  
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  const isPermissionDenied = errMsg.toLowerCase().includes("permission") || 
+                             errMsg.toLowerCase().includes("denied") ||
+                             errMsg.toLowerCase().includes("insufficient") ||
+                             (error && typeof error === 'object' && ('code' in error) && (error as any).code === 'permission-denied');
+
+  if (isPermissionDenied) {
+    throw new Error(JSON.stringify(errInfo));
+  } else {
+    console.warn("Handling transient/network Firestore event without throwing: ", errMsg);
+  }
 }
 
 // Dry-run connection validation

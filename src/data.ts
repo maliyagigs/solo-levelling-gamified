@@ -117,7 +117,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Regular",
     power: 120,
     unlocked: true,
-    cost: 50,
+    cost: 5,
     count: 3,
     iconName: "ShieldAlert",
     description: "Reborn foot soldiers holding heavy obsidian tower shields."
@@ -128,7 +128,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Regular",
     power: 280,
     unlocked: false,
-    cost: 150,
+    cost: 15,
     count: 0,
     iconName: "FlameKindling",
     description: "Fierce alpha wolves extracted from the Ice Gates."
@@ -139,7 +139,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Elite",
     power: 2450,
     unlocked: false,
-    cost: 1000,
+    cost: 100,
     count: 0,
     iconName: "Sword",
     description: "The Blood-Red Commander. Wields the Greatsword with absolute loyalty."
@@ -150,7 +150,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Elite",
     power: 1800,
     unlocked: false,
-    cost: 800,
+    cost: 80,
     count: 0,
     iconName: "Hammer",
     description: "A gigantic high-orc shieldmaster. Known for crushing shield bashes."
@@ -161,7 +161,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Elite",
     power: 2100,
     unlocked: false,
-    cost: 950,
+    cost: 95,
     count: 0,
     iconName: "Compass",
     description: "Massive ice-bear lead tank. Capable of shattering brick structures."
@@ -172,7 +172,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Named Commander",
     power: 18500,
     unlocked: false,
-    cost: 5000,
+    cost: 500,
     count: 0,
     iconName: "Bug",
     description: "The Insatiate Ant King. Unleashes high-speed lightning strikes and healing chants."
@@ -183,7 +183,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Named Commander",
     power: 29000,
     unlocked: false,
-    cost: 12000,
+    cost: 1200,
     count: 0,
     iconName: "Crown",
     description: "The original commander of the Shadow Legion. Wields a giant snake whip sword."
@@ -194,7 +194,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     tier: "Ultimate Legion",
     power: 150000,
     unlocked: false,
-    cost: 50000,
+    cost: 5000,
     count: 0,
     iconName: "Workflow",
     description: "An endless army of millions of shadows standing ready in absolute darkness."
@@ -382,7 +382,7 @@ export const SKILLS_LIST: SkillNode[] = [
     name: "Dragon Fear",
     description: "Unleashes a blood-curdling cosmic dragon roar that paralyzes weak opponents.",
     levelRequired: 60,
-    cost: 60,
+    cost: 50,
     unlocked: false,
     category: "Combat",
     effect: "Freezes dungeon minor enemies for first 3 moves instantly"
@@ -392,7 +392,7 @@ export const SKILLS_LIST: SkillNode[] = [
     name: "Void Portal Teleportation",
     description: "Instantly slip into user shadows and step out from any shadow soldier across the globe.",
     levelRequired: 80,
-    cost: 80,
+    cost: 60,
     unlocked: false,
     category: "Passive",
     effect: "Bypasses dungeon escape constraints and halves incoming energy damage"
@@ -408,7 +408,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Statue of God",
     difficulty: "E-Rank Survival Test",
     expReward: 120,
-    goldReward: 50,
+    goldReward: 2, // Adjusted from 5 to 2 MP
     lootItem: {
       id: "kasaka_fang",
       name: "Kasaka's Venom Dagger",
@@ -426,7 +426,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Kasaka Blue Serpent",
     difficulty: "D-Rank Combat Gate",
     expReward: 480,
-    goldReward: 250,
+    goldReward: 5, // Adjusted from 12 to 5 MP
     lootItem: {
       id: "kasaka_fang",
       name: "Kasaka's Venom Dagger",
@@ -444,7 +444,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Baruka Ice Elf Commander",
     difficulty: "C-Rank Intense Dungeon",
     expReward: 1500,
-    goldReward: 800,
+    goldReward: 10, // Adjusted from 20 to 10 MP
     lootItem: {
       id: "igris_sword",
       name: "Knight's Longsword (Igris Loot)",
@@ -462,7 +462,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Kargalgan Shaman King",
     difficulty: "B-Rank Team Raid",
     expReward: 4500,
-    goldReward: 2200,
+    goldReward: 20, // Adjusted from 32 to 20 MP
     lootItem: {
       id: "demon_dagger",
       name: "Blood-Red Demon Dagger",
@@ -480,7 +480,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Baran Demon King",
     difficulty: "A-Rank Demonic Crusade",
     expReward: 12000,
-    goldReward: 6000,
+    goldReward: 35, // Adjusted from 50 to 35 MP
     lootItem: {
       id: "demon_dagger",
       name: "Blood-Red Demon Dagger",
@@ -498,7 +498,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Beast Mutated Ant King [Beru]",
     difficulty: "S-Rank Legendary Raid",
     expReward: 45000,
-    goldReward: 25000,
+    goldReward: 60, // Adjusted from 100 to 60 MP
     lootItem: {
       id: "kamish_fang",
       name: "Kamish's Dragon Fang Dagger",
@@ -516,7 +516,7 @@ export const DUNGEONS_CATALOG = [
     bossName: "Antares Sovereign of Destruction",
     difficulty: "Godhood Cosmic Duel",
     expReward: 200000,
-    goldReward: 100000,
+    goldReward: 150, // Adjusted from 250 to 150 MP (keeps prestigious balance with global economy)
     lootItem: {
       id: "sovereigns_wrath",
       name: "Sovereign's Wrath (Ethereal Dual Blades)",
