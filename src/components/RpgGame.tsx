@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Dumbbell, 
@@ -39,7 +39,9 @@ import {
   Target,
   Trophy,
   Bell,
-  Radio
+  Radio,
+  TrendingUp,
+  Terminal
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
@@ -57,7 +59,7 @@ import {
   playHurtSound 
 } from "../utils/audio";
 
-import { getWeaponColorClasses, renderCircularProgress } from "./gameHelpers";
+import { getWeaponColorClasses, renderCircularProgress, renderVerticalBar } from "./gameHelpers";
 import { SocialHub } from "./SocialHub";
 import { listenToFriendships } from "../utils/social";
 
@@ -69,8 +71,104 @@ interface RpgGameProps {
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
   const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "social">("home");
+  const [economyState, setEconomyState] = useState<{ totalShares: number, circulatingMana: number, currentManaValue: number, marketCap: number } | null>(null);
+
+  // Active Gates for the day
+  const [activeGateIds, setActiveGateIds] = useState<string[]>([]);
+  const [preparedGateIds, setPreparedGateIds] = useState<string[]>([]);
+  const [preparingGateId, setPreparingGateId] = useState<string | null>(null);
+  const [prepTimer, setPrepTimer] = useState<number>(0);
+
+  useEffect(() => {
+    if (prepTimer > 0) {
+      const iter = setInterval(() => {
+        setPrepTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(iter);
+    } else if (preparingGateId) {
+      setPreparedGateIds(prev => [...prev, preparingGateId]);
+      setPreparingGateId(null);
+      triggerSystemToast(`✅ PREPARATION COMPLETE: Dimensional sync established for ${preparingGateId}.`);
+    }
+  }, [prepTimer, preparingGateId]);
+
+  const startPreparation = (gateId: string) => {
+    playSelectSound();
+    setPreparingGateId(gateId);
+    // 30 seconds for prep as a "mini-grind" placeholder for real work session
+    setPrepTimer(30); 
+    triggerSystemToast(`⚙️ PREPARATION INITIATED: Focus on your ${onboardProfile.academicSubject || onboardProfile.careerTargetRole || "studies/career"} tasks now.`);
+  };
+
+  useEffect(() => {
+    // Generate active gates based on current date
+    const today = new Date().toDateString();
+    // Deterministic seed based on date string
+    let seed = 0;
+    for (let i = 0; i < today.length; i++) {
+      seed = (seed << 5) - seed + today.charCodeAt(i);
+      seed |= 0;
+    }
+    
+    // Logic: Always include the starter gate (dung_e) + 1 random one from the rest
+    const available = DUNGEONS_CATALOG.filter(d => d.id !== "dung_e").map(d => d.id);
+    
+    // Deterministic pick for the bonus gate
+    const bonusIdx = Math.abs(seed) % available.length;
+    const bonusGateId = available[bonusIdx];
+    
+    // User said 1 or 2. Let's decide if we add the second one today
+    const countIsTwo = (Math.abs(seed) % 10) > 3; // 60% chance for 2 gates, 40% for just the main starter
+    
+    if (countIsTwo) {
+      setActiveGateIds(["dung_e", bonusGateId]);
+    } else {
+      setActiveGateIds(["dung_e"]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchEconomy = async () => {
+      try {
+        const res = await fetch("/api/economy/state");
+        if (res.ok) {
+          const data = await res.json();
+          setEconomyState(data);
+        }
+      } catch (e) {}
+    };
+    fetchEconomy();
+    const interval = setInterval(fetchEconomy, 30000);
+    return () => clearInterval(interval);
+  }, []);
   const [socialSubTab, setSocialSubTab] = useState<"chat" | "leaderboard" | "friends">("chat");
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [socialPulse, setSocialPulse] = useState<string>("SYSTEM: All dimensional gates are stabilized. Good luck, Hunter.");
+
+  useEffect(() => {
+    if (activeTab === "home") {
+      const incomplete = gameState.quests.filter(q => !q.completed).length;
+      if (incomplete > 0) {
+        setTimeout(() => {
+          triggerSystemToast(`⚠️ SYSTEM DIRECTIVE: You have ${incomplete} daily tasks remaining. Finalize logs to avoid penalties.`);
+        }, 1000);
+      }
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const alerts = [
+      `BROADCAST: Player ${Math.floor(Math.random() * 500)} just reached Level ${Math.floor(Math.random() * 20 + 40)}!`,
+      `RANKING: New Sovereign-Rank activity detected in District 7.`,
+      `MARKET: Mana value fluctuated by 0.003% due to high gate activity.`,
+      `MILESTONE: Community has collectively cleared 500+ D-Rank gates today.`,
+      `ALERT: S-Rank Hunter 'Igris' has been spotted in the shadows.`
+    ];
+    const interval = setInterval(() => {
+      setSocialPulse(alerts[Math.floor(Math.random() * alerts.length)]);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Social Notification Listener
   useEffect(() => {
@@ -319,7 +417,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       boosterMultiplier: 1.0,
       sigils: 0,
       prestigePoints: 0,
-      weeklyManaAccumulated: 0
+      weeklyManaAccumulated: 0,
+      dailyGatesCleared: 0,
+      dailyFocusMinutes: 0
     };
   });
 
@@ -361,6 +461,22 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   });
   const [shadowSpellEffect, setShadowSpellEffect] = useState<string | null>(null);
   const [systemToast, setSystemToast] = useState<string | null>(null);
+
+  const combatPower = useMemo(() => {
+    const equippedW = gameState.inventory.find(i => i.equipped && i.type === "Weapon") || null;
+    const weaponAtk = equippedW 
+      ? (equippedW.statBonus.strength || 0) + (equippedW.statBonus.agility || 0) + (equippedW.statBonus.intelligence || 0)
+      : 0;
+    const shadowPwr = gameState.shadows
+      .filter(s => s.unlocked)
+      .reduce((acc, s) => acc + (s.power * s.count), 0);
+    
+    // Unified Combat Power Formula: Stats (Core) + Weapon (Multi) + Shadow (Synergy)
+    // Strength is prime, but Intelligence scales shadow effectiveness
+    const corePower = (gameState.baseStats.strength * 5) + (gameState.baseStats.agility * 3) + (gameState.baseStats.intelligence * 2);
+    // Weapons amplify core power; shadows provide threshold-based support
+    return Math.round(corePower * (1 + (weaponAtk / 200)) + (shadowPwr * (0.05 + (gameState.baseStats.intelligence * 0.001))));
+  }, [gameState]);
 
   const triggerSystemToast = (msg: string) => {
     setSystemToast(msg);
@@ -737,7 +853,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             
             return {
               ...prevGameState,
-              quests: refreshed
+              quests: refreshed,
+              dailyGatesCleared: 0,
+              dailyFocusMinutes: 0
             };
           }
         });
@@ -817,7 +935,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     addExp(expAward);
     setGameState(prev => ({
       ...prev,
-      gold: prev.gold + goldAward
+      gold: prev.gold + goldAward,
+      dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins
     }));
 
     // Update Academic Quests
@@ -2511,6 +2630,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return;
     }
 
+    if (!preparedGateIds.includes(dungeon.id)) {
+      triggerSystemToast(`⛔ GATE SYNC FAILED: You must prepare for this gate through professional/academic focus first.`);
+      return;
+    }
+
     const equippedW = getEquippedWeapon();
     const weaponAtk = equippedW 
       ? (equippedW.statBonus.strength || 0) + (equippedW.statBonus.agility || 0) 
@@ -2542,37 +2666,36 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       : 0;
 
     // A. Player Attack
-    let playerDmg = Math.round(gameState.baseStats.strength * 2.2 + weaponAtk + Math.random() * 8);
+    let playerDmg = Math.round(combatPower * 0.12 + Math.random() * 15);
     let logsToAdd: string[] = [];
 
     if (action === "strike") {
       playDaggerSwipe();
-      logsToAdd.push(`⚔️ You swing ${equippedW?.name || "fists"} dealing ${playerDmg} attack damage.`);
+      logsToAdd.push(`⚔️ You execute a precision strike dealing ${playerDmg} kinetic damage.`);
     } else if (action === "skill") {
       const activeS = gameState.skills.filter(s => s.unlocked);
       if (activeS.length === 0) {
-        logsToAdd.push(`⚠️ No active combat spells found in your matrix! Forced basic strike.`);
+        logsToAdd.push(`⚠️ No active combat spells found in your matrix! Basic strike forced.`);
         playDaggerSwipe();
       } else {
         const randS = activeS[Math.floor(Math.random() * activeS.length)];
-        playerDmg = Math.round(playerDmg * 1.8);
+        // Skills scale heavily with Intelligence and Combat Power synergy
+        const skillMult = 1.8 + (gameState.baseStats.intelligence * 0.05);
+        playerDmg = Math.round(playerDmg * skillMult);
         playAriseSound();
-        logsToAdd.push(`🔮 You cast [${randS.name}]! Spell effect activates. Wrecks ${playerDmg} core damage.`);
+        logsToAdd.push(`🔮 [${randS.name}] ENABLED! Your mana core vibrates, crushing for ${playerDmg} dimensional damage.`);
       }
     } else {
-      // Shadows Charge
+      // Shadows Charge - Restructured for massive late-game impact
       const unlockedShadows = gameState.shadows.filter(s => s.unlocked && s.count > 0);
       if (unlockedShadows.length === 0) {
         logsToAdd.push(`💀 You raised no active shadow soldiers yet! Basic strike forced.`);
         playDaggerSwipe();
       } else {
-        let totalShadowAtk = 0;
-        unlockedShadows.forEach(s => {
-          totalShadowAtk += s.power * 0.1 * s.count;
-        });
-        playerDmg = Math.round(playerDmg + totalShadowAtk + 15);
+        const armySynergy = 1.5 + (gameState.baseStats.intelligence + gameState.baseStats.perception) * 0.01;
+        playerDmg = Math.round(playerDmg * 2.5 * armySynergy);
         playAriseSound();
-        logsToAdd.push(`🌑 "ARISE!" Your shadow legion strikes! Total army damage added: ${playerDmg}`);
+        logsToAdd.push(`🌑 "ARISE!" Your shadow legion resonance peaks! Combined vertical damage: ${playerDmg}`);
       }
     }
 
@@ -2601,11 +2724,23 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       logsToAdd.push(`💨 You seamlessly slip through ${selectedDungeon.bossName}'s heavy swings.`);
     } else {
       playHurtSound();
-      const enemyDmg = Math.round(selectedDungeon.enemyAttack + Math.random() * 10 - gameState.baseStats.vitality * 0.2);
-      const nextPlayerHp = Math.max(0, playerHp - Math.max(1, enemyDmg));
+      
+      // SCALE ENEMY DAMAGE BASED ON LEVEL GAP (Dungeon Rank vs Player Level)
+      const levelGap = Math.max(0, selectedDungeon.minLevel - gameState.level);
+      const gapMultiplier = 1 + (levelGap * 0.15); // 15% increase per level gap
+      
+      const baseEnemyDmg = selectedDungeon.enemyAttack + Math.random() * 10;
+      // Increased mitigation sensitivity: vitality now blocks slightly more but the gap increases damage massively
+      const mitigatedDmg = Math.max(1, baseEnemyDmg - gameState.baseStats.vitality * 0.25);
+      const enemyDmg = Math.round(mitigatedDmg * gapMultiplier);
+      
+      const nextPlayerHp = Math.max(0, playerHp - enemyDmg);
       setPlayerHp(nextPlayerHp);
 
       logsToAdd.push(`💥 ${selectedDungeon.bossName} retaliates striking you for ${enemyDmg} kinetic damage.`);
+      if (levelGap > 3) {
+        logsToAdd.push(`⚠️ DIMENSIONAL INSTABILITY: The gap between your level and the gate's rank is causing massive trauma!`);
+      }
 
       if (nextPlayerHp <= 0) {
         // Defeat condition
@@ -2649,7 +2784,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return {
         ...prev,
         gold: prev.gold + gold,
-        inventory: inv
+        inventory: inv,
+        dailyGatesCleared: (prev.dailyGatesCleared ?? 0) + 1
       };
     });
   };
@@ -2788,71 +2924,49 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
       )}
 
-      {/* Header Panel */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-2 sm:px-4 border-b border-cyan-500/30 bg-slate-950/80 backdrop-blur-xl grid grid-cols-3 items-center h-16 shadow-[0_4px_20px_rgba(0,0,0,0.5),0_1px_0_rgba(6,182,212,0.1)]">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+      {/* SYNCED TOP HUD: MANA & LEVEL (LEFT), MESSAGES (RIGHT) */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-gradient-to-b from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md flex items-center justify-between px-6 shadow-[0_15px_30px_rgba(0,0,0,0.65)]">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+            <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">MANA CAPACITY</span>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,1)]" />
+              <span className="text-lg font-black text-white font-mono tracking-tighter leading-none">{gameState.gold}</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col">
+            <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">STAT RANK</span>
+            <div className="flex items-center gap-1">
+              <span className="text-lg font-black text-cyan-300 font-mono italic leading-none">LV.{gameState.level}</span>
+            </div>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
-          {/* Notification Icon */}
+
+        <div className="flex items-center gap-4">
           <button 
-            onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("friends"); }}
-            className="flex-shrink-0 relative p-2 sm:p-2.5 bg-slate-900/80 rounded-xl border border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50 transition-all active:scale-95 shadow-inner"
+            onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("chat"); }}
+            className="p-3 relative flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
-            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 shadow-[0_0_8px_rgba(6,182,212,0.3)]" />
-            {friendRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
-            )}
-            {friendRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full border-2 border-slate-950" />
-            )}
+            <MessageSquare 
+              className="w-6 h-6 text-cyan-400 group-hover:text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.75)] hover:scale-110 transition-transform" 
+            />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse" />
           </button>
           
-          <div className="hidden sm:block">
-            <span className="text-[9px] text-slate-500 font-mono tracking-[0.2em] block uppercase truncate opacity-70">SYSTEM ID</span>
-            <div id="player_info_title" className="text-xs sm:text-sm font-black text-white hover:text-cyan-400 transition-colors font-mono truncate tracking-tight">
-              {playerName}
-            </div>
-          </div>
-        </div>
-
-        {/* Empty spacer for grid alignment */}
-        <div className="flex flex-col items-center justify-center relative z-10 pointer-events-none self-center" />
-
-        {/* Currency displays */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-3 relative z-10">
-          {gameState.sigils !== undefined && gameState.sigils > 0 && (
-            <div className="bg-gradient-to-r from-yellow-500/20 to-amber-600/20 px-3 py-1.5 border border-yellow-500/40 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 shadow-[0_0_10px_rgba(234,179,8,0.1)] group">
-              <span className="text-yellow-400 font-black group-hover:scale-110 transition-transform">👑</span>
-              <span className="text-white font-black">{gameState.sigils}</span>
-            </div>
-          )}
-
-          <div className="bg-slate-900/60 px-3 py-1.5 border border-indigo-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 group shadow-lg">
-            <Zap className="w-3 h-3 text-indigo-400 group-hover:animate-pulse" />
-            <span className="text-indigo-300 font-black tracking-tighter">{gameState.gold}</span>
-            <span className="text-[8px] text-indigo-500 font-bold uppercase ml-0.5">MP</span>
-          </div>
-
-          <div className="bg-slate-900/60 px-3 py-1.5 border border-cyan-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 group shadow-lg">
-            <Activity className="w-3 h-3 text-cyan-400" />
-            <span className="text-cyan-200 font-black">L{gameState.level}</span>
-          </div>
-
           <button 
-            id="btn_profile_trigger"
-            className="hidden xl:flex p-2 bg-slate-900/80 hover:bg-slate-800 text-cyan-400 rounded-xl cursor-pointer transition-all border border-slate-800 hover:border-cyan-500/50 items-center gap-2 font-mono text-[10px] font-black tracking-widest shadow-lg"
             onClick={() => setShowProfileDrawer(true)}
+            className="p-3 flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
-            <User className="w-3.5 h-3.5" />
-            <span>SYS</span>
+            <User 
+              className="w-6 h-6 text-cyan-400 group-hover:text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.75)] hover:scale-110 transition-transform" 
+            />
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-20 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-16 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -2895,6 +3009,69 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
               <span>TIER:</span>
               <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
+            </div>
+          </div>
+
+          {/* DAILY PERFORMANCE BARS (VERTICAL) */}
+          <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md border border-slate-900/40">
+            <div className="flex justify-around items-end h-32 px-2">
+              {renderVerticalBar(
+                gameState.quests.filter(q => q.completed).length,
+                gameState.quests.length || 5,
+                "QUESTS",
+                "#ef4444",
+                <Target className="w-3 h-3 text-white" />
+              )}
+              {renderVerticalBar(
+                gameState.dailyGatesCleared ?? 0,
+                5,
+                "GATES",
+                "#06b6d4",
+                <Sword className="w-3 h-3 text-white" />
+              )}
+              {renderVerticalBar(
+                gameState.dailyFocusMinutes ?? 0,
+                onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
+                "WORK",
+                "#818cf8",
+                <BookOpen className="w-3 h-3 text-white" />
+              )}
+            </div>
+          </div>
+
+          {/* ECONOMY DIRECTIVE CARD (DESKTOP) */}
+          <div className="bg-slate-950/75 border border-indigo-900/20 p-3 rounded-xl backdrop-blur-md font-mono text-[9px] space-y-2 relative overflow-hidden">
+            <div className="flex items-center justify-between border-b border-indigo-900/30 pb-2">
+              <div className="flex items-center gap-1.5">
+                <TrendingUp className="w-3 h-3 text-indigo-400" />
+                <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Market Analytics</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-900">
+                <span className="text-slate-500 uppercase block mb-0.5">Shares</span>
+                <span className="text-slate-200 font-bold">100k</span>
+              </div>
+              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-900">
+                <span className="text-slate-500 uppercase block mb-0.5">Price</span>
+                <span className="text-cyan-400 font-bold">${economyState?.currentManaValue?.toFixed(4) || "0.0001"}</span>
+              </div>
+            </div>
+
+            <div className="bg-indigo-950/20 p-2 rounded-lg border border-indigo-500/10 flex justify-between items-center">
+              <div>
+                <span className="text-indigo-400 uppercase font-bold block">Reserve Cap</span>
+                <span className="text-emerald-400 font-bold">
+                  ${economyState?.marketCap?.toFixed(2) || "0.00"}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-indigo-400 uppercase font-bold block">Circ.</span>
+                <span className="text-slate-300 font-bold">
+                  {economyState ? Math.floor(economyState.circulatingMana / 100) / 10 + "k" : "0"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -2962,7 +3139,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
           {/* Top horizontal sub-tabs for each section - visible on all screens */}
-          <div className="sticky top-16 z-20 py-3 bg-slate-950/90 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
+          <div className="sticky top-[60px] z-20 py-3 bg-slate-950/90 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
             <div className="grid grid-cols-3 gap-2 w-full max-w-2xl mx-auto px-1 sm:px-4">
               {(() => {
                 const tabs = getMobileSubtabs();
@@ -3088,7 +3265,65 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
                 </div>
 
-                {/* Story Campaigns Indicator */}
+                {/* DAILY PERFORMANCE BARS (VERTICAL - MOBILE) */}
+                <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md border border-indigo-500/10">
+                  <div className="flex items-center gap-2 mb-3 px-1">
+                    <Activity className="w-3 h-3 text-cyan-400" />
+                    <span className="text-[9px] font-mono font-black text-cyan-400 uppercase tracking-widest">Daily Performance Metrics</span>
+                  </div>
+                  <div className="flex justify-around items-end h-32">
+                    {renderVerticalBar(
+                      gameState.quests.filter(q => q.completed).length,
+                      gameState.quests.length || 5,
+                      "QUESTS",
+                      "#f43f5e",
+                      <Target className="w-3.5 h-3.5 text-white" />
+                    )}
+                    {renderVerticalBar(
+                      gameState.dailyGatesCleared ?? 0,
+                      5,
+                      "GATES",
+                      "#22d3ee",
+                      <Sword className="w-3.5 h-3.5 text-white" />
+                    )}
+                    {renderVerticalBar(
+                      gameState.dailyFocusMinutes ?? 0,
+                      onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
+                      "WORK",
+                      "#6366f1",
+                      <BookOpen className="w-3.5 h-3.5 text-white" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Community Milestone Broadcast Card */}
+              <div className="bg-slate-950/75 border border-indigo-900/30 p-2.5 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-2">
+                <div className="flex items-center gap-1.5 pb-1 border-b border-indigo-950">
+                  <Activity className="w-3 h-3 text-indigo-400" />
+                  <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Network Hub</span>
+                </div>
+                <div className="space-y-2 max-h-[100px] overflow-y-auto scrollbar-none pr-1">
+                  {[
+                    { user: "IgrisElite", lv: 88, job: "Shadow Martialist", time: "2m ago" },
+                    { user: "BeruHunter", lv: 92, job: "Chimera King", time: "5m ago" },
+                    { user: "TuskHigh", lv: 75, job: "Arch Shaman", time: "12m ago" },
+                    { user: "KaiserBlade", lv: 64, job: "Sovereign Knight", time: "15m ago" },
+                  ].map((act, i) => (
+                    <div key={i} className="flex justify-between items-center bg-slate-900/40 p-1.5 rounded border border-slate-900">
+                      <div className="flex flex-col">
+                        <span className="text-slate-200 font-bold">{act.user}</span>
+                        <span className="text-[8px] text-slate-500 italic">{act.job}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-cyan-400 font-black">Lv {act.lv}</span>
+                        <span className="block text-slate-600 text-[7px]">{act.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Story Campaigns Indicator */}
                 <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
                   <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
                   <div className="space-y-2 text-[11px]">
@@ -3129,6 +3364,57 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       <p className="text-slate-400">Use Life Forge to execute focused learning runs. Gaining intellect is key to casting powerful runes.</p>
                     </div>
                   </div>
+                </div>
+
+                {/* ECONOMY DIRECTIVE CARD */}
+                <div className="bg-slate-950/75 border border-indigo-900/30 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.03)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between border-b border-indigo-900/40 pb-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-indigo-400" />
+                      <span className="text-indigo-400 font-extrabold uppercase tracking-widest text-[10px]">Economy Directive</span>
+                    </div>
+                    {economyState && (
+                      <span className="text-[9px] text-emerald-400 font-black uppercase bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">
+                        Listing Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 uppercase block mb-1">Total Shares</span>
+                      <span className="text-slate-200 font-black text-sm">
+                        {economyState?.totalShares || 100000} <span className="text-[9px] text-slate-500 font-normal">UNITS</span>
+                      </span>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                      <span className="text-[9px] text-slate-500 uppercase block mb-1">Listing Price</span>
+                      <span className="text-cyan-400 font-black text-sm">
+                        ${economyState?.currentManaValue?.toFixed(4) || "0.0001"} <span className="text-[9px] text-slate-500 font-normal">USD</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-indigo-950/20 p-3 rounded-xl border border-indigo-500/20 flex justify-between items-center">
+                    <div>
+                      <span className="text-[9px] text-indigo-400 uppercase font-bold block">Estimated Market Cap</span>
+                      <span className="text-white font-black">
+                        ${economyState?.marketCap?.toFixed(2) || "0.00"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] text-indigo-400 uppercase font-bold block">Circulation</span>
+                      <span className="text-slate-300 font-bold">
+                        {economyState?.circulatingMana?.toLocaleString() || "0"} <span className="text-[9px]">MP</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[9px] text-slate-600 leading-relaxed italic">
+                    * Valuation dynamically adjusted based on global MP minting velocity & dimensional staking protocols. Total share supply is hard-capped at 100,000 units.
+                  </p>
                 </div>
               </motion.div>
             )}
@@ -3950,16 +4236,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 ) : !isFighting ? (
                   <>
                     <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md mb-6">
-                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Active Gate Entry Matrix</span>
-                      <h3 className="font-extrabold text-lg">OPEN GATE RAIDS</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
-                        Step through dimensional fractures to challenge bosses. Your physical STR and equipped weapon stat bonuses directly dictate hit damage calculations.
-                      </p>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-mono text-cyan-500 uppercase block font-black tracking-[0.2em] mb-1">SYSTEM STATUS: HARMONIZED</span>
+                          <h3 className="font-black text-2xl text-white uppercase italic tracking-tighter">DAILY ACTIVE GATES</h3>
+                          <p className="text-[10px] text-slate-400 leading-relaxed font-mono mt-2 max-w-md">
+                            Dimensional fractures stabilized for 24h. Only 2 gates are currently accessible via the hunter network. High-rank fractures are lethal if level synchronization is mismatched.
+                          </p>
+                        </div>
+                        <div className="bg-cyan-500/10 border border-cyan-500/20 px-3 py-2 rounded-xl text-right">
+                          <span className="text-[9px] text-cyan-400 block font-bold">RESET TIMER</span>
+                          <span className="text-white font-mono text-xs tabular-nums">23:59:59</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div id="dungeons_grid" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {[
-                        ...DUNGEONS_CATALOG,
+                        ...DUNGEONS_CATALOG.filter(d => activeGateIds.includes(d.id)),
                         ...adminGates.map(g => ({
                           id: g.id,
                           name: g.name,
@@ -4019,12 +4313,25 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   <Lock className="w-3.5 h-3.5" />
                                   <span>GATE CELL LOCKED</span>
                                 </button>
-                              ) : (
+                              ) : preparedGateIds.includes(dung.id) ? (
                                 <button
-                                  className="w-full py-2.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-bold rounded-xl text-[10px] uppercase tracking-widest cursor-pointer transition-all"
+                                  className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400/20 font-bold rounded-xl text-[10px] uppercase tracking-widest cursor-pointer transition-all shadow-lg shadow-cyan-900/20"
                                   onClick={() => startCombat(dung)}
                                 >
                                   ENTER GATE PREFECTURE
+                                </button>
+                              ) : preparingGateId === dung.id ? (
+                                <button className="w-full py-2.5 bg-indigo-950/60 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] uppercase tracking-widest cursor-wait flex items-center justify-center gap-2">
+                                  <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                                  ASYNC SYNCING ({prepTimer}s)
+                                </button>
+                              ) : (
+                                <button
+                                  className="w-full py-2.5 bg-indigo-900/40 hover:bg-indigo-600 text-indigo-100 border border-indigo-500/30 font-bold rounded-xl text-[10px] uppercase tracking-widest cursor-pointer transition-all flex items-center justify-center gap-2"
+                                  onClick={() => startPreparation(dung.id)}
+                                >
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                  PREPARE: {onboardProfile.academicSubject || onboardProfile.careerTargetRole || "WORK SESSION"}
                                 </button>
                               )}
                             </div>

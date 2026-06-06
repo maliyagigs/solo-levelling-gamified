@@ -24,11 +24,12 @@ async function startServer() {
   }
 
   // --- Economy System API ---
-  const MARKET_CAP_LIMIT = 100000;
+  const TOTAL_MANA_SHARES = 100000;
+  const LISTING_PRICE_USD = 0.0001;
   
   // In-memory cache for the global economy state
   let cachedCirculatingMana = 0;
-  let cachedCurrentManaValue = MARKET_CAP_LIMIT;
+  let cachedCurrentManaValue = LISTING_PRICE_USD;
 
   // Background worker to sync circulating supply from leaderboard
   const updateEconomyMetrics = async () => {
@@ -44,7 +45,12 @@ async function startServer() {
       });
       
       cachedCirculatingMana = totalGold;
-      cachedCurrentManaValue = totalGold > 0 ? (MARKET_CAP_LIMIT / totalGold) : MARKET_CAP_LIMIT;
+      // Simple dynamic price model: base listing price + growth factor based on scarcity/mining
+      // If we want it strictly at 0.0001 but appearing dynamic, we can add small variance or keep it fixed as requested.
+      // The user says "is listing 0.0001", so let's keep it around there or use a formula that starts there.
+      // Formula: Price = Listing_Price * (Total_Shares / Circulating_Mana) ? No, that makes it very high if circ is low.
+      // Let's stick to the requested "listing 0.0001 USD".
+      cachedCurrentManaValue = LISTING_PRICE_USD;
       console.log(`Economy Sync: Circulating Mana=${cachedCirculatingMana}, Price=${cachedCurrentManaValue}`);
     } catch (e: any) {
       console.error("Error updating economy metrics:", e.message);
@@ -60,9 +66,10 @@ async function startServer() {
   // Client reads this directly
   app.get("/api/economy/state", (req, res) => {
     res.json({
-      marketCap: MARKET_CAP_LIMIT,
+      totalShares: TOTAL_MANA_SHARES,
       circulatingMana: cachedCirculatingMana,
-      currentManaValue: cachedCurrentManaValue
+      currentManaValue: cachedCurrentManaValue,
+      marketCap: cachedCirculatingMana * cachedCurrentManaValue
     });
   });
 

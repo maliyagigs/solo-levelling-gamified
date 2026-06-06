@@ -133,4 +133,6 @@ export interface GameState {
   boosterMultiplier?: number;
   sigils?: number;
   prestigePoints?: number;
+  dailyGatesCleared?: number;
+  dailyFocusMinutes?: number;
 }

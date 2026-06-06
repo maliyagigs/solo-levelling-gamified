@@ -180,3 +180,39 @@ export const renderCircularProgress = (
     </div>
   );
 };
+
+export const renderVerticalBar = (
+  current: number,
+  total: number,
+  label: string,
+  color: string,
+  icon: React.ReactNode
+) => {
+  const percentage = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
+  
+  return (
+    <div className="flex flex-col items-center gap-2 group">
+      <div className="relative w-10 h-24 bg-slate-900/60 rounded-xl border border-slate-800/50 overflow-hidden flex flex-col justify-end p-1">
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none" />
+        <motion.div 
+          className="w-full rounded-lg relative overflow-hidden"
+          style={{ backgroundColor: color }}
+          initial={{ height: 0 }}
+          animate={{ height: `${percentage}%` }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        >
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0.05)_100%)]" />
+          <div className="absolute top-0 left-0 right-0 h-4 bg-white/20 blur-[2px] -mt-2 animate-pulse" />
+        </motion.div>
+        
+        <div className="absolute top-1 left-1 opacity-40 group-hover:opacity-100 transition-opacity">
+          {icon}
+        </div>
+      </div>
+      <div className="flex flex-col items-center">
+        <span className="text-[8px] font-mono text-slate-500 uppercase font-black tracking-widest">{label}</span>
+        <span className="text-[10px] font-mono font-black text-white">{current}/{total}</span>
+      </div>
+    </div>
+  );
+};
