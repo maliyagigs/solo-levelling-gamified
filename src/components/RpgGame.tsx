@@ -2789,76 +2789,70 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* Header Panel */}
-      <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex items-center justify-between gap-4 h-16">
-        <div className="flex items-center gap-3 w-1/3 min-w-[120px]">
+      <header className="fixed top-0 left-0 right-0 z-50 px-2 sm:px-4 border-b border-cyan-500/30 bg-slate-950/80 backdrop-blur-xl grid grid-cols-3 items-center h-16 shadow-[0_4px_20px_rgba(0,0,0,0.5),0_1px_0_rgba(6,182,212,0.1)]">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-3 relative z-10 min-w-0">
           {/* Notification Icon */}
           <button 
             onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("friends"); }}
-            className="relative p-2 bg-slate-900 rounded-xl border border-slate-800 text-slate-400 hover:text-cyan-400 transition-all active:scale-90"
+            className="flex-shrink-0 relative p-2 sm:p-2.5 bg-slate-900/80 rounded-xl border border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/50 transition-all active:scale-95 shadow-inner"
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 shadow-[0_0_8px_rgba(6,182,212,0.3)]" />
             {friendRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
             )}
             {friendRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-950" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full border-2 border-slate-950" />
             )}
           </button>
           
-          <div>
-            <span className="text-[9px] text-slate-500 font-mono tracking-widest block uppercase truncate">PLAYER NAME</span>
-            <div id="player_info_title" className="text-xs sm:text-sm font-extrabold text-cyan-400 font-mono truncate">
+          <div className="hidden sm:block">
+            <span className="text-[9px] text-slate-500 font-mono tracking-[0.2em] block uppercase truncate opacity-70">SYSTEM ID</span>
+            <div id="player_info_title" className="text-xs sm:text-sm font-black text-white hover:text-cyan-400 transition-colors font-mono truncate tracking-tight">
               {playerName}
             </div>
           </div>
         </div>
 
-        {/* Dynamic Mobile & Desktop Page Title - centered */}
-        <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none z-10 hidden md:block">
-          <span className="text-[10px] sm:text-xs font-mono font-black tracking-widest text-cyan-300 uppercase drop-shadow-[0_0_8px_rgba(6,182,212,0.4)] animate-pulse">
-            {activeTab === "home" ? "HOME OVERVIEW" :
-             activeTab === "quests" ? "DAILY QUESTS" :
-             activeTab === "life_forge" ? "LIFE FORGE" :
-             activeTab === "status" ? "CHARACTER STATUS" :
-             activeTab === "dungeons" ? "DIMENSIONAL GATES" :
-             activeTab === "social" ? "SOCIAL NETWORK" :
-             activeTab === "shadows" ? "SHADOW ARMY" :
-             activeTab === "skills" ? "SKILL TREE" :
-             activeTab === "backpack" ? "ARMAMENT BAG" :
-             activeTab === "profile" ? "PROFILE" :
-             "INTERFACE"}
-          </span>
-        </div>
+        {/* Empty spacer for grid alignment */}
+        <div className="flex flex-col items-center justify-center relative z-10 pointer-events-none self-center" />
 
         {/* Currency displays */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2 pr-1 w-1/3 min-w-[80px]">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 relative z-10">
           {gameState.sigils !== undefined && gameState.sigils > 0 && (
-            <div className="bg-gradient-to-r from-yellow-500/10 to-amber-600/10 px-2 sm:px-3 py-1 border border-yellow-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg flex items-center gap-1 animate-pulse">
-              <span className="text-yellow-400 font-black">👑 {gameState.sigils}</span>
+            <div className="bg-gradient-to-r from-yellow-500/20 to-amber-600/20 px-3 py-1.5 border border-yellow-500/40 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 shadow-[0_0_10px_rgba(234,179,8,0.1)] group">
+              <span className="text-yellow-400 font-black group-hover:scale-110 transition-transform">👑</span>
+              <span className="text-white font-black">{gameState.sigils}</span>
             </div>
           )}
 
-          <div className="bg-slate-900 px-2 sm:px-3 py-1 bg-slate-900/80 border border-slate-800 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg">
-            <span className="text-indigo-400 font-bold">{gameState.gold} MP</span>
+          <div className="bg-slate-900/60 px-3 py-1.5 border border-indigo-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 group shadow-lg">
+            <Zap className="w-3 h-3 text-indigo-400 group-hover:animate-pulse" />
+            <span className="text-indigo-300 font-black tracking-tighter">{gameState.gold}</span>
+            <span className="text-[8px] text-indigo-500 font-bold uppercase ml-0.5">MP</span>
           </div>
 
-          <div className="bg-slate-900 px-2 sm:px-3 py-1 bg-slate-900/80 border border-slate-800 text-[9px] sm:text-xs font-mono shrink-0 rounded-lg">
-            <span className="text-cyan-400 font-bold">Lvl {gameState.level}</span>
+          <div className="bg-slate-900/60 px-3 py-1.5 border border-cyan-500/30 text-[9px] sm:text-xs font-mono shrink-0 rounded-xl flex items-center gap-1.5 group shadow-lg">
+            <Activity className="w-3 h-3 text-cyan-400" />
+            <span className="text-cyan-200 font-black">L{gameState.level}</span>
           </div>
 
           <button 
             id="btn_profile_trigger"
-            className="hidden lg:flex p-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-400 rounded-lg cursor-pointer transition-colors border border-slate-800 items-center gap-1 font-mono text-[10px] font-bold"
+            className="hidden xl:flex p-2 bg-slate-900/80 hover:bg-slate-800 text-cyan-400 rounded-xl cursor-pointer transition-all border border-slate-800 hover:border-cyan-500/50 items-center gap-2 font-mono text-[10px] font-black tracking-widest shadow-lg"
             onClick={() => setShowProfileDrawer(true)}
           >
             <User className="w-3.5 h-3.5" />
-            <span>PROFILE</span>
+            <span>SYS</span>
           </button>
         </div>
       </header>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-20 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
