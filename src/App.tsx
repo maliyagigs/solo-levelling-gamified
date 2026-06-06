@@ -9,6 +9,7 @@ import PlanPreview from "./components/PlanPreview";
 import RpgGame from "./components/RpgGame";
 import CosmicBackground from "./components/CosmicBackground";
 import AdminPanel from "./components/AdminPanel";
+import PartyApp from "./party/PartyApp";
 import { OnboardingData } from "./types";
 
 type AppPhase = "onboarding" | "plan_preview" | "rpg_dashboard";
@@ -17,8 +18,14 @@ export default function App() {
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     return (
       window.location.pathname === "/admin" ||
-      window.location.hash === "#admin" ||
-      window.location.href.includes("sungjinwoo.appwrite.network/admin")
+      window.location.hash === "#admin"
+    );
+  });
+
+  const [isPartyMode, setIsPartyMode] = useState<boolean>(() => {
+    return (
+      window.location.pathname === "/party" ||
+      window.location.hash === "#party"
     );
   });
 
@@ -48,24 +55,20 @@ export default function App() {
   });
 
   useEffect(() => {
-    const checkAdminRoute = () => {
-      const isAtAdmin = (
-        window.location.pathname === "/admin" ||
-        window.location.hash === "#admin" ||
-        window.location.href.includes("sungjinwoo.appwrite.network/admin")
-      );
-      setIsAdminMode(isAtAdmin);
+    const checkRoutes = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      setIsAdminMode(path === "/admin" || hash === "#admin");
+      setIsPartyMode(path === "/party" || hash === "#party");
     };
 
-    window.addEventListener("popstate", checkAdminRoute);
-    window.addEventListener("hashchange", checkAdminRoute);
-
-    // Periodic check to make sure dynamic routing inside iframes registers correctly without full page reload
-    const interval = setInterval(checkAdminRoute, 1000);
+    window.addEventListener("popstate", checkRoutes);
+    window.addEventListener("hashchange", checkRoutes);
+    const interval = setInterval(checkRoutes, 1000);
 
     return () => {
-      window.removeEventListener("popstate", checkAdminRoute);
-      window.removeEventListener("hashchange", checkAdminRoute);
+      window.removeEventListener("popstate", checkRoutes);
+      window.removeEventListener("hashchange", checkRoutes);
       clearInterval(interval);
     };
   }, []);
@@ -103,6 +106,20 @@ export default function App() {
           />
         </div>
       </div>
+    );
+  }
+
+  if (isPartyMode) {
+    return (
+      <PartyApp 
+        playerName={activePlayerName}
+        onBack={() => {
+          window.history.pushState({}, "", "/");
+          window.location.hash = "";
+          setIsPartyMode(false);
+        }}
+        playSelectSound={() => {}}
+      />
     );
   }
 

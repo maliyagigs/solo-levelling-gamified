@@ -59,7 +59,6 @@ import {
 
 import { getWeaponColorClasses, renderCircularProgress } from "./gameHelpers";
 import { SocialHub } from "./SocialHub";
-import { PartyMode } from "./PartyMode";
 import { listenToFriendships } from "../utils/social";
 
 interface RpgGameProps {
@@ -70,7 +69,7 @@ interface RpgGameProps {
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
   const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "social">("home");
-  const [showPartyMode, setShowPartyMode] = useState(false);
+  const [socialSubTab, setSocialSubTab] = useState<"chat" | "leaderboard" | "friends">("chat");
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
 
   // Social Notification Listener
@@ -106,6 +105,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       }
     } else if (sectionIdx === 1) {
       setActiveTab("social");
+      setSocialSubTab("chat");
     } else if (sectionIdx === 2) {
       if (currentSec !== 2) {
         setActiveTab("home");
@@ -141,7 +141,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
     if (sec === 1) {
       return [
-        { id: "social", label: "Social Hub" }
+        { id: "social", label: "Community Hub" }
       ];
     }
     if (sec === 2) {
@@ -2788,19 +2788,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
       )}
 
-      {/* Party Mode Overlay */}
-      <AnimatePresence>
-        {showPartyMode && (
-          <PartyMode onBack={() => setShowPartyMode(false)} playSelectSound={playSelectSound} />
-        )}
-      </AnimatePresence>
-
       {/* Header Panel */}
       <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex items-center justify-between gap-4 h-16">
         <div className="flex items-center gap-3 w-1/3 min-w-[120px]">
           {/* Notification Icon */}
           <button 
-            onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); }}
+            onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("friends"); }}
             className="relative p-2 bg-slate-900 rounded-xl border border-slate-800 text-slate-400 hover:text-cyan-400 transition-all active:scale-90"
           >
             <MessageSquare className="w-4 h-4" />
@@ -2895,19 +2888,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               "xp-desktop"
             )}
             {renderCircularProgress(
-              playerMp,
-              playerMaxMp,
-              "#6366f1",
-              "#a855f7",
-              "rgba(99, 102, 241, 0.4)",
-              "MANA & WK",
-              `${playerMp}/${playerMaxMp}`,
-              <Zap className="w-3 h-3 text-indigo-400" />,
-              "mp-desktop",
               gameState.weeklyManaAccumulated ?? 0,
               gameState.level * 800 + 1500,
               "#eab308",
-              "#d97706"
+              "#d97706",
+              "rgba(234, 179, 8, 0.4)",
+              "WEEKLY TARGET",
+              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+              <Zap className="w-3 h-3 text-yellow-400" />,
+              "wk-desktop"
             )}
             <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
               <span>TIER:</span>
@@ -2978,29 +2967,44 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         {/* TAB CONTROLLERS & DETAILED TAB CONTENT (RIGHT PANEL - EXPANDED GRIDS) */}
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
-          {/* Mobile subtabs row */}
-          <div className="flex lg:hidden gap-2 border-b border-slate-900 pb-3" id="mobile_sub_navigation">
-            {getMobileSubtabs().map(tab => (
-              <button
-                key={tab.id}
-                className={`flex-1 px-2.5 py-3 rounded-xl text-[10px] sm:text-xs font-mono uppercase cursor-pointer tracking-wider transition-all font-bold text-center border ${
-                  activeTab === tab.id 
-                    ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.12)]" 
-                    : "text-slate-400 bg-slate-900/40 border-transparent hover:text-slate-200"
-                }`}
-                onClick={() => {
-                  try {
-                    playSelectSound();
-                  } catch (e) {}
-                  setActiveTab(tab.id as any);
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {/* Top horizontal sub-tabs for each section - visible on all screens */}
+          <div className="sticky top-16 z-20 py-3 bg-slate-950/90 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
+            <div className="grid grid-cols-3 gap-2 w-full max-w-2xl mx-auto px-1 sm:px-4">
+              {(() => {
+                const tabs = getMobileSubtabs();
+                return tabs.map((tab, idx) => {
+                  let colClass = "col-start-2"; // Default for 1 tab
+                  if (tabs.length === 3) {
+                    colClass = idx === 0 ? "col-start-1" : idx === 1 ? "col-start-2" : "col-start-3";
+                  } else if (tabs.length === 2) {
+                    colClass = idx === 0 ? "col-start-1" : "col-start-3";
+                  }
+                  
+                  return (
+                    <div key={tab.id} className={`${colClass} flex justify-center items-center`}>
+                      <button
+                        className={`w-full max-w-[140px] px-2 sm:px-4 py-2.5 rounded-xl text-[10px] font-mono uppercase cursor-pointer tracking-widest transition-all font-black text-center border shadow-lg truncate ${
+                          activeTab === tab.id 
+                            ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3),inset_0_0_8px_rgba(6,182,212,0.1)] ring-1 ring-cyan-400/50" 
+                            : "text-slate-500 bg-slate-950/60 border-slate-900/60 hover:text-slate-300 hover:border-slate-800 hover:bg-slate-900"
+                        }`}
+                        onClick={() => {
+                          try {
+                            playSelectSound();
+                          } catch (e) {}
+                          setActiveTab(tab.id as any);
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
 
-          {/* Tabs header row */}
+          {/* Full tabs header row - hidden on mobile, visible on lg devices */}
           <div className="hidden lg:flex flex-wrap gap-2 border-b border-slate-900 pb-3" id="tab_navigation">
             {[
               { id: "quests", label: "Quests" },
@@ -3073,19 +3077,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     "xp-mobile"
                   )}
                   {renderCircularProgress(
-                    playerMp,
-                    playerMaxMp,
-                    "#6366f1",
-                    "#a855f7",
-                    "rgba(99, 102, 241, 0.4)",
-                    "MANA & WK",
-                    `${playerMp}/${playerMaxMp}`,
-                    <Zap className="w-4 h-4 text-indigo-400" />,
-                    "mp-mobile",
                     gameState.weeklyManaAccumulated ?? 0,
                     gameState.level * 800 + 1500,
                     "#eab308",
-                    "#d97706"
+                    "#d97706",
+                    "rgba(234, 179, 8, 0.4)",
+                    "WEEKLY TARGET",
+                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 800 + 1500}`,
+                    <Zap className="w-4 h-4 text-yellow-400" />,
+                    "wk-mobile"
                   )}
 
                   <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 px-1 font-mono">
@@ -3671,7 +3671,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               <SocialHub 
                  playerName={playerName} 
                  playSelectSound={playSelectSound} 
-                 onOpenPartyMode={() => setShowPartyMode(true)}
+                 onOpenPartyMode={() => {}}
+                 initialTab={socialSubTab}
               />
             )}
 

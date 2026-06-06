@@ -36,6 +36,13 @@ export interface Friendship {
 }
 
 /**
+ * Generates a unique channel ID for a private chat between two users
+ */
+export function getPrivateChannelId(uid1: string, uid2: string): string {
+  return [uid1, uid2].sort().join("::");
+}
+
+/**
  * Sends a message to a channel (global or private)
  */
 export async function sendChatMessage(senderId: string, senderName: string, text: string, channel: string) {

@@ -105,7 +105,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   });
   const [passcode, setPasscode] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"players" | "announcements" | "quests" | "gates" | "social">("players");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social">("dashboard");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [systemLogs, setSystemLogs] = useState<{ id: string; msg: string; type: string; time: string }[]>([]);
 
   // Real-time states
   const [players, setPlayers] = useState<Player[]>([]);
@@ -156,11 +158,38 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   // Notification banners
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const [adminMsgInput, setAdminMsgInput] = useState("");
+
   const showNotification = (message: string, type: "success" | "error" = "success") => {
     setNotification({ message, type });
     setTimeout(() => {
       setNotification(null);
     }, 4000);
+  };
+
+  const addSystemLog = (msg: string, type: "info" | "success" | "error" | "warning" = "info") => {
+    const id = Math.random().toString(36).substring(7);
+    const time = new Date().toLocaleTimeString();
+    setSystemLogs(prev => [{ id, msg, type, time }, ...prev].slice(0, 50));
+  };
+
+  const handleSendAdminMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminMsgInput.trim()) return;
+    const id = "msg-" + Date.now();
+    try {
+      await setDoc(doc(db, "messages", id), {
+        senderId: "ADMIN_OVERLORD",
+        senderName: "SYSTEM OVERLORD",
+        text: adminMsgInput,
+        timestamp: serverTimestamp(),
+        channel: "global"
+      });
+      addSystemLog(`Broadcasted administrative message to global registers.`, "success");
+      setAdminMsgInput("");
+    } catch (err) {
+      addSystemLog("Failed to broadcast admin signal.", "error");
+    }
   };
 
   // 1. Auth checkpoint
@@ -202,8 +231,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         });
       });
       setPlayers(plist);
+      addSystemLog(`Synchronized ${plist.length} hunter signatures from hyperspace db.`, "info");
     }, (err) => {
       console.error("Firestore Player live-sync failed:", err);
+      addSystemLog("Leaderboard sync failed. Rerouting...", "error");
     });
 
     // Listen to Announcements
@@ -365,6 +396,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     try {
       await deleteDoc(doc(db, "leaderboard", id));
       showNotification(`PLAYER BANISHED: ${id} destroyed successfully.`);
+      addSystemLog(`Banishment protocol executed on hunter signature: ${id}`, "warning");
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
     }
@@ -675,6 +707,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
               <span className="text-[9px] text-slate-500 uppercase tracking-widest block px-2 mb-2">Database Sectors</span>
               
               {[
+                { id: "dashboard", label: "System Overview", icon: Activity, color: "text-purple-400", count: null },
                 { id: "players", label: "Hunter Directory", icon: User, color: "text-blue-400", count: players.length },
                 { id: "announcements", label: "Live System Alerts", icon: Megaphone, color: "text-amber-400", count: announcements.length },
                 { id: "quests", label: "Crisis Quests", icon: Flame, color: "text-rose-400", count: quests.length },
@@ -729,6 +762,109 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
           {/* RIGHT PANELS SCREEN */}
           <div className="lg:col-span-9 space-y-6">
+            
+            {/* DASHBOARD SYSTEM OVERVIEW */}
+            {activeTab === "dashboard" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { label: "Total Hunters", val: players.length, icon: User, color: "from-blue-600/20 to-blue-900/40", border: "border-blue-500/30" },
+                    { label: "Active Gate Rifts", val: gates.length, icon: Compass, color: "from-emerald-600/20 to-emerald-900/40", border: "border-emerald-500/30" },
+                    { label: "Live System Alerts", val: announcements.length, icon: Megaphone, color: "from-amber-600/20 to-amber-900/40", border: "border-amber-500/30" }
+                  ].map((stat, i) => (
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+                      className={`p-6 rounded-2xl bg-gradient-to-br border ${stat.border} ${stat.color} backdrop-blur-md relative group overflow-hidden`}
+                    >
+                      <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <stat.icon className="w-24 h-24" />
+                      </div>
+                      <div className="relative z-10 space-y-1">
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{stat.label}</p>
+                        <h4 className="text-3xl font-black text-white">{stat.val}</h4>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                  {/* System Health / Status */}
+                  <div className="md:col-span-7 bg-slate-900/60 border border-slate-900 rounded-2xl p-6 backdrop-blur-md">
+                    <h3 className="text-xs font-black text-slate-350 uppercase tracking-widest mb-6 flex items-center gap-2">
+                       <Activity className="w-4 h-4 text-purple-400" />
+                       <span>Dimensional Stability Metrics</span>
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {[
+                        { label: "Database Latency", val: "24ms", percent: 85, color: "bg-emerald-500" },
+                        { label: "Sync Engine Load", val: "12%", percent: 12, color: "bg-blue-500" },
+                        { label: "Memory Allocation", val: "442MB", percent: 45, color: "bg-purple-500" },
+                        { label: "Traffic Throughput", val: "1.2k rec/s", percent: 30, color: "bg-amber-500" }
+                      ].map((m, i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="flex justify-between text-[10px] items-end">
+                            <span className="text-slate-400 font-bold uppercase">{m.label}</span>
+                            <span className="text-slate-200 font-mono">{m.val}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }} animate={{ width: `${m.percent}%` }}
+                              className={`h-full ${m.color} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-slate-850 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+                          <span className="text-[9px] text-emerald-400 font-black uppercase">Core: Nominal</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
+                          <span className="text-[9px] text-blue-400 font-black uppercase">Sync: Active</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] text-slate-600 font-mono">Uptime: 142:24:11</span>
+                    </div>
+                  </div>
+
+                  {/* System Audit Logs */}
+                  <div className="md:col-span-5 bg-slate-900/40 border border-slate-900 rounded-2xl overflow-hidden backdrop-blur-md flex flex-col">
+                    <div className="p-4 bg-slate-900/60 border-b border-slate-900 flex justify-between items-center">
+                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <Radio className="w-3.5 h-3.5" />
+                         <span>Deck Activity Log</span>
+                       </h3>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[350px] custom-scrollbar">
+                      {systemLogs.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-slate-700 text-[9px] uppercase italic text-center px-6">
+                           No recorded anomalies in current session registers.
+                        </div>
+                      ) : (
+                        systemLogs.map(log => (
+                          <div key={log.id} className="flex gap-3 text-[9px] items-start group">
+                             <span className="text-slate-600 font-mono shrink-0">{log.time}</span>
+                             <span className={`leading-relaxed ${
+                               log.type === 'error' ? 'text-red-400' : 
+                               log.type === 'warning' ? 'text-amber-400' : 
+                               log.type === 'success' ? 'text-emerald-400' : 'text-slate-400'
+                             }`}>
+                               {log.msg}
+                             </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* PLAYER DIRECTORY MANAGEMENT */}
             {activeTab === "players" && (
@@ -831,11 +967,22 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
                 {/* 2. Player Listings Table */}
                 <div className="bg-slate-900/60 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                     <h3 className="text-xs font-black text-slate-350 uppercase tracking-wider flex items-center gap-1.5">
                       <Trophy className="w-4 h-4 text-amber-500 animate-pulse" />
                       <span>COSMIC REGISTER DATABASE ({players.length} SOVEREIGNS)</span>
                     </h3>
+                    
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="SEARCH HUNTER SIGNATURE..."
+                        className="bg-slate-950 border border-slate-800 rounded-xl px-10 py-2 text-[10px] text-white focus:outline-none focus:border-blue-500 w-full md:w-64 tracking-widest font-mono"
+                      />
+                      <User className="w-3.5 h-3.5 text-slate-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
                   </div>
 
                   {players.length === 0 ? (
@@ -859,7 +1006,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-900/40">
-                          {players.map((item) => (
+                          {players
+                            .filter(p => !searchQuery || p.playerName.toLowerCase().includes(searchQuery.toLowerCase()) || p.job.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map((item) => (
                             <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
                               <td className="p-4 font-bold text-white flex items-center gap-2">
                                 <div className="w-6 h-6 rounded-full bg-blue-950/80 border border-blue-500/20 flex items-center justify-center text-[10px] text-blue-300">
@@ -1314,6 +1463,23 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                        <Trash2 className="w-3 h-3" /> Purge registers
                      </button>
                    </div>
+
+                   {/* Admin Message Form */}
+                   <form onSubmit={handleSendAdminMessage} className="mb-6 flex gap-2">
+                      <input 
+                        type="text" 
+                        value={adminMsgInput}
+                        onChange={(e) => setAdminMsgInput(e.target.value)}
+                        placeholder="SEND ADMINISTRATIVE BROADCAST..."
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-[10px] text-indigo-300 focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
+                      />
+                      <button 
+                        type="submit"
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-indigo-900/40"
+                      >
+                        Transmit
+                      </button>
+                   </form>
 
                    <div className="bg-slate-950/50 border border-slate-900 rounded-xl max-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
                      {messages.length === 0 ? (

@@ -17,12 +17,83 @@ interface SocialHubProps {
   playerName: string;
   onOpenPartyMode: () => void;
   playSelectSound: () => void;
+  initialTab?: "chat" | "leaderboard" | "friends";
 }
 
-export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMode, playSelectSound }) => {
-  const [socialTab, setSocialTab] = useState<"chat" | "leaderboard" | "friends">("chat");
+interface FriendCardProps {
+  friendship: Friendship;
+  playerName: string;
+  onAccept: (id: string) => void;
+  onOpenDm: (name: string) => void;
+  playSelectSound: () => void;
+}
+
+const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccept, onOpenDm, playSelectSound }) => {
+  const [showChatOption, setShowChatOption] = useState(false);
+  const friendName = friendship.userUids.find(id => id !== playerName) || "Unknown Hunter";
+
+  return (
+    <motion.div layout className="bg-slate-950/80 border border-slate-900 overflow-hidden rounded-2xl flex flex-col group hover:border-cyan-500/30 transition-all">
+       <div className="p-4 flex items-center justify-between">
+         <div 
+           className="flex items-center gap-3 cursor-pointer"
+           onClick={() => {
+             if (friendship.status === 'accepted') {
+               onOpenDm(friendName);
+             } else {
+               setShowChatOption(!showChatOption);
+             }
+           }}
+         >
+            <div className={`w-2.5 h-2.5 rounded-full ${friendship.status === 'accepted' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_#eab308]'}`} />
+            <div>
+              <p className="text-sm font-black text-white uppercase tracking-wider group-hover:text-cyan-300 transition-colors">{friendName}</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase">{friendship.status === 'pending' ? 'Holographic Request' : 'Shadow Ally'}</p>
+            </div>
+         </div>
+         <div className="flex items-center gap-2">
+          {friendship.status === 'pending' && friendship.requestedBy !== playerName && (
+             <div className="flex gap-2">
+                <button onClick={() => onAccept(friendship.id)} className="bg-green-500/10 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-all"><CheckCircle className="w-5 h-5" /></button>
+                <button className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all"><XCircle className="w-5 h-5" /></button>
+             </div>
+          )}
+          {friendship.status === 'accepted' && (
+            <button 
+              onClick={() => { try { playSelectSound(); } catch(e){} onOpenDm(friendName); }}
+              className="p-2 bg-slate-900 text-cyan-400 border border-slate-800 rounded-xl hover:bg-cyan-500 hover:text-white transition-all shadow-lg"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
+         </div>
+       </div>
+       
+       <AnimatePresence>
+         {showChatOption && friendship.status === 'accepted' && (
+           <motion.button
+             initial={{ height: 0, opacity: 0 }}
+             animate={{ height: "auto", opacity: 1 }}
+             exit={{ height: 0, opacity: 0 }}
+             onClick={() => { try { playSelectSound(); } catch(e){} onOpenDm(friendName); }}
+             className="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border-t border-cyan-500/20 py-2 text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] transition-all"
+           >
+             Open in Chat
+           </motion.button>
+         )}
+       </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMode, playSelectSound, initialTab }) => {
+  const [socialTab, setSocialTab] = useState<"chat" | "leaderboard" | "friends">(initialTab || "chat");
   
-  // Leaderboard State
+  // Private DM State
+  const [activeDmFriend, setActiveDmFriend] = useState<string | null>(null);
+  const [dmMessages, setDmMessages] = useState<ChatMessage[]>([]);
+  const [dmInput, setDmInput] = useState("");
+  const dmEndRef = useRef<HTMLDivElement>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
@@ -47,13 +118,25 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   }, [socialTab]);
 
   useEffect(() => {
-    if (socialTab === "chat") {
+    if (socialTab === "chat" && !activeDmFriend) {
       const unsub = listenToMessages("global", (msgs) => {
         setMessages(msgs);
       });
       return () => unsub();
     }
-  }, [socialTab]);
+  }, [socialTab, activeDmFriend]);
+
+  useEffect(() => {
+    if (activeDmFriend) {
+      const channel = [playerName, activeDmFriend].sort().join("::");
+      const unsub = listenToMessages(channel, (msgs) => {
+        setDmMessages(msgs);
+      });
+      return () => unsub();
+    } else {
+      setDmMessages([]);
+    }
+  }, [activeDmFriend, playerName]);
 
   useEffect(() => {
     const unsub = listenToFriendships(playerName, (list) => {
@@ -66,12 +149,25 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [dmMessages]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!msgInput.trim()) return;
     try { playSelectSound(); } catch (err) {}
     await sendChatMessage(playerName, playerName, msgInput, "global");
     setMsgInput("");
+  };
+
+  const handleSendDm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dmInput.trim() || !activeDmFriend) return;
+    const channel = [playerName, activeDmFriend].sort().join("::");
+    try { playSelectSound(); } catch (err) {}
+    await sendChatMessage(playerName, playerName, dmInput, channel);
+    setDmInput("");
   };
 
   const handleAddFriend = async (targetPlayer: string) => {
@@ -91,7 +187,12 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
           <p className="text-[10px] text-slate-500 font-mono tracking-tighter">CROSS-DIMENSIONAL HUNTER NETWORK</p>
         </div>
         <button 
-          onClick={() => { try { playSelectSound(); } catch(e){} onOpenPartyMode(); }}
+          onClick={() => { 
+            try { playSelectSound(); } catch(e){} 
+            window.history.pushState({}, "", "/party");
+            // Dispatch a popstate event so App.tsx picks it up immediately
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }}
           className="flex flex-col items-center gap-1 group"
         >
           <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.4)] group-hover:scale-110 transition-transform">
@@ -106,13 +207,17 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
         {(["chat", "leaderboard", "friends"] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => { try { playSelectSound(); } catch(e){} setSocialTab(tab); }}
-            className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg flex items-center justify-center gap-1.5 ${socialTab === tab ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]" : "text-slate-500 hover:text-slate-300"}`}
+            onClick={() => { 
+               try { playSelectSound(); } catch(e){} 
+               setSocialTab(tab); 
+               if (tab !== "friends") setActiveDmFriend(null);
+            }}
+            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg flex items-center justify-center gap-1.5 ${socialTab === tab ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]" : "text-slate-500 hover:text-slate-300"}`}
+            title={tab === "chat" ? "Community" : tab === "friends" ? "Friends" : "Leaderboard"}
           >
-            {tab === "chat" && <MessageSquare className="w-4 h-4" />}
-            {tab === "leaderboard" && <Trophy className="w-4 h-4" />}
-            {tab === "friends" && <Users className="w-4 h-4" />}
-            {tab}
+            {tab === "chat" && <MessageSquare className="w-5 h-5" />}
+            {tab === "leaderboard" && <Trophy className="w-5 h-5" />}
+            {tab === "friends" && <Users className="w-5 h-5" />}
           </button>
         ))}
       </div>
@@ -120,47 +225,94 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
       {/* Tab Content */}
       <div className="min-h-[500px]">
         {socialTab === "chat" && (
-          <div className="flex flex-col h-[500px] bg-slate-950/60 border border-slate-900 rounded-2xl overflow-hidden backdrop-blur-sm">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-600 font-mono text-xs italic">
-                  Transmission silent. Start the recruitment call.
-                </div>
-              ) : (
-                messages.map((m, i) => (
-                  <div key={m.id || i} className={`flex flex-col ${m.senderId === playerName ? "items-end" : "items-start"}`}>
-                    <div className="flex items-center gap-2 mb-1 px-1">
-                       <span className="text-[10px] font-bold text-slate-500 font-mono">{m.senderName}</span>
-                       {m.senderId !== playerName && (
-                         <button 
-                           onClick={() => handleAddFriend(m.senderId)}
-                           className="text-[9px] text-cyan-500/60 hover:text-cyan-400 font-bold uppercase tracking-tighter"
-                         >
-                           + Add Friend
-                         </button>
-                       )}
+           <div className="flex flex-col h-[500px] bg-slate-950/60 border border-slate-900 rounded-2xl overflow-hidden backdrop-blur-sm">
+             {activeDmFriend ? (
+               <>
+                 <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
+                        <span className="text-xs font-black text-white uppercase tracking-widest">TRANSMISSION: {activeDmFriend}</span>
                     </div>
-                    <div className={`px-4 py-2 rounded-2xl text-sm break-words max-w-[85%] shadow-lg ${m.senderId === playerName ? "bg-cyan-600 text-white rounded-tr-none" : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none"}`}>
-                      {m.text}
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            <form onSubmit={handleSendMessage} className="p-4 bg-slate-950 border-t border-slate-900 flex gap-2">
-              <input 
-                type="text" 
-                value={msgInput}
-                onChange={(e) => setMsgInput(e.target.value)}
-                placeholder="Broadcast frequency..."
-                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500/50"
-              />
-              <button type="submit" className="bg-cyan-500 text-white p-3 rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)]">
-                <Send className="w-5 h-5" />
-              </button>
-            </form>
-          </div>
+                    <button 
+                      onClick={() => { setActiveDmFriend(null); setSocialTab("friends"); }} 
+                      className="text-[10px] text-slate-500 hover:text-cyan-400 font-bold uppercase transition-colors flex items-center gap-1"
+                    >
+                      <XCircle className="w-3 h-3" /> Back to Friends
+                    </button>
+                 </div>
+                 <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                   {dmMessages.length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-600 font-mono text-xs italic">
+                       No previous transmissions. Initiate contact.
+                     </div>
+                   ) : (
+                     dmMessages.map((m, i) => (
+                       <div key={m.id || i} className={`flex flex-col ${m.senderId === playerName ? "items-end" : "items-start"}`}>
+                         <div className={`px-4 py-2 rounded-2xl text-sm break-words max-w-[85%] shadow-lg ${m.senderId === playerName ? "bg-indigo-600 text-white rounded-tr-none" : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none"}`}>
+                           {m.text}
+                         </div>
+                       </div>
+                     ))
+                   )}
+                   <div ref={dmEndRef} />
+                 </div>
+                 <form onSubmit={handleSendDm} className="p-4 bg-slate-950 border-t border-slate-900 flex gap-2">
+                   <input 
+                     type="text" 
+                     value={dmInput}
+                     onChange={(e) => setDmInput(e.target.value)}
+                     placeholder="Private frequency..."
+                     className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50"
+                   />
+                   <button type="submit" className="bg-indigo-500 text-white p-3 rounded-xl hover:bg-indigo-400 transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                     <Send className="w-5 h-5" />
+                   </button>
+                 </form>
+               </>
+             ) : (
+               <>
+                 <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                   {messages.length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-600 font-mono text-xs italic">
+                       Transmission silent. Start the recruitment call.
+                     </div>
+                   ) : (
+                     messages.map((m, i) => (
+                       <div key={m.id || i} className={`flex flex-col ${m.senderId === playerName ? "items-end" : "items-start"}`}>
+                         <div className="flex items-center gap-2 mb-1 px-1">
+                            <span className="text-[10px] font-bold text-slate-500 font-mono">{m.senderName}</span>
+                            {m.senderId !== playerName && (
+                              <button 
+                                onClick={() => handleAddFriend(m.senderId)}
+                                className="text-[9px] text-cyan-500/60 hover:text-cyan-400 font-bold uppercase tracking-tighter"
+                              >
+                                + Add Friend
+                              </button>
+                            )}
+                         </div>
+                         <div className={`px-4 py-2 rounded-2xl text-sm break-words max-w-[85%] shadow-lg ${m.senderId === playerName ? "bg-cyan-600 text-white rounded-tr-none" : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none"}`}>
+                           {m.text}
+                         </div>
+                       </div>
+                     ))
+                   )}
+                   <div ref={chatEndRef} />
+                 </div>
+                 <form onSubmit={handleSendMessage} className="p-4 bg-slate-950 border-t border-slate-900 flex gap-2">
+                   <input 
+                     type="text" 
+                     value={msgInput}
+                     onChange={(e) => setMsgInput(e.target.value)}
+                     placeholder="Broadcast frequency..."
+                     className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500/50"
+                   />
+                   <button type="submit" className="bg-cyan-500 text-white p-3 rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                     <Send className="w-5 h-5" />
+                   </button>
+                 </form>
+               </>
+             )}
+           </div>
         )}
 
         {socialTab === "leaderboard" && (
@@ -209,34 +361,25 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
 
         {socialTab === "friends" && (
           <div className="space-y-4">
+             <div className="flex items-center gap-2 px-2">
+               <div className="w-1 h-3 bg-cyan-500 rounded-full" />
+               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">FRIENDS</h3>
+             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {friendships.map(f => {
-                  const friendName = f.userUids.find(id => id !== playerName);
-                  return (
-                    <motion.div layout key={f.id} className="bg-slate-950/80 border border-slate-900 p-4 rounded-2xl flex items-center justify-between group hover:border-cyan-500/30 transition-all">
-                       <div className="flex items-center gap-3">
-                          <div className={`w-2.5 h-2.5 rounded-full ${f.status === 'accepted' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_#eab308]'}`} />
-                          <div>
-                            <p className="text-sm font-black text-white uppercase tracking-wider">{friendName}</p>
-                            <p className="text-[9px] text-slate-500 font-mono uppercase">{f.status === 'pending' ? 'Holographic Request' : 'Shadow Ally'}</p>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                        {f.status === 'pending' && f.requestedBy !== playerName && (
-                           <div className="flex gap-2">
-                              <button onClick={() => acceptFriendRequest(f.id)} className="bg-green-500/10 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-all"><CheckCircle className="w-5 h-5" /></button>
-                              <button className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all"><XCircle className="w-5 h-5" /></button>
-                           </div>
-                        )}
-                        {f.status === 'accepted' && (
-                          <button className="p-2 bg-slate-900 text-cyan-400 border border-slate-800 rounded-xl hover:bg-cyan-500 hover:text-white transition-all">
-                            <MessageSquare className="w-5 h-5" />
-                          </button>
-                        )}
-                       </div>
-                    </motion.div>
-                  )
-                })}
+                {friendships.map(f => (
+                  <FriendCard 
+                    key={f.id}
+                    friendship={f}
+                    playerName={playerName}
+                    onAccept={acceptFriendRequest}
+                    onOpenDm={(name) => { 
+                      try { playSelectSound(); } catch(e){} 
+                      setActiveDmFriend(name);
+                      setSocialTab("chat");
+                    }}
+                    playSelectSound={playSelectSound}
+                  />
+                ))}
              </div>
              {friendships.length === 0 && (
                <div className="text-center py-20 bg-slate-950/40 border-2 border-dashed border-slate-900 rounded-3xl">
