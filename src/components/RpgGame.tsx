@@ -358,13 +358,32 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           ) {
             return prev;
           }
-          triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly (Gold: ${d.gold}, Level: ${d.level})!`);
+          triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly!`);
           return {
             ...prev,
-            level: Number(d.level) || prev.level,
-            gold: Number(d.gold) || prev.gold,
-            job: d.job || prev.job,
-            rank: d.rank || prev.rank
+            level: Number(d.level) ?? prev.level,
+            exp: Number(d.exp) ?? prev.exp,
+            maxExp: Number(d.maxExp) ?? prev.maxExp,
+            gold: Number(d.gold) ?? prev.gold,
+            statPoints: Number(d.statPoints) ?? prev.statPoints,
+            baseStats: d.baseStats ?? prev.baseStats,
+            job: d.job ?? prev.job,
+            rank: d.rank ?? prev.rank,
+            inventory: d.inventory ?? prev.inventory,
+            shadows: d.shadows ?? prev.shadows,
+            skills: d.skills ?? prev.skills,
+            quests: d.quests ?? prev.quests,
+            storyStep: Number(d.storyStep) ?? prev.storyStep,
+            manaStaked: Number(d.manaStaked) ?? prev.manaStaked,
+            boosterMultiplier: Number(d.boosterMultiplier) ?? prev.boosterMultiplier,
+            sigils: Number(d.sigils) ?? prev.sigils,
+            prestigePoints: Number(d.prestigePoints) ?? prev.prestigePoints,
+            weeklyManaAccumulated: Number(d.weeklyManaAccumulated) ?? prev.weeklyManaAccumulated,
+            weeklyExpAccumulated: Number(d.weeklyExpAccumulated) ?? prev.weeklyExpAccumulated,
+            weeklyCyclesCompleted: Number(d.weeklyCyclesCompleted) ?? prev.weeklyCyclesCompleted,
+            weeklyHistory: d.weeklyHistory ?? prev.weeklyHistory,
+            dailyGatesCleared: Number(d.dailyGatesCleared) ?? prev.dailyGatesCleared,
+            dailyFocusMinutes: Number(d.dailyFocusMinutes) ?? prev.dailyFocusMinutes
           };
         });
       }
