@@ -518,51 +518,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    const acadSubject = onboardProfile?.academicSubject || "comp_sci";
-    const sessionGoal = onboardProfile?.academicSessionsGoal || 4;
-    
-    let subjectName = "Academic Syllabus";
-    let desc_1 = "Revise high-priority syllabus chapters & practice previous year papers";
-    let name_1 = "Ultimate Exam Combat Plan";
-    let name_2 = "Sovereign Coding Project Guild";
-    let desc_2 = "Commit working modular code updates or architect functional user interfaces";
-
-    if (acadSubject === "comp_sci") {
-      subjectName = "Computer Science";
-      name_1 = "CS Blueprint Synchronisation";
-      desc_1 = "Master system design principles, dynamic algorithms, or algorithmic code challenges";
-      name_2 = "Sovereign Guild Dev Commit";
-      desc_2 = "Develop, refactor, and check-in modular codebase logic with structural precision";
-    } else if (acadSubject === "math_physics") {
-      subjectName = "Physics & Math";
-      name_1 = "Numerical Formula Solving";
-      desc_1 = "Derive core physics equations and verify exact proofs under timing constraints";
-      name_2 = "Abstract Paradigm Conquest";
-      desc_2 = "Analyse topological dimensions, linear transformations, or geometric coordinates";
-    } else if (acadSubject === "bio_med") {
-      subjectName = "Biomedical & Med";
-      name_1 = "Biochemical Path Anatomy";
-      desc_1 = "Review cellular energy pathways, muscle innervation charts, and pharmacology models";
-      name_2 = "Clinical Case Synthesis";
-      desc_2 = "Analyse diagnosis cases and review medical lab simulations to expand diagnostic ranks";
-    } else if (acadSubject === "biz_finance") {
-      subjectName = "Business & Finance";
-      name_1 = "Statistical Market Audits";
-      desc_1 = "Compare balance sheets, assess options hedging curves, or review macroeconomic indices";
-      name_2 = "Sovereign Venture Presentation";
-      desc_2 = "Outline system financial projections or pitch decks for potential investor gates";
-    } else if (acadSubject === "humanities") {
-      subjectName = "Humanities & Law";
-      name_1 = "Rhetorical Thesis Argumentation";
-      desc_1 = "Analyse historic legal precedents, philosophical ethics, or classic literary publications";
-      name_2 = "Monarch Essay Production";
-      desc_2 = "Draft detailed structured papers with clean grammar, citations, and critical reviews";
-    }
-
-    return [
-      { id: "acad_1", name: name_1, desc: desc_1, target: sessionGoal, current: 0, completed: false },
-      { id: "acad_2", name: name_2, desc: desc_2, target: Math.max(1, Math.floor(sessionGoal * 0.75)), current: 0, completed: false }
-    ];
+    return [];
   });
 
   // 2. Bodybuilding Exercises Log
@@ -643,6 +599,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [focusIsActive, setFocusIsActive] = useState<boolean>(false);
   const [focusInterval, setFocusInterval] = useState<"Work" | "Break">("Work");
   const [focusAmbient, setFocusAmbient] = useState<string>("Abyssal Silence");
+  const [pomodoroFullscreen, setPomodoroFullscreen] = useState<boolean>(false);
   const [focusLogs, setFocusLogs] = useState<string[]>(() => {
     const saved = localStorage.getItem(`monarch_focus_logs_${playerName}`);
     if (saved) {
@@ -882,6 +839,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       }, 1000);
     } else if (focusSecs === 0 && focusIsActive) {
       setFocusIsActive(false);
+      setPomodoroFullscreen(false);
       handleFocusTimerCompletion();
     }
     return () => clearInterval(intervalId);
@@ -933,11 +891,25 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
     // Grant rewards
     addExp(expAward);
-    setGameState(prev => ({
-      ...prev,
-      gold: prev.gold + goldAward,
-      dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins
-    }));
+    setGameState(prev => {
+      const offeringItem = {
+        id: `offering_${Date.now()}`,
+        name: "Sovereign Cognitive Offering",
+        description: "A supreme light condensed from your deep intellectual focus session. Grants +3 permanent Intelligence and +2 Perception.",
+        type: "Accessory" as const,
+        rarity: "Sovereign" as const,
+        statBonus: { intelligence: 3, perception: 2 },
+        equipped: false,
+        iconName: "Gift"
+      };
+      return {
+        ...prev,
+        gold: prev.gold + goldAward,
+        dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins,
+        inventory: [...prev.inventory, offeringItem]
+      };
+    });
+    triggerSystemToast("🎁 COGNITIVE OFFERING GRANTED: Received 'Sovereign Cognitive Offering' into your memory matrix!");
 
     // Update Academic Quests
     setAcademicQuests(prev => {
@@ -2925,7 +2897,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* SYNCED TOP HUD: MANA & LEVEL (LEFT), MESSAGES (RIGHT) */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-gradient-to-b from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md flex items-center justify-between px-6 shadow-[0_15px_30px_rgba(0,0,0,0.65)]">
+      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">MANA CAPACITY</span>
@@ -2966,7 +2938,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-16 pb-24 lg:pb-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-28 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -3039,42 +3011,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             </div>
           </div>
 
-          {/* ECONOMY DIRECTIVE CARD (DESKTOP) */}
-          <div className="bg-slate-950/75 border border-indigo-900/20 p-3 rounded-xl backdrop-blur-md font-mono text-[9px] space-y-2 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-indigo-900/30 pb-2">
-              <div className="flex items-center gap-1.5">
-                <TrendingUp className="w-3 h-3 text-indigo-400" />
-                <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Market Analytics</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-900">
-                <span className="text-slate-500 uppercase block mb-0.5">Shares</span>
-                <span className="text-slate-200 font-bold">100k</span>
-              </div>
-              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-900">
-                <span className="text-slate-500 uppercase block mb-0.5">Price</span>
-                <span className="text-cyan-400 font-bold">${economyState?.currentManaValue?.toFixed(4) || "0.0001"}</span>
-              </div>
-            </div>
-
-            <div className="bg-indigo-950/20 p-2 rounded-lg border border-indigo-500/10 flex justify-between items-center">
-              <div>
-                <span className="text-indigo-400 uppercase font-bold block">Reserve Cap</span>
-                <span className="text-emerald-400 font-bold">
-                  ${economyState?.marketCap?.toFixed(2) || "0.00"}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-indigo-400 uppercase font-bold block">Circ.</span>
-                <span className="text-slate-300 font-bold">
-                  {economyState ? Math.floor(economyState.circulatingMana / 100) / 10 + "k" : "0"}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Story Campaigns Indicator */}
           <div className="bg-slate-950/75 border border-slate-900 p-2 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-1.5">
             <h4 className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Campaign Milestones</h4>
@@ -3139,7 +3075,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
           {/* Top horizontal sub-tabs for each section - visible on all screens */}
-          <div className="sticky top-[60px] z-20 py-3 bg-slate-950/90 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
+          <div className="sticky top-[64px] z-20 py-3 bg-slate-950/98 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
             <div className="grid grid-cols-3 gap-2 w-full max-w-2xl mx-auto px-1 sm:px-4">
               {(() => {
                 const tabs = getMobileSubtabs();
@@ -3296,33 +3232,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
                 </div>
 
-                {/* Community Milestone Broadcast Card */}
-              <div className="bg-slate-950/75 border border-indigo-900/30 p-2.5 rounded-lg backdrop-blur-md font-mono text-[9px] space-y-2">
-                <div className="flex items-center gap-1.5 pb-1 border-b border-indigo-950">
-                  <Activity className="w-3 h-3 text-indigo-400" />
-                  <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Network Hub</span>
-                </div>
-                <div className="space-y-2 max-h-[100px] overflow-y-auto scrollbar-none pr-1">
-                  {[
-                    { user: "IgrisElite", lv: 88, job: "Shadow Martialist", time: "2m ago" },
-                    { user: "BeruHunter", lv: 92, job: "Chimera King", time: "5m ago" },
-                    { user: "TuskHigh", lv: 75, job: "Arch Shaman", time: "12m ago" },
-                    { user: "KaiserBlade", lv: 64, job: "Sovereign Knight", time: "15m ago" },
-                  ].map((act, i) => (
-                    <div key={i} className="flex justify-between items-center bg-slate-900/40 p-1.5 rounded border border-slate-900">
-                      <div className="flex flex-col">
-                        <span className="text-slate-200 font-bold">{act.user}</span>
-                        <span className="text-[8px] text-slate-500 italic">{act.job}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-cyan-400 font-black">Lv {act.lv}</span>
-                        <span className="block text-slate-600 text-[7px]">{act.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Story Campaigns Indicator */}
                 <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
                   <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
@@ -3364,57 +3273,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       <p className="text-slate-400">Use Life Forge to execute focused learning runs. Gaining intellect is key to casting powerful runes.</p>
                     </div>
                   </div>
-                </div>
-
-                {/* ECONOMY DIRECTIVE CARD */}
-                <div className="bg-slate-950/75 border border-indigo-900/30 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.03)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
-                  
-                  <div className="flex items-center justify-between border-b border-indigo-900/40 pb-3">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-indigo-400" />
-                      <span className="text-indigo-400 font-extrabold uppercase tracking-widest text-[10px]">Economy Directive</span>
-                    </div>
-                    {economyState && (
-                      <span className="text-[9px] text-emerald-400 font-black uppercase bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">
-                        Listing Active
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-[9px] text-slate-500 uppercase block mb-1">Total Shares</span>
-                      <span className="text-slate-200 font-black text-sm">
-                        {economyState?.totalShares || 100000} <span className="text-[9px] text-slate-500 font-normal">UNITS</span>
-                      </span>
-                    </div>
-                    <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                      <span className="text-[9px] text-slate-500 uppercase block mb-1">Listing Price</span>
-                      <span className="text-cyan-400 font-black text-sm">
-                        ${economyState?.currentManaValue?.toFixed(4) || "0.0001"} <span className="text-[9px] text-slate-500 font-normal">USD</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-indigo-950/20 p-3 rounded-xl border border-indigo-500/20 flex justify-between items-center">
-                    <div>
-                      <span className="text-[9px] text-indigo-400 uppercase font-bold block">Estimated Market Cap</span>
-                      <span className="text-white font-black">
-                        ${economyState?.marketCap?.toFixed(2) || "0.00"}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] text-indigo-400 uppercase font-bold block">Circulation</span>
-                      <span className="text-slate-300 font-bold">
-                        {economyState?.circulatingMana?.toLocaleString() || "0"} <span className="text-[9px]">MP</span>
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <p className="text-[9px] text-slate-600 leading-relaxed italic">
-                    * Valuation dynamically adjusted based on global MP minting velocity & dimensional staking protocols. Total share supply is hard-capped at 100,000 units.
-                  </p>
                 </div>
               </motion.div>
             )}
@@ -3582,7 +3440,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 {/* SOVEREIGN VAULT & PRESTIGE HALO ECONOMY DASHBOARD */}
-                {(() => {
+                {false && (() => {
                   const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
                   const sigilsCount = gameState.sigils ?? 0;
                   const rawBooster = gameState.boosterMultiplier ?? 1.0;
@@ -5000,10 +4858,23 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               }`}
                               onClick={() => {
                                 playSelectSound();
-                                setFocusIsActive(!focusIsActive);
+                                const nextState = !focusIsActive;
+                                setFocusIsActive(nextState);
+                                if (nextState) {
+                                  setPomodoroFullscreen(true);
+                                }
                               }}
                             >
                               {focusIsActive ? "PAUSE GRIND" : "ARISEN GRIND (START)"}
+                            </button>
+                            <button
+                              className="px-4 py-2 bg-purple-900/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                              onClick={() => {
+                                playSelectSound();
+                                setPomodoroFullscreen(true);
+                              }}
+                            >
+                              FULLSCREEN
                             </button>
                             <button
                               className="px-4 py-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
@@ -6376,7 +6247,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-15px_30px_rgba(0,0,0,0.65)] px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
         {[
           { icon: Activity, idx: 0 },
           { icon: Users, idx: 1 },
@@ -6437,6 +6308,61 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           );
         })}
       </div>
+
+      {/* FULLSCREEN STUDY BOOST CLOCK OVERLAY */}
+      <AnimatePresence>
+        {pomodoroFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-slate-950/98 backdrop-blur-3xl flex flex-col items-center justify-center p-6 select-none font-mono"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,transparent_70%)] pointer-events-none" />
+            
+            {/* Huge clock only */}
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="text-center relative"
+            >
+              <div className="text-8xl md:text-[13rem] lg:text-[16rem] font-black tracking-widest text-slate-100 font-mono drop-shadow-[0_0_80px_rgba(129,140,248,0.25)] select-all tabular-nums leading-none">
+                {Math.floor(focusSecs / 60).toString().padStart(2, "0")}:
+                {(focusSecs % 60).toString().padStart(2, "0")}
+              </div>
+            </motion.div>
+
+            {/* Exit control */}
+            <div className="mt-16 flex flex-col sm:flex-row items-center gap-4">
+              <button
+                onClick={() => {
+                  try { playSelectSound(); } catch (e) {}
+                  setFocusIsActive(!focusIsActive);
+                }}
+                className={`px-8 py-3.5 rounded-2xl border text-xs font-black uppercase tracking-widest cursor-pointer transition-all duration-300 ${
+                  focusIsActive 
+                    ? "bg-amber-600/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/15" 
+                    : "bg-indigo-600 hover:bg-indigo-500 border-indigo-400/30 text-white shadow-[0_0_30px_rgba(99,102,241,0.3)]"
+                }`}
+              >
+                {focusIsActive ? "PAUSE GRIND" : "RESUME GRIND"}
+              </button>
+              
+              <button
+                onClick={() => {
+                  try { playSelectSound(); } catch (e) {}
+                  setPomodoroFullscreen(false);
+                }}
+                className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
+              >
+                EXIT FULLSCREEN
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className="hidden lg:block p-4 border-t border-slate-950 bg-slate-950/80 text-center text-xs font-mono text-slate-600 mt-10">
         <div>&copy; MONARCH SELF-DEVELOPMENT SYSTEM &middot; SECURE SYSTEM EMULATOR v2.4</div>

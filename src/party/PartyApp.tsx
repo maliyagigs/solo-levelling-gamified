@@ -29,6 +29,17 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"explorer" | "active" | "stats">("explorer");
 
+  const [joiningLobbyId, setJoiningLobbyId] = useState<string | null>(null);
+
+  const handleJoinLobby = (lobbyId: string) => {
+    try { playSelectSound(); } catch (e) {}
+    setJoiningLobbyId(lobbyId);
+    setTimeout(() => {
+      setJoiningLobbyId(null);
+      setActiveTab("active");
+    }, 1500);
+  };
+
   useEffect(() => {
     const q = query(collection(db, "party_lobbies"), orderBy("createdAt", "desc"), limit(20));
     const unsub = onSnapshot(q, (snapshot) => {
@@ -177,9 +188,22 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                        ))}
                        <div className="w-8 h-8 rounded-full border-2 border-slate-950 bg-slate-900 flex items-center justify-center text-[8px] font-bold text-slate-400">+1</div>
                     </div>
-                    <button className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors shadow-lg shadow-indigo-500/20 active:scale-95">
-                      Join Lobby
-                    </button>
+                    <motion.button 
+                      onClick={() => handleJoinLobby(lobby.id)}
+                      disabled={joiningLobbyId !== null}
+                      animate={joiningLobbyId === lobby.id ? { scale: [1, 0.95, 1], opacity: [1, 0.6, 1] } : {}}
+                      transition={joiningLobbyId === lobby.id ? { repeat: Infinity, duration: 1 } : {}}
+                      className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/60 disabled:text-indigo-400 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      {joiningLobbyId === lobby.id ? (
+                        <>
+                          <span className="w-2.5 h-2.5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                          <span>Linking...</span>
+                        </>
+                      ) : (
+                        "Join Lobby"
+                      )}
+                    </motion.button>
                   </div>
                 </motion.div>
               ))}
