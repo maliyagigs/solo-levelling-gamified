@@ -78,6 +78,44 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "minLevel", "difficulty", "expReward", "goldReward", "lootItemName", "isActive", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message sent in the global or private chat",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "channel": { "type": "string", "description": "Level or specific chat group" }
+      },
+      "required": ["senderId", "senderName", "text", "timestamp", "channel"]
+    },
+    "Friendship": {
+      "title": "Friendship Record",
+      "description": "Connection between two players",
+      "type": "object",
+      "properties": {
+        "userUids": { "type": "array" },
+        "status": { "type": "string", "enum": ["pending", "accepted"] },
+        "requestedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userUids", "status", "requestedBy", "createdAt"]
+    },
+    "PartyLobby": {
+      "title": "Party Mode Lobby",
+      "description": "Multiplayer session for casual fun",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hostName": { "type": "string" },
+        "mode": { "type": "string" },
+        "playerCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "hostName", "mode", "playerCount", "createdAt"]
     }
   },
   "firestore": {
@@ -96,6 +134,18 @@
     "/admin_gates/{gateId}": {
       "schema": "AdminGate",
       "description": "Custom dungeons injected by global system overrides"
+    },
+    "/messages/{msgId}": {
+      "schema": "ChatMessage",
+      "description": "Global and private messages"
+    },
+    "/friendships/{friendshipId}": {
+      "schema": "Friendship",
+      "description": "Player relationship records"
+    },
+    "/party_lobbies/{lobbyId}": {
+      "schema": "PartyLobby",
+      "description": "Active multiplayer party sessions"
     }
   }
 }

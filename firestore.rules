@@ -52,10 +52,55 @@ service cloud.firestore {
       );
       allow delete: if true;
     }
+
+    // Chat Messages
+    match /messages/{msgId} {
+      allow read: if true;
+      allow create: if (
+        isValidChatMessage(request.resource.data)
+      );
+      allow update, delete: if false; // Messages are immutable for integrity
+    }
+
+    // Friendships
+    match /friendships/{friendshipId} {
+      allow read: if true;
+      allow create, update: if (
+        isValidFriendship(request.resource.data)
+      );
+      allow delete: if true;
+    }
+
+    // Party Lobbies
+    match /party_lobbies/{lobbyId} {
+      allow read: if true;
+      allow write: if true;
+    }
     
     // Helper Primitives & ID Hardening
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_ -]+$'); 
+    }
+
+    function isValidChatMessage(data) {
+      return (
+        data.keys().hasAll(['senderId', 'senderName', 'text', 'timestamp', 'channel']) &&
+        data.keys().size() == 5 &&
+        data.senderId is string &&
+        data.senderName is string &&
+        data.text is string && data.text.size() > 0 && data.text.size() <= 1024 &&
+        data.channel is string
+      );
+    }
+
+    function isValidFriendship(data) {
+      return (
+        data.keys().hasAll(['userUids', 'status', 'requestedBy', 'createdAt']) &&
+        data.keys().size() == 4 &&
+        data.userUids is list && data.userUids.size() == 2 &&
+        data.status in ['pending', 'accepted'] &&
+        data.requestedBy is string
+      );
     }
     
     function isValidLeaderboardEntry(data) {

@@ -45,7 +45,7 @@ import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Que
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
-import { Smartphone, Copy, Check, Camera, Upload } from "lucide-react";
+import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, handleFirestoreError, OperationType } from "../utils/firebase";
 import { onSnapshot, collection, doc } from "firebase/firestore";
 import { 
@@ -58,6 +58,9 @@ import {
 } from "../utils/audio";
 
 import { getWeaponColorClasses, renderCircularProgress } from "./gameHelpers";
+import { SocialHub } from "./SocialHub";
+import { PartyMode } from "./PartyMode";
+import { listenToFriendships } from "../utils/social";
 
 interface RpgGameProps {
   playerName: string;
@@ -66,11 +69,23 @@ interface RpgGameProps {
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
-  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "leaderboard">("home");
-  
+  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "social">("home");
+  const [showPartyMode, setShowPartyMode] = useState(false);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+
+  // Social Notification Listener
+  useEffect(() => {
+    if (!playerName) return;
+    const unsub = listenToFriendships(playerName, (list) => {
+       const pending = list.filter(f => f.status === 'pending' && f.requestedBy !== playerName);
+       setFriendRequests(pending);
+    });
+    return () => unsub();
+  }, [playerName]);
+
   const getMobileSection = (tab: string): number => {
     if (tab === "status" || tab === "dungeons") return 0;
-    if (tab === "leaderboard") return 1;
+    if (tab === "social") return 1;
     if (tab === "home" || tab === "quests" || tab === "life_forge") return 2;
     if (tab === "shadows" || tab === "skills") return 3;
     if (tab === "backpack" || tab === "profile") return 4;
@@ -90,7 +105,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         else setActiveTab("status");
       }
     } else if (sectionIdx === 1) {
-      setActiveTab("leaderboard");
+      setActiveTab("social");
     } else if (sectionIdx === 2) {
       if (currentSec !== 2) {
         setActiveTab("home");
@@ -126,7 +141,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
     if (sec === 1) {
       return [
-        { id: "leaderboard", label: "Global Ranks" }
+        { id: "social", label: "Social Hub" }
       ];
     }
     if (sec === 2) {
@@ -2773,9 +2788,30 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
       )}
 
+      {/* Party Mode Overlay */}
+      <AnimatePresence>
+        {showPartyMode && (
+          <PartyMode onBack={() => setShowPartyMode(false)} playSelectSound={playSelectSound} />
+        )}
+      </AnimatePresence>
+
       {/* Header Panel */}
       <header className="p-4 border-b border-cyan-500/20 bg-slate-950/45 backdrop-blur-lg sticky top-0 z-30 flex items-center justify-between gap-4 h-16">
-        <div className="flex items-center gap-3 w-1/3 min-w-[80px]">
+        <div className="flex items-center gap-3 w-1/3 min-w-[120px]">
+          {/* Notification Icon */}
+          <button 
+            onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); }}
+            className="relative p-2 bg-slate-900 rounded-xl border border-slate-800 text-slate-400 hover:text-cyan-400 transition-all active:scale-90"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {friendRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+            )}
+            {friendRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-slate-950" />
+            )}
+          </button>
+          
           <div>
             <span className="text-[9px] text-slate-500 font-mono tracking-widest block uppercase truncate">PLAYER NAME</span>
             <div id="player_info_title" className="text-xs sm:text-sm font-extrabold text-cyan-400 font-mono truncate">
@@ -2792,7 +2828,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
              activeTab === "life_forge" ? "LIFE FORGE" :
              activeTab === "status" ? "CHARACTER STATUS" :
              activeTab === "dungeons" ? "DIMENSIONAL GATES" :
-             activeTab === "leaderboard" ? "GLOBAL LEADERBOARD" :
+             activeTab === "social" ? "SOCIAL NETWORK" :
              activeTab === "shadows" ? "SHADOW ARMY" :
              activeTab === "skills" ? "SKILL TREE" :
              activeTab === "backpack" ? "ARMAMENT BAG" :
@@ -2972,7 +3008,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               { id: "life_forge", label: "Life Forge" },
               { id: "status", label: "Status" },
               { id: "dungeons", label: "Gates" },
-              { id: "leaderboard", label: "Leaderboard" },
+              { id: "social", label: "Social" },
               { id: "shadows", label: "Shadows" },
               { id: "skills", label: "Skill-Tree" },
               { id: "backpack", label: "Backpack" },
@@ -3631,117 +3667,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             )}
 
             {/* L. LEADERBOARD TAB: Global real-time Firebase Sync */}
-            {activeTab === "leaderboard" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 p-1">
-                <div className="bg-slate-950/75 border border-slate-900 p-3 sm:p-6 rounded-2xl backdrop-blur-md">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-900 pb-5">
-                    <div>
-                      <h3 className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-100 flex items-center gap-2">
-                        <Trophy className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" /> GLOBAL REGISTRY RANKINGS
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1">Real-time synchronized records of physical hunters in training.</p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        try { playSelectSound(); } catch (e) {}
-                        setLoadingLeaderboard(true);
-                        const data = await fetchLeaderboard();
-                        setLeaderboardData(data);
-                        setLoadingLeaderboard(false);
-                      }}
-                      disabled={loadingLeaderboard}
-                      className="w-full sm:w-auto px-4 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 rounded-xl text-xs font-mono uppercase font-bold tracking-wider hover:bg-cyan-500/10 cursor-pointer transition-all disabled:opacity-50"
-                    >
-                      {loadingLeaderboard ? "🔄 ACCESSING SERVER..." : "🔄 SYNC RECORDS"}
-                    </button>
-                  </div>
-
-                  {loadingLeaderboard ? (
-                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                      <div className="relative w-12 h-12">
-                        <div className="absolute inset-0 rounded-full border-2 border-slate-900" />
-                        <div className="absolute inset-0 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-                      </div>
-                      <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase animate-pulse">Establishing secure handshake & fetching logs...</p>
-                    </div>
-                  ) : leaderboardData.length === 0 ? (
-                    <div className="text-center py-20 border border-dashed border-slate-900 rounded-2xl">
-                      <Trophy className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                      <p className="text-sm font-mono text-slate-400">NO LOGS AVAILABLE IN FIRESTORE DATABASE</p>
-                      <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">Complete custom daily tasks or update player stats to broadcast to the global hub.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-900/60 bg-slate-950/30">
-                      <table className="w-full text-left font-mono text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-900/80 bg-slate-950/80 text-[10px] text-slate-500 uppercase tracking-wider">
-                            <th className="py-3 px-2 sm:px-4 font-bold text-center w-10 sm:w-16">Rank</th>
-                            <th className="py-3 px-2 sm:px-4 font-bold">Hunter</th>
-                            <th className="py-3 px-2 sm:px-4 font-bold text-center w-12 sm:w-24">Level</th>
-                            <th className="py-3 px-2 sm:px-4 font-bold text-right w-24 sm:w-36">Mana (MP)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-900/40">
-                          {leaderboardData.map((hunter, index) => {
-                            const isSelf = hunter.playerName?.toLowerCase() === playerName?.toLowerCase();
-                            const rankNum = index + 1;
-                            
-                            // Highlight styles for different ranks
-                            const getRankBadge = () => {
-                              if (rankNum === 1) return <span className="text-lg">🥇</span>;
-                              if (rankNum === 2) return <span className="text-lg">🥈</span>;
-                              if (rankNum === 3) return <span className="text-lg">🥉</span>;
-                              return <span className="text-slate-500 font-bold">#{rankNum}</span>;
-                            };
-
-                            const getRowStyle = () => {
-                              if (isSelf) return "bg-cyan-500/5 hover:bg-cyan-500/10 border-l-2 border-l-cyan-400";
-                              if (rankNum === 1) return "bg-yellow-500/5 hover:bg-yellow-500/10 font-bold";
-                              if (rankNum === 2) return "bg-slate-300/5 hover:bg-slate-300/10";
-                              if (rankNum === 3) return "bg-amber-700/5 hover:bg-amber-700/10";
-                              return "hover:bg-slate-900/35";
-                            };
-
-                            return (
-                              <tr key={hunter.playerName + index} className={`${getRowStyle()} transition-colors`}>
-                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">{getRankBadge()}</td>
-                                <td className="py-3 sm:py-4 px-2 sm:px-4 min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className={`font-semibold tracking-wide text-xs sm:text-sm truncate max-w-[90px] sm:max-w-none ${isSelf ? "text-cyan-400 font-bold" : "text-slate-200"}`}>
-                                      {hunter.playerName}
-                                    </span>
-                                    {isSelf && (
-                                      <span className="text-[9px] sm:text-[10px] bg-cyan-950 border border-cyan-500/30 text-cyan-400 font-bold uppercase px-1.5 py-0.5 rounded shrink-0">
-                                        You
-                                      </span>
-                                    )}
-                                    <span className="hidden sm:inline text-[9px] bg-slate-900 border border-slate-800 text-slate-500 rounded px-1.5 py-0.5 capitalize shrink-0">
-                                      {hunter.rank}
-                                    </span>
-                                  </div>
-                                  <p className="text-[9px] sm:text-[10px] text-slate-400 mt-1 capitalize truncate max-w-[110px] sm:max-w-none">
-                                    {hunter.job}
-                                  </p>
-                                </td>
-                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
-                                  <span className="text-xs sm:text-sm font-bold text-cyan-300 font-mono">
-                                    {hunter.level}
-                                  </span>
-                                </td>
-                                <td className="py-3 sm:py-4 px-2 sm:px-4 text-right">
-                                  <span className="text-xs sm:text-sm font-black text-indigo-400 font-mono whitespace-nowrap">
-                                    {hunter.gold.toLocaleString()} <span className="hidden sm:inline">Mana </span>(MP)
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+            {activeTab === "social" && (
+              <SocialHub 
+                 playerName={playerName} 
+                 playSelectSound={playSelectSound} 
+                 onOpenPartyMode={() => setShowPartyMode(true)}
+              />
             )}
 
             {/* B. QUESTS TAB: Gamified Workout checklists */}
@@ -6146,7 +6077,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent backdrop-blur-md pb-safe lg:hidden flex justify-around items-center h-16 shadow-[0_-15px_30px_rgba(0,0,0,0.65)] px-4">
         {[
           { icon: Activity, idx: 0 },
-          { icon: Trophy, idx: 1 },
+          { icon: Users, idx: 1 },
           { icon: Home, idx: 2 },
           { icon: Skull, idx: 3 },
           { icon: ShoppingBag, idx: 4 }
@@ -6190,6 +6121,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     : "text-cyan-400/80 hover:text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.75)] drop-shadow-[0_0_3px_rgba(34,211,238,0.5)] hover:scale-105"
                 }`} 
               />
+              {item.idx === 1 && friendRequests.length > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse" />
+              )}
               {isActive && (
                 <motion.div 
                   layoutId="activeMobileDot"
