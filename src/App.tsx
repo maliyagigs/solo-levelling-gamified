@@ -10,9 +10,12 @@ import RpgGame from "./components/RpgGame";
 import CosmicBackground from "./components/CosmicBackground";
 import AdminPanel from "./components/AdminPanel";
 import PartyApp from "./party/PartyApp";
+import AuthScreen from "./components/AuthScreen";
 import { OnboardingData } from "./types";
+import { auth } from "./utils/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
-type AppPhase = "onboarding" | "plan_preview" | "rpg_dashboard";
+type AppPhase = "authentication" | "onboarding" | "plan_preview" | "rpg_dashboard";
 
 export default function App() {
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
@@ -34,9 +37,10 @@ export default function App() {
     const savedName = localStorage.getItem("monarch_active_player");
     const savedProfile = localStorage.getItem("monarch_onboard_profile");
     if (savedName && savedProfile) return "rpg_dashboard";
-    if (savedProfile) return "plan_preview";
     return "onboarding";
   });
+
+  const [onboardingStep, setOnboardingStep] = useState<number>(0);
 
   const [activePlayerName, setActivePlayerName] = useState<string>(() => {
     return localStorage.getItem("monarch_active_player") || "Sung Jin-Woo";
@@ -85,10 +89,11 @@ export default function App() {
     setPhase("rpg_dashboard");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await import("firebase/auth").then(m => m.signOut(auth));
     localStorage.removeItem("monarch_active_player");
     localStorage.removeItem("monarch_onboard_profile");
-    setPhase("onboarding");
+    setPhase("landing");
     setProfile(null);
   };
 
@@ -131,7 +136,18 @@ export default function App() {
 
       <div className="relative z-10 w-full h-full">
         {phase === "onboarding" && (
-          <Onboarding onComplete={handleOnboardingComplete} />
+          <Onboarding 
+            initialStep={onboardingStep} 
+            onStartGate={() => setPhase("authentication")} 
+            onComplete={handleOnboardingComplete} 
+          />
+        )}
+
+        {phase === "authentication" && (
+          <AuthScreen onSuccess={() => {
+              setPhase("onboarding");
+              setOnboardingStep(1);
+          }} />
         )}
 
         {phase === "plan_preview" && profile && (

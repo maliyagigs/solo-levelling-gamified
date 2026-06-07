@@ -537,6 +537,22 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   });
   const [shadowSpellEffect, setShadowSpellEffect] = useState<string | null>(null);
   const [systemToast, setSystemToast] = useState<string | null>(null);
+  const [activeAnnouncements, setActiveAnnouncements] = useState<any[]>([]);
+
+  // Auto-remove mechanism for new announcements
+  useEffect(() => {
+    const newAnns = adminAnnouncements.filter(aa =>
+      !activeAnnouncements.some(sa => sa.id === aa.id)
+    );
+    if (newAnns.length > 0) {
+      setActiveAnnouncements(prev => [...prev, ...newAnns]);
+      newAnns.forEach(na => {
+        setTimeout(() => {
+          setActiveAnnouncements(prev => prev.filter(sa => sa.id !== na.id));
+        }, 4000);
+      });
+    }
+  }, [adminAnnouncements]);
 
   const combatPower = useMemo(() => {
     const equippedW = gameState.inventory.find(i => i.equipped && i.type === "Weapon") || null;
@@ -558,7 +574,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setSystemToast(msg);
     setTimeout(() => {
       setSystemToast(prev => prev === msg ? null : prev);
-    }, 2000);
+    }, 4000);
   };
 
   const [profileImage, setProfileImage] = useState<string | null>(() => {
@@ -4644,11 +4660,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </p>
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-mono font-black text-slate-300 bg-slate-900/60 p-4 border border-slate-800 rounded-xl">
-                   <span>AVAILABLE FUNDS:</span>
-                   <span className="text-amber-400">{gameState.gold.toLocaleString()} G</span>
-                </div>
-
                 <div className="space-y-4">
                   {adminMarketItems.filter(item => item.isActive).length === 0 ? (
                     <div className="text-center py-12 bg-slate-950/50 border border-slate-900 border-dashed rounded-[2rem] text-slate-500 font-mono text-xs uppercase tracking-widest shadow-inner">
@@ -6309,7 +6320,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             </motion.div>
           )}
 
-          {adminAnnouncements && adminAnnouncements.length > 0 && adminAnnouncements.slice(-3).map((ann, idx) => (
+          {activeAnnouncements && activeAnnouncements.length > 0 && activeAnnouncements.slice(-3).map((ann, idx) => (
              <motion.div 
               key={`admin_${ann.id || idx}`}
               initial={{ opacity: 0, x: 50, scale: 0.95 }}

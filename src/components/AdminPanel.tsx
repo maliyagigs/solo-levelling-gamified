@@ -193,7 +193,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     setNotification({ message, type });
     setTimeout(() => {
       setNotification(null);
-    }, 2000);
+    }, 4000);
   };
 
   const addSystemLog = (msg: string, type: "info" | "success" | "error" | "warning" = "info") => {

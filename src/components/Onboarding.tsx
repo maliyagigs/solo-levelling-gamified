@@ -57,12 +57,18 @@ import { MonarchLogo } from "./MonarchLogo";
 
 interface OnboardingProps {
   onComplete: (data: OnboardingData) => void;
+  onStartGate?: () => void;
+  initialStep?: number;
 }
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
-  const [step, setStep] = useState<number>(0); 
+export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }: OnboardingProps) {
+  const [step, setStep] = useState<number>(initialStep); 
   const [showSystemPopup, setShowSystemPopup] = useState<boolean>(false);
   const [declineWarning, setDeclineWarning] = useState<boolean>(false);
+
+  useEffect(() => {
+    setStep(initialStep);
+  }, [initialStep]);
 
   // Form states
   const [gender, setGender] = useState<string>("");
@@ -152,7 +158,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const acceptCall = () => {
     setShowSystemPopup(false);
-    setStep(1);
+    if (onStartGate) {
+      onStartGate();
+    } else {
+      setStep(1);
+    }
   };
 
   const declineCall = () => {

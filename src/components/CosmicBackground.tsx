@@ -42,7 +42,8 @@ export default function CosmicBackground() {
     }
 
     const particles: Particle[] = [];
-    const particleCount = Math.min(180, Math.floor((width * height) / 9000));
+    // Reduction in particle count for performance
+    const particleCount = Math.min(80, Math.floor((width * height) / 20000));
 
     const colors = [
       "rgba(6, 182, 212, ",   // Cyan
