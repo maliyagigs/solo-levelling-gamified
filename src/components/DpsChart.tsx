@@ -148,7 +148,7 @@ export default function DpsChart({ currentLobby, memberProfiles }: DpsChartProps
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-amber-500/25 flex items-center justify-center font-mono font-bold text-lg text-amber-450 overflow-hidden shadow-lg relative shrink-0">
                   {mvpProfile.customAvatar ? (
-                    <img src={mvpProfile.customAvatar} alt={mvpPlayer} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img loading="lazy" src={mvpProfile.customAvatar} alt={mvpPlayer} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     mvpPlayer.substring(0, 2).toUpperCase()
                   )}

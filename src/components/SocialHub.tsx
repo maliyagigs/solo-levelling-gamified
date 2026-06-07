@@ -54,8 +54,8 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
          <div className="flex items-center gap-2">
           {friendship.status === 'pending' && friendship.requestedBy !== playerName && (
              <div className="flex gap-2">
-                <button onClick={() => onAccept(friendship.id)} className="bg-green-500/10 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-all"><CheckCircle className="w-5 h-5" /></button>
-                <button className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all"><XCircle className="w-5 h-5" /></button>
+                <button aria-label="Accept Request" onClick={() => onAccept(friendship.id)} className="bg-green-500/10 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-all"><CheckCircle className="w-5 h-5" /></button>
+                <button aria-label="Decline Request" className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all"><XCircle className="w-5 h-5" /></button>
              </div>
           )}
           {friendship.status === 'accepted' && (

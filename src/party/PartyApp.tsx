@@ -1706,7 +1706,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             className="w-10 h-10 rounded-2xl bg-slate-900 border border-indigo-500/25 hover:border-indigo-500/60 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono group relative cursor-pointer transition-all hover:scale-105 shrink-0"
           >
             {playerProfileData?.customAvatar ? (
-              <img src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img loading="lazy" src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
               <span className="text-xs">{playerName.substring(0, 2).toUpperCase()}</span>
             )}
@@ -1729,7 +1729,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
             <input 
               type="text"
-              placeholder="Filter coordinates, targets..."
+              placeholder="Filter coordinates, targets..." aria-label="Filter coordinates, targets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-900/40 border border-slate-800 rounded-2xl py-3.5 pl-11 pr-4 text-xs focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all font-mono"
@@ -2252,7 +2252,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                  <div key={i} className="bg-slate-950/60 border border-slate-850 p-4 rounded-2xl flex items-center gap-4">
                                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-indigo-500/20 relative z-10 overflow-hidden shrink-0 flex items-center justify-center text-slate-400 font-mono text-sm font-bold">
                                      {profile.customAvatar ? (
-                                       <img 
+                                       <img loading="lazy" 
                                          src={profile.customAvatar} 
                                          alt={member} 
                                          className="w-full h-full object-cover" 
@@ -2330,7 +2330,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                    <div key={idx} className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex items-center gap-4 transition-all hover:border-indigo-500/20">
                                        <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-850 flex items-center justify-center text-slate-400 font-bold font-mono text-[10px] overflow-hidden shrink-0">
                                           {profile.customAvatar ? (
-                                            <img src={profile.customAvatar} alt={member} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                            <img loading="lazy" src={profile.customAvatar} alt={member} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                           ) : (
                                             member.substring(0,2).toUpperCase()
                                           )}
@@ -2406,7 +2406,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                             <div key={i} className={`flex gap-2 items-start ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                                <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500 font-mono text-[9px] font-bold overflow-hidden shrink-0 shadow-inner">
                                   {senderProfile?.customAvatar ? (
-                                    <img src={senderProfile.customAvatar} alt={msg.sender} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                    <img loading="lazy" src={senderProfile.customAvatar} alt={msg.sender} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                   ) : (
                                     msg.sender.substring(0, 2).toUpperCase()
                                   )}
@@ -2648,7 +2648,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                   <div className="relative group shrink-0">
                     <div className="w-20 h-20 rounded-[2rem] bg-indigo-950/20 border-2 border-indigo-505/20 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono text-2xl shadow-xl">
                       {playerProfileData?.customAvatar ? (
-                        <img src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        <img loading="lazy" src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         playerName.substring(0, 2).toUpperCase()
                       )}

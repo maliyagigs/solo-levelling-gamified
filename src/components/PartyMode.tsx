@@ -22,7 +22,7 @@ export const PartyMode: React.FC<PartyModeProps> = ({ onBack, playSelectSound })
   return (
     <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-0 z-50 bg-slate-950 flex flex-col font-sans">
        <header className="p-4 border-b border-indigo-500/20 bg-slate-900/60 backdrop-blur-xl flex items-center gap-4">
-          <button onClick={() => { try { playSelectSound(); } catch(e){} onBack(); }} className="p-2.5 bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all hover:scale-105 active:scale-95">
+          <button aria-label="Go Back" onClick={() => { try { playSelectSound(); } catch(e){} onBack(); }} className="p-2.5 bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all hover:scale-105 active:scale-95">
              <ArrowLeft className="w-6 h-6" />
           </button>
           <div>

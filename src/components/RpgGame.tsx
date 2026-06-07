@@ -3378,7 +3378,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(6,182,212,0.2)] overflow-hidden">
                       {profileImage ? (
-                        <img 
+                        <img loading="lazy" 
                           src={profileImage} 
                           alt={playerName} 
                           className="w-full h-full object-cover" 
@@ -3526,7 +3526,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     title="Click to upload profile picture"
                   >
                     {profileImage ? (
-                      <img 
+                      <img loading="lazy" 
                         src={profileImage} 
                         alt={playerName} 
                         className="w-full h-full object-cover" 
@@ -4854,7 +4854,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <input 
                             type="text" 
                             className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-purple-500/50" 
-                            placeholder="e.g. Master Operating Systems Exams"
+                            placeholder="e.g. Master Operating Systems Exams" aria-label="e.g. Master Operating Systems Exams"
                             value={newAcadName}
                             onChange={(e) => setNewAcadName(e.target.value)}
                           />
@@ -4878,7 +4878,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         <input 
                           type="text" 
                           className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-purple-500/50" 
-                          placeholder="e.g. Study virtual memory page faults, thread synchronizations & cache lookups"
+                          placeholder="e.g. Study virtual memory page faults, thread synchronizations & cache lookups" aria-label="e.g. Study virtual memory page faults, thread synchronizations & cache lookups"
                           value={newAcadDesc}
                           onChange={(e) => setNewAcadDesc(e.target.value)}
                         />
@@ -5107,7 +5107,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <input 
                             type="text" 
                             className="w-full bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-orange-500/50" 
-                            placeholder="e.g. Incline Bench Press"
+                            placeholder="e.g. Incline Bench Press" aria-label="e.g. Incline Bench Press"
                             value={newLiftName}
                             onChange={(e) => setNewLiftName(e.target.value)}
                           />
@@ -5117,7 +5117,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <input 
                             type="text" 
                             className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-200 outline-none focus:border-orange-500/50" 
-                            placeholder="e.g. 75kg"
+                            placeholder="e.g. 75kg" aria-label="e.g. 75kg"
                             value={newLiftWeight}
                             onChange={(e) => setNewLiftWeight(e.target.value)}
                           />
@@ -5427,7 +5427,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <input 
                               type="text" 
                               className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
-                              placeholder="e.g. Hunter Corp"
+                              placeholder="e.g. Hunter Corp" aria-label="e.g. Hunter Corp"
                               value={newJobCompany}
                               onChange={(e) => setNewJobCompany(e.target.value)}
                             />
@@ -5437,7 +5437,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <input 
                               type="text" 
                               className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
-                              placeholder="e.g. Fullstack Wizard"
+                              placeholder="e.g. Fullstack Wizard" aria-label="e.g. Fullstack Wizard"
                               value={newJobRole}
                               onChange={(e) => setNewJobRole(e.target.value)}
                             />
@@ -5460,7 +5460,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <input 
                               type="text" 
                               className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-cyan-500/50" 
-                              placeholder="Salary details, timeline"
+                              placeholder="Salary details, timeline" aria-label="Salary details, timeline"
                               value={newJobNotes}
                               onChange={(e) => setNewJobNotes(e.target.value)}
                             />
@@ -6196,7 +6196,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     title="Click to upload profile picture"
                   >
                     {profileImage ? (
-                      <img 
+                      <img loading="lazy" 
                         src={profileImage} 
                         alt={playerName} 
                         className="w-full h-full object-cover" 
@@ -6372,7 +6372,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             </motion.div>
           )}
 
-          {activeAnnouncements && activeAnnouncements.length > 0 && activeAnnouncements.slice(-3).map((ann, idx) => (
+          {activeAnnouncements && activeAnnouncements.length > 0 && activeAnnouncements.slice(systemToast ? -1 : -2).map((ann, idx) => (
              <motion.div 
               key={`admin_${ann.id || idx}`}
               initial={{ opacity: 0, x: 50, scale: 0.95 }}

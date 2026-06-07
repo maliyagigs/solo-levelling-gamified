@@ -159,7 +159,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
         {error && <p className="text-red-400 text-sm mb-4 text-center bg-red-950/40 p-3 rounded-lg border border-red-900/50">{error}</p>}
         <input
           type="email"
-          placeholder="Email Address"
+          placeholder="Email Address" aria-label="Email Address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={authLoading}
@@ -167,7 +167,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Password" aria-label="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={authLoading}

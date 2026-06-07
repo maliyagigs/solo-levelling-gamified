@@ -646,7 +646,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
                     type="text"
                     required
                     className="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-sm font-mono text-cyan-300 outline-none focus:border-cyan-400/50"
-                    placeholder="Sung Jin-Woo"
+                    placeholder="Sung Jin-Woo" aria-label="Sung Jin-Woo"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
@@ -659,7 +659,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
                     id="input_password"
                     type="password"
                     className="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl text-sm font-mono text-cyan-300 outline-none focus:border-cyan-400/50"
-                    placeholder="••••"
+                    placeholder="••••" aria-label="••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
