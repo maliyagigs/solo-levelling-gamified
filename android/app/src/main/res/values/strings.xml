@@ -4,4 +4,6 @@
     <string name="title_activity_main">Monarch</string>
     <string name="package_name">com.monarch.fitness</string>
     <string name="custom_url_scheme">com.monarch.fitness</string>
+    <string name="server_client_id">PLACEHOLDER_WEB_CLIENT_ID</string>
+    <string name="android_client_id">86371107307-67eaa2qs4go2rpet6lg380iliiar4504.apps.googleusercontent.com</string>
 </resources>

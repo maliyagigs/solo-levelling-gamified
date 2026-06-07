@@ -48,7 +48,7 @@ import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generate
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
 import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users } from "lucide-react";
-import { saveToLeaderboard, fetchLeaderboard, db, handleFirestoreError, OperationType } from "../utils/firebase";
+import { saveToLeaderboard, fetchLeaderboard, db, auth, handleFirestoreError, OperationType } from "../utils/firebase";
 import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
 import { 
   playSelectSound, 
@@ -1310,10 +1310,62 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     triggerSystemToast("🗑️ APPLICATION EXPUNGED: Removed job entry from databases.");
   };
 
-  // Auto-save whenever gameState changes
+  // Auto-save both locally and to Cloud Firestore (with debounce) whenever progress stats change
+  const lastCloudSavedRef = useRef<string>("");
   useEffect(() => {
     localStorage.setItem(`monarch_save_v2_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const dataToSave = {
+      playerName,
+      onboardProfile,
+      gameState,
+      academicQuests,
+      bodybuildingExercises,
+      intakeCalories,
+      intakeProtein,
+      careerMilestones,
+      jobApplications,
+      focusLogs,
+      forceSystemEnforcement,
+      playerMp,
+      isInPenaltyZone,
+      updatedAt: new Date().toISOString()
+    };
+
+    const serialized = JSON.stringify(dataToSave);
+    if (serialized === lastCloudSavedRef.current) return;
+    lastCloudSavedRef.current = serialized;
+
+    const timer = setTimeout(async () => {
+      try {
+        const path = `users/${uid}`;
+        await setDoc(doc(db, "users", uid), dataToSave);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${uid}`);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [
+    playerName,
+    onboardProfile,
+    gameState,
+    academicQuests,
+    bodybuildingExercises,
+    intakeCalories,
+    intakeProtein,
+    careerMilestones,
+    jobApplications,
+    focusLogs,
+    forceSystemEnforcement,
+    playerMp,
+    isInPenaltyZone
+  ]);
 
   // Auto-accumulate Weekly Mana Progress on gold (MP) gains
   const prevGoldRef = useRef(gameState.gold);

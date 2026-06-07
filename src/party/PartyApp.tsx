@@ -24,7 +24,11 @@ import {
   Sparkles,
   RefreshCw,
   Clock,
-  Skull as SkeletonIcon
+  Skull as SkeletonIcon,
+  BookOpen,
+  Target,
+  Heart,
+  Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -62,6 +66,7 @@ import {
   Check 
 } from "lucide-react";
 import { db } from "../utils/firebase";
+import DpsChart from "../components/DpsChart";
 
 interface PartyPageProps {
   playerName: string;
@@ -79,63 +84,89 @@ interface ForumPost {
 }
 
 function VictoryLevelUpParticles() {
-  const particles = Array.from({ length: 40 });
+  const particles = Array.from({ length: 60 });
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-50 flex items-center justify-center">
       {/* Glow Centerburst Badge */}
       <motion.div 
-        initial={{ scale: 0, opacity: 0 }}
+        initial={{ scale: 0, opacity: 0, rotate: -15 }}
         animate={{ 
-          scale: [0.5, 1.2, 1],
+          scale: [0.5, 1.25, 1],
           opacity: [0, 1, 1],
-          y: [30, -10, 0]
+          rotate: [0, -2, 0],
+          y: [40, -15, 0]
         }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="bg-slate-900/95 border-2 border-indigo-500/50 px-8 py-4 rounded-[2.2rem] shadow-[0_0_50px_rgba(99,102,241,0.4)] flex flex-col items-center justify-center gap-1.5 relative z-50 backdrop-blur-md"
+        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-slate-950/95 border-2 border-indigo-500/50 px-10 py-6 rounded-[2.5rem] shadow-[0_0_80px_rgba(99,102,241,0.55)] flex flex-col items-center justify-center gap-2 relative z-50 backdrop-blur-md max-w-sm text-center"
       >
-        <Trophy className="w-10 h-10 text-amber-400 animate-bounce" />
-        <span className="text-[9px] font-mono text-indigo-400 font-bold tracking-[0.3em] uppercase">Rift Clearance Confirmed</span>
-        <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-cyan-400 to-indigo-400 tracking-tighter uppercase italic">
+        <motion.div
+          animate={{ rotate: [0, -10, 10, -5, 5, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: 1.4, ease: "easeInOut", repeat: 3, repeatDelay: 1 }}
+        >
+          <Trophy className="w-12 h-12 text-amber-400 drop-shadow-[0_0_15px_#f59e0b]" />
+        </motion.div>
+        
+        <span className="text-[10px] font-mono text-cyan-400 font-extrabold tracking-[0.4em] uppercase animate-pulse">RIFT CLEARED SUCCESS</span>
+        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-cyan-400 to-indigo-400 tracking-tighter uppercase italic leading-none my-1">
           LEVEL UP!
         </h1>
-        <div className="text-[8px] font-mono text-slate-400 uppercase tracking-widest mt-1">
-          +80 XP EXPLOITS ACQUIRED
+        <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800/80">
+          🔑 +200 MANA EXPLOITS ACQUIRED
         </div>
       </motion.div>
 
-      {/* Floating Sparkles Particles */}
+      {/* Explosive shockwave ring */}
+      <motion.div
+        initial={{ scale: 0.1, opacity: 1, borderWidth: "8px" }}
+        animate={{ scale: 3, opacity: 0, borderWidth: "1px" }}
+        transition={{ duration: 1.4, ease: "easeOut" }}
+        className="absolute w-[180px] h-[180px] rounded-full border-2 border-indigo-500/80 pointer-events-none"
+      />
+
+      {/* Explosive Sparkles & Confetti Particles */}
       {particles.map((_, idx) => {
-        const randomX = (Math.random() - 0.5) * 600;
-        const randomY = -150 - Math.random() * 300;
-        const randomScale = 0.5 + Math.random() * 1.5;
-        const speed = 1.5 + Math.random() * 2.5;
-        const delay = Math.random() * 0.8;
+        // Compute organic explosion physics coordinates
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 80 + Math.random() * 220;
+        const targetX = Math.cos(angle) * velocity;
+        const targetY = Math.sin(angle) * velocity;
+        const randomScale = 0.4 + Math.random() * 1.3;
+        const duration = 1.2 + Math.random() * 1.4;
+        const delay = Math.random() * 0.15;
+        const spin = (Math.random() - 0.5) * 540;
         
+        const colors = [
+          "bg-amber-400 shadow-[0_0_12px_#f59e0b]",
+          "bg-cyan-400 shadow-[0_0_12px_#06b6d4]",
+          "bg-indigo-400 shadow-[0_0_12px_#6366f1]",
+          "bg-fuchsia-400 shadow-[0_0_12px_#d946ef]",
+          "bg-emerald-400 shadow-[0_0_12px_#10b981]"
+        ];
+        const randomColor = colors[idx % colors.length];
+
         return (
           <motion.div
             key={idx}
-            initial={{ x: 0, y: 150, opacity: 0, scale: 0 }}
+            initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
             animate={{ 
-              x: randomX,
-              y: randomY,
+              x: [0, targetX, targetX * 1.15],
+              y: [0, targetY - 60, targetY + 200], // parabolic gravity arc
+              scale: [0, randomScale, randomScale * 0.7, 0],
               opacity: [0, 1, 1, 0],
-              scale: [0, randomScale, randomScale, 0],
-              rotate: [0, 180, 360]
+              rotate: [0, spin]
             }}
             transition={{ 
-              duration: speed, 
+              duration: duration,
               delay: delay,
-              ease: "easeOut",
-              repeat: Infinity,
-              repeatType: "loop"
+              ease: [0.1, 0.8, 0.3, 1]
             }}
-            className={`absolute w-3.5 h-3.5 rounded-full ${
-              idx % 3 === 0 
-                ? "bg-amber-400 shadow-[0_0_10px_#f59e0b]" 
-                : idx % 3 === 1 
-                  ? "bg-cyan-400 shadow-[0_0_10px_#06b6d4]" 
-                  : "bg-fuchsia-400 shadow-[0_0_10px_#d946ef]"
-            }`}
+            className={`absolute pointer-events-none ${
+              idx % 4 === 0 
+                ? "w-2.5 h-6 rounded-sm bg-gradient-to-b from-indigo-500 to-indigo-300" // confetti paper
+                : idx % 4 === 1
+                  ? "w-3 h-3 rounded-full" // circles
+                  : "w-2.5 h-2.5 rotate-45" // diamonds
+            } ${randomColor} will-change-transform`}
           />
         );
       })}
@@ -192,6 +223,493 @@ function AudioVoiceMemoPlayer({ audioUrl }: { audioUrl: string }) {
         </>
       )}
     </button>
+  );
+}
+
+interface BossTacticalCompendiumProps {
+  bossName: string;
+  currentBossState: {
+    hp: number;
+    maxHp: number;
+    shield: number;
+    maxShield: number;
+    level: string;
+    teamShield?: number;
+    timeRemaining: number;
+  };
+}
+
+function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalCompendiumProps) {
+  const [activeSubTab, setActiveSubTab] = useState<"physiology" | "abilities" | "vulnerabilities" | "loot">("physiology");
+  const [simulationResult, setSimulationResult] = useState<{ name: string; quantity: string; rarity: string; chance: string; color: string } | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  // Parse boss details based on name
+  const getBossDetails = () => {
+    const isIgris = bossName?.toLowerCase().includes("igris");
+    const isBaruka = bossName?.toLowerCase().includes("baruka");
+    const isKargalgan = bossName?.toLowerCase().includes("kargalgan") || bossName?.toLowerCase().includes("shaman");
+
+    if (isBaruka) {
+      return {
+        title: "Lord Baruka",
+        subtitle: "The Master Assassin of the White Storm",
+        threatTier: "S-Rank Abyssal Elite",
+        classSpec: "Spectral Wind Assassin / Rogue",
+        manaDensity: "11,200 QM units",
+        physMultiplier: "x5.8 Glacial Scale",
+        description: "A bloodthirsty Frost Elf warrior of extreme intelligence. He wields dual icy daggers with invisible swiftness. Moves undetected during blizzards and coordinates coordinated strikes designed to eliminate vulnerable healers first.",
+        attribute: "Glacial Frostbite & Bleed Matrix",
+        stats: {
+          threat: 92,
+          speed: 98,
+          defense: 65,
+          magic: 80,
+          vulnerabilities: "Fire (140%), Piercing (115%)",
+        },
+        phases: [
+          { phase: "Phase 1 (100% - 70% HP)", title: "Stalking Glacier Outburst", desc: "Launches surprise Frostbite Slashes that apply stacks of movement decay. Hunters should keep protective barriers primed." },
+          { phase: "Phase 2 (70% - 35% HP)", title: "Absolute White-Out Storm", desc: "Baruka unleashes an extreme blizzard draining 4% vanguard shields per second. Initiate party-wide Heal Infusion matrix loops." },
+          { phase: "Phase 3 (< 35% HP)", title: "Silent Step Slayers Strike", desc: "Marks the lowest HP party member and launches a critical execute that deals 90% direct damage unless shielded by Aegis Ward." },
+        ],
+        abilities: [
+          { name: "Glacier Blade Cleave", type: "Physical Slash", cooldown: "8s", effect: "Deals heavy physical bleed damage, scaling down active recovery speed by 40%." },
+          { name: "Frozen Ice Mirage", type: "Agility Avoidance", cooldown: "24s", effect: "Creates active duplicates. Evades 30% of standard hunter basic physical strikes." },
+          { name: "Blizzard Cry Chant", type: "Glacial Magic Override", cooldown: "35s", effect: "Freezes target abilities, preventing use of commands for 3s unless interrupted." },
+        ],
+        vulnerabilitiesList: [
+          { type: "Fire Essence Ignition", rating: "HIGH VULNERABILITY (+40%)", detail: "Flame element completely melts glacial protective layers, removing 50% shielding." },
+          { type: "Stun Lock Counters", rating: "MODERATE RESIST (Immune to Soft Stuns)", detail: "Can only be staggered with Shadow sovereign level interruptions." },
+          { type: "Armor Piercing", rating: "EASY CLEAVE", detail: "Physical heavy armor piercing strikes bypass Frost armor protections completely." },
+        ],
+        loot: [
+          { name: "Baruka's Frost Dual Dagger", quantity: "1x Unit", rarity: "S-Rank Sovereign Weapon", chance: "1.8%", color: "text-cyan-400 border-cyan-500/30" },
+          { name: "Frostwind Vanguard Iron Jerkin", quantity: "1x Unit", rarity: "S-Rank Agility Plate", chance: "4.0%", color: "text-blue-400 border-blue-500/30" },
+          { name: "S-Rank Eternal Glacial Core", quantity: "2x Units", rarity: "S-Rank Crafting Catalyst", chance: "100%", color: "text-fuchsia-400 border-fuchsia-500/30" },
+        ]
+      };
+    }
+
+    if (isKargalgan) {
+      return {
+        title: "Kargalgan",
+        subtitle: "High Priest of the High Orc Sovereign Tribe",
+        threatTier: "S-Rank Calamity Prime",
+        classSpec: "Spacetime Demon Chanter / Mage",
+        manaDensity: "16,550 QM units",
+        physMultiplier: "x7.2 Sorcerer Scale",
+        description: "The supreme shaman commanding ancient spell structures. Surrounded by perpetual magic guards that absorb physical force. He directs cosmic gravity arrays, magical barriers, and high-impact meteor call loops.",
+        attribute: "Gravitational Spacetime Distortion Enclaves",
+        stats: {
+          threat: 97,
+          speed: 62,
+          defense: 94,
+          magic: 99,
+          vulnerabilities: "Shattering Strike, Shadow Extraction Resonance",
+        },
+        phases: [
+          { phase: "Phase 1 (100% - 65% HP)", title: "High Orc Spell Shielding", desc: "Launches with massive protective hymnals (+3,500 startup shield). Physical pierce is needed to puncture the core." },
+          { phase: "Phase 2 (65% - 30% HP)", title: "Orb Gravitational Domination", desc: "Compresses space, raising team spell/ability cooldowns by 1.5s. Prepare Shadow Extraction to force interruptions." },
+          { phase: "Phase 3 (< 30% HP)", title: "Ultimate Cataclysm Meteor Call", desc: "Enters an endless spellcast chant loop. If his chanting timer drops to 0, it wipes 95% total party health capacity." },
+        ],
+        abilities: [
+          { name: "Hymn of Devouring Firestorms", type: "Arcane Ignis", cooldown: "12s", effect: "Fires high-impact fire rings exploding target areas and burning for sustained damage." },
+          { name: "Gravity Compression Domain", type: "Void Magic", cooldown: "20s", effect: "Pins down the highest damage contributor, rendering them inactive for 5s." },
+          { name: "Colossus Aegis Protection", type: "Spell Ward Chant", cooldown: "40s", effect: "Casts a massive defensive runic barrier, absorbing all attacks except crushing strike." },
+        ],
+        vulnerabilitiesList: [
+          { type: "Heavy Armor Piercing / Shatter", rating: "HIGH CRITICAL (+35%)", detail: "Heavy weapon impacts stagger Kargalgan, breaking his spell casting channel instantly." },
+          { type: "Mana Feedback Shock", rating: "Feedback Damage Loop", detail: "Stunning active casting triggers a spell cascade, causing 1,200 absolute feedback damage." },
+          { type: "Sovereign Spell Interruption", rating: "VULNERABILITY (+15%)", detail: "Shadow extraction disrupts focus, scaling down Kargalgan's magical spellcast speed by 25%." },
+        ],
+        loot: [
+          { name: "Orc Warlord's Sovereign Staff", quantity: "1x Unit", rarity: "S-Rank Sorcerer Artifact", chance: "1.2%", color: "text-amber-400 border-amber-500/30" },
+          { name: "Ring of Spacetime Distortion", quantity: "1x Unit", rarity: "S-Rank Accessory", chance: "3.0%", color: "text-fuchsia-400 border-fuchsia-500/30" },
+          { name: "Mage Core Divine Extract", quantity: "3x Units", rarity: "S-Rank Core Catalyst", chance: "100%", color: "text-cyan-400 border-cyan-500/30" },
+        ]
+      };
+    }
+
+    // Default to Igris
+    return {
+      title: "Commander Igris",
+      subtitle: "The Crimson Sovereign loyal vanguard",
+      threatTier: "S-Rank Sovereign Knight",
+      classSpec: "Shadow Lord Knight Supreme / Vanguard",
+      manaDensity: "8,900 QM units",
+      physMultiplier: "x4.5 Knightly Scale",
+      description: "The legendary, silent blood-red armored commander who has guarded the Sovereign Throne room for centuries. Possesses high physical sword mastery, infinite martial discipline, and ultra-high mobility combat speed counters.",
+      attribute: "Infinite Crimson Battle Tenacity",
+      stats: {
+        threat: 89,
+        speed: 94,
+        defense: 88,
+        magic: 50,
+        vulnerabilities: "Lightning Magic (125%), Disrupt Slashes",
+      },
+      phases: [
+        { phase: "Phase 1 (100% - 60% HP)", title: "Throne Guardian sword Dance", desc: "Igris attacks with precise Crimson Slashes. Vanguard must parry or dodge to avoid stacking physical vulnerability." },
+        { phase: "Phase 2 (60% - 30% HP)", title: "Dominion Spearman Sweep", desc: "Launches his greatsword into the ground and attacks with multiple crimson energy spears. Keep Aegis Shields active." },
+        { phase: "Phase 3 (< 30% HP)", title: "Monarch Sovereign Desperation", desc: "Enters a bloodrage. Attacks ignore normal defenses. The party must use Extract Shadow to stun him before every slash." },
+      ],
+      abilities: [
+        { name: "Crimson Slash Cascade", type: "Heavy Arcane Steel", cooldown: "9s", effect: "Performs an arc slash across all combatants, dealing physical vulnerability pierce." },
+        { name: "Sword Toss Tombstone", type: "Impact Spear Throw", cooldown: "16s", effect: "Hurls massive blade onto target member, removing 20% health capacity." },
+        { name: "Ruler's Dominant Pull", type: "Psychic Gravity Pull", cooldown: "30s", effect: "Drags all hunters near, casting shockwaves that bypass shields if caught undefended." },
+      ],
+      vulnerabilitiesList: [
+        { type: "Lightning Magic / Charge Spark", rating: "HIGH WEAKNESS (+25%)", detail: "Electrical strikes trigger resonance, stalling Igris's active attack speed by 15%." },
+        { type: "Disruptive Counter Striking", rating: "STUN WINDOW (+1.5s Duration)", detail: "Perfect counter timing during casting blocks his attack, locking him in a stagger state." },
+        { type: "Sovereign Breached Criticals", rating: "ARMOR SUNDERING", detail: "When active armor shield drops to 0, takes 150% more critical damage for 8 seconds." },
+      ],
+      loot: [
+        { name: "Crimson Great Greatsword", quantity: "1x Unit", rarity: "S-Rank Vanguard Weapon", chance: "1.5%", color: "text-rose-400 border-rose-500/30" },
+        { name: "Sovereign Commander's Red Helm", quantity: "1x Unit", rarity: "S-Rank Heavy Helm", chance: "5.0%", color: "text-indigo-400 border-indigo-500/30" },
+        { name: "High-Grade Knight Mana Core", quantity: "1x Unit", rarity: "S-Rank Core Catalyst", chance: "100%", color: "text-cyan-400 border-cyan-500/30" },
+      ]
+    };
+  };
+
+  const details = getBossDetails();
+
+  const playSynthesizerRollChime = (rarity: string) => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const playTone = (freq: number, start: number, duration: number, type: OscillatorType, gainVal = 0.08) => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        gainNode.gain.setValueAtTime(gainVal, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.005, start + duration);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+
+      if (rarity.includes("Weapon")) {
+        // Legendary drop chime (High arpeggio major triad)
+        playTone(523.25, now, 0.2, "sine"); // C5
+        playTone(659.25, now + 0.1, 0.2, "sine"); // E5
+        playTone(783.99, now + 0.2, 0.2, "sine"); // G5
+        playTone(1046.50, now + 0.35, 0.6, "triangle", 0.1); // C6 S-RANK BLAST!
+      } else {
+        // Standard materials chime
+        playTone(261.63, now, 0.15, "triangle"); // C4
+        playTone(392.00, now + 0.08, 0.35, "sine"); // G4
+      }
+    } catch (e) {
+      console.warn("Audio Context blocked:", e);
+    }
+  };
+
+  const simulateLootRoll = () => {
+    if (isSimulating) return;
+    setIsSimulating(true);
+    setSimulationResult(null);
+
+    // Roll after simulated decryption spin (1200ms)
+    setTimeout(() => {
+      const rand = Math.random() * 100;
+      let selectedItem = details.loot[details.loot.length - 1]; // Fallback S-Grade Core Catalyst
+
+      // If random roll matches rarer drop chances
+      if (rand < parseFloat(details.loot[0].chance)) {
+        selectedItem = details.loot[0]; // Greatsword / Weapon
+      } else if (rand < parseFloat(details.loot[0].chance) + parseFloat(details.loot[1].chance)) {
+        selectedItem = details.loot[1]; // Helm / Accessory
+      }
+
+      setSimulationResult(selectedItem);
+      setIsSimulating(false);
+      playSynthesizerRollChime(selectedItem.rarity);
+    }, 1200);
+  };
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-800/80 rounded-[2.5rem] p-6 lg:p-8 space-y-6 relative overflow-hidden shadow-2xl">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full filter blur-2xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-44 h-44 bg-cyan-500/5 rounded-full filter blur-3xl pointer-events-none" />
+
+      {/* Hologram Core Panel Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10 border-b border-slate-800/60 pb-5">
+        <div>
+          <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1 rounded-full text-[8px] font-mono text-cyan-400 font-extrabold uppercase tracking-widest animate-pulse">
+            <Sparkles className="w-3 h-3 animate-spin text-cyan-400" />
+            INTELLIGENCE DECRYPTER: ONLINE
+          </div>
+          <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-[0.18em] italic mt-1.5 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-indigo-400" />
+            {details.title} Physiology Record
+          </h3>
+          <p className="text-[10px] text-slate-500 font-mono uppercase mt-0.5 tracking-wider">{details.subtitle}</p>
+        </div>
+
+        {/* Boss State Check Indicator */}
+        <div className="bg-slate-950 px-4 py-2 rounded-2xl border border-slate-850 flex items-center gap-2.5 font-mono">
+          <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+          <div className="text-[9px] uppercase font-black text-rose-450 text-right">
+            THREAT: <span className="text-white font-extrabold">{details.threatTier}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub Tabs Selector */}
+      <div className="grid grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-850/80 relative z-10">
+        {(["physiology", "abilities", "vulnerabilities", "loot"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveSubTab(tab)}
+            className={`py-2 px-1 rounded-xl text-[8px] sm:text-[9.5px] font-mono font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+              activeSubTab === tab
+                ? "bg-indigo-600/90 text-white shadow-lg shadow-indigo-600/20"
+                : "text-slate-400 hover:text-white hover:bg-slate-900/50"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Dynamic Sub-tab Panel Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeSubTab}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -5 }}
+          transition={{ duration: 0.18 }}
+          className="relative z-10 min-h-[220px]"
+        >
+          {/* TAB 1: PHYSIOLOGY */}
+          {activeSubTab === "physiology" && (
+            <div className="space-y-6">
+              {/* Lore Description */}
+              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 font-mono text-[10px] leading-relaxed text-slate-300">
+                <span className="text-indigo-400 font-black block mb-1.5 uppercase text-[9px] tracking-widest">&bull; HISTORIC BEAST COMPENDIUM LORE</span>
+                {details.description}
+              </div>
+
+              {/* Statistical Meters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Visual Radar Metrics */}
+                <div className="bg-slate-950/40 p-4 rounded-3xl border border-slate-850 space-y-3">
+                  <div className="text-[8.5px] font-mono font-black text-slate-500 uppercase tracking-widest">&bull; SPECTRAL RATING METERS</div>
+                  
+                  {/* Threat Rating Multiplier */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-[8px] uppercase tracking-wide text-rose-400">
+                      <span>Destruction Threat Coeff</span>
+                      <span className="font-bold">{details.stats.threat}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div className="h-full bg-rose-500 rounded-full" style={{ width: `${details.stats.threat}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Agility Movement Speed */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-[8px] uppercase tracking-wide text-cyan-400 font-bold">
+                      <span>Physical Agility Speed</span>
+                      <span>{details.stats.speed}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${details.stats.speed}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Def Armor Toughness */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-[8px] uppercase tracking-wide text-amber-400">
+                      <span>Aegis Armor Hardness</span>
+                      <span className="font-bold">{details.stats.defense}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 rounded-full" style={{ width: `${details.stats.defense}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Mana magic density */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between font-mono text-[8px] uppercase tracking-wide text-indigo-400 font-bold">
+                      <span>Eldritch Magic Power</span>
+                      <span>{details.stats.magic}%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${details.stats.magic}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub Attributes and parameters */}
+                <div className="bg-slate-950/40 p-4 rounded-3xl border border-slate-850 space-y-3 font-mono text-[9px] uppercase">
+                  <div className="text-[8.5px] font-black text-slate-500 tracking-widest">&bull; MAGICAL ATTUNEMENT DATA</div>
+                  
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Main Attribute:</span>
+                    <span className="text-indigo-400 font-extrabold text-right">{details.attribute}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Sovereign Class:</span>
+                    <span className="text-white font-bold">{details.classSpec}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-900">
+                    <span className="text-slate-400">Mana Density:</span>
+                    <span className="text-cyan-400 font-bold">{details.manaDensity}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">Physiology Scale:</span>
+                    <span className="text-amber-500 font-bold">{details.physMultiplier}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Threat Phase Stages Description */}
+              <div className="space-y-2">
+                <span className="text-[9px] font-mono font-black text-indigo-400 block uppercase tracking-widest">&bull; THREAT LEVEL ENCOUNTER PHASES</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {details.phases.map((stg, index) => {
+                    const hpPercent = index === 0 ? "HP > 60%" : index === 1 ? "40% - 60%" : "HP < 35%";
+                    return (
+                      <div key={index} className="bg-slate-950/80 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between gap-1.5">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-900 pb-1 mb-1.5 font-mono text-[8px] uppercase">
+                            <span className="text-indigo-400 font-black">{stg.phase}</span>
+                            <span className="text-rose-500 bg-rose-950/30 px-1 rounded font-bold">{hpPercent}</span>
+                          </div>
+                          <h4 className="text-[10px] font-black text-slate-200 uppercase font-mono tracking-tight">{stg.title}</h4>
+                          <p className="text-[9px] text-slate-400 mt-1 leading-normal font-sans font-medium">{stg.desc}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: ACTIVE ABILITIES */}
+          {activeSubTab === "abilities" && (
+            <div className="space-y-3 font-mono">
+              <span className="text-[9px] font-black text-slate-500 block uppercase tracking-widest">&bull; BOSS ABILITY SKILL DECK TIMELINE</span>
+              <div className="grid grid-cols-1 gap-3">
+                {details.abilities.map((ability, idx) => (
+                  <div key={idx} className="bg-slate-950 p-4 rounded-2xl border border-slate-850 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-slate-900 border border-indigo-500/20 flex items-center justify-center font-bold text-xs font-mono text-cyan-400 select-none">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-black text-white uppercase">{ability.name}</h4>
+                        <p className="text-[9px] text-slate-400 leading-normal mt-0.5 uppercase tracking-wide font-medium">{ability.effect}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 text-[8px] sm:text-[9.5px]">
+                      <span className="px-2 py-1 bg-slate-900 rounded border border-slate-850 uppercase text-slate-500 font-bold">TYPE: <span className="text-slate-300 font-black">{ability.type}</span></span>
+                      <span className="px-2 py-1 bg-indigo-950/30 rounded border border-indigo-900/30 text-indigo-400 font-bold">CD: {ability.cooldown}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: VULNERABILITIES */}
+          {activeSubTab === "vulnerabilities" && (
+            <div className="space-y-3 font-mono">
+              <span className="text-[9px] font-black text-slate-500 block uppercase tracking-widest">&bull; TACTICAL EXPLOIT VULNERABILITIES</span>
+              <div className="grid grid-cols-1 gap-3">
+                {details.vulnerabilitiesList.map((vuln, idx) => (
+                  <div key={idx} className="bg-slate-950/75 p-4 rounded-2xl border border-slate-850 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <div>
+                      <h4 className="text-[11px] font-black text-indigo-400 uppercase">{vuln.type}</h4>
+                      <p className="text-[9px] text-slate-400 leading-relaxed mt-0.5 font-medium">{vuln.detail}</p>
+                    </div>
+                    <span className="px-3 py-1 bg-rose-950/30 border border-rose-900/30 rounded text-[8px] font-black uppercase text-rose-400 shrink-0 text-center">
+                      {vuln.rating}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: LOOT TABLE DECRYPTOR (INTERACTIVE SIMULATOR) */}
+          {activeSubTab === "loot" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              {/* Loot Tables List */}
+              <div className="lg:col-span-7 space-y-3 font-mono">
+                <span className="text-[9px] font-black text-slate-500 block uppercase tracking-widest">&bull; GUARANTEED & PROBABLE SOVEREIGN DROPS</span>
+                <div className="space-y-2.5">
+                  {details.loot.map((item, idx) => (
+                    <div key={idx} className={`bg-slate-950/80 border p-3.5 rounded-2xl flex justify-between items-center gap-3 ${item.color}`}>
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase">{item.name}</h4>
+                        <span className="text-[7.5px] uppercase tracking-wider text-slate-500">RARITY: {item.rarity}</span>
+                      </div>
+                      <div className="text-right text-[8.5px] shrink-0">
+                        <div className="font-extrabold uppercase">CHANCE: {item.chance}</div>
+                        <div className="text-slate-550 mt-0.5">{item.quantity}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Decryptor Simulator Column */}
+              <div className="lg:col-span-5 bg-slate-950 p-5 rounded-3xl border border-slate-850 flex flex-col justify-between items-center gap-4 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-indigo-550/5 via-transparent to-transparent pointer-events-none" />
+                <div className="space-y-1 relative z-10">
+                  <h4 className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-[0.25em] animate-pulse">MONARCH DECRYPTOR CORE</h4>
+                  <p className="text-[8px] font-mono text-slate-500 uppercase">Simulate rolling loot against database ratios (No actual cost)</p>
+                </div>
+
+                {/* Display Decryption Screen */}
+                <div className="w-full flex-1 min-h-[120px] flex items-center justify-center p-4 bg-slate-900 border border-slate-850 rounded-2xl relative">
+                  {isSimulating ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 rounded-full border-2 border-dashed border-cyan-500 border-t-transparent animate-spin" />
+                      <span className="text-[8.5px] font-mono font-black text-cyan-400 tracking-widest animate-pulse uppercase">DECRYPTING QUANTUM DATA...</span>
+                    </div>
+                  ) : simulationResult ? (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-center space-y-1.5 p-3 rounded-xl max-w-full"
+                    >
+                      <Trophy className="w-8 h-8 text-amber-400 mx-auto animate-bounce drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]" />
+                      <span className="text-[7.5px] font-mono font-black border border-slate-800 px-2 py-0.5 rounded-full text-slate-400 tracking-widest uppercase">
+                        {simulationResult.rarity}
+                      </span>
+                      <h4 className="text-[10px] font-black text-white uppercase truncate max-w-[160px]" title={simulationResult.name}>
+                        {simulationResult.name}
+                      </h4>
+                      <p className="text-[8px] font-mono text-emerald-400 font-extrabold uppercase">Decryption complete! (Simulated Chance: {simulationResult.chance})</p>
+                    </motion.div>
+                  ) : (
+                    <div className="text-center font-mono space-y-2">
+                      <Target className="w-8 h-8 text-indigo-500/50 mx-auto" />
+                      <div className="text-[9px] text-slate-500 uppercase tracking-widest">Awaiting Command Link</div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={simulateLootRoll}
+                  disabled={isSimulating}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-600/10 cursor-pointer disabled:opacity-40"
+                >
+                  {isSimulating ? "DECRYPTING..." : "CALIBRATE DROPS"}
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -383,25 +901,48 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
   const playClearSound = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const playNote = (freq: number, start: number, duration: number, type: OscillatorType = "sine") => {
+      const now = audioCtx.currentTime;
+
+      // Synth Helper to play dynamic notes
+      const playFreq = (freq: number, start: number, duration: number, type: OscillatorType, gainVal: number = 0.12) => {
         const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const gainNode = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.15, start);
-        gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gainNode.gain.setValueAtTime(gainVal, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.005, start + duration);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
         osc.start(start);
         osc.stop(start + duration);
       };
 
-      const now = audioCtx.currentTime;
-      playNote(261.63, now, 0.45, "triangle");
-      playNote(329.63, now + 0.15, 0.45, "triangle");
-      playNote(392.00, now + 0.3, 0.45, "triangle");
-      playNote(523.25, now + 0.45, 0.85, "sine");
-      playNote(659.25, now + 0.6, 1.2, "sine");
+      // 1. Sub Bass Drop rumble (simulates spatial breach collapsing)
+      const subOsc = audioCtx.createOscillator();
+      const subGain = audioCtx.createGain();
+      subOsc.type = "sine";
+      subOsc.frequency.setValueAtTime(140, now);
+      subOsc.frequency.exponentialRampToValueAtTime(45, now + 1.2);
+      subGain.gain.setValueAtTime(0.2, now);
+      subGain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+      subOsc.connect(subGain);
+      subGain.connect(audioCtx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 1.2);
+
+      // 2. High Arpeggio Chime Sweep (major key alignment scale C -> E -> G -> B -> C -> E -> G)
+      const chimes = [261.63, 329.63, 392.00, 493.88, 523.25, 659.25, 783.99, 987.77, 1046.50];
+      chimes.forEach((freq, idx) => {
+        playFreq(freq, now + idx * 0.08, 0.9, "sine", 0.08);
+        playFreq(freq, now + idx * 0.08, 0.45, "triangle", 0.03);
+      });
+
+      // 3. Perfect Major Chord Blast for impact (C4, E4, G4, C5, E5)
+      const chord = [261.63, 329.63, 392.00, 523.25, 659.25];
+      chord.forEach((freq) => {
+        playFreq(freq, now + 0.35, 1.5, "triangle", 0.06);
+      });
+
     } catch (e) {
       console.warn("Audio Context blocked or failed:", e);
     }
@@ -1158,7 +1699,23 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Active Hunter Signature</span>
             <span className="text-xs font-black text-indigo-400">{playerName}</span>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 font-bold font-mono">
+          
+          <button 
+            onClick={toggleCameraSetup}
+            title="Calibrate Biometric Avatar"
+            className="w-10 h-10 rounded-2xl bg-slate-900 border border-indigo-500/25 hover:border-indigo-500/60 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono group relative cursor-pointer transition-all hover:scale-105 shrink-0"
+          >
+            {playerProfileData?.customAvatar ? (
+              <img src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="text-xs">{playerName.substring(0, 2).toUpperCase()}</span>
+            )}
+            <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <Camera className="w-3.5 h-3.5 text-white" />
+            </div>
+          </button>
+
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 font-bold font-mono shrink-0">
             {playerProfileData?.level ? `L${playerProfileData.level}` : "10"}
           </div>
         </div>
@@ -1370,9 +1927,9 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
 
                     {/* DYNAMIC RAID STATE DEVIATION MAPPER */}
                     {currentLobby.status === "Raid Active" && currentLobby.boss ? (
-                      
-                      // IMMERSIVE ACTIVE RAID ENCOUNTER HUD
-                      <div className="bg-slate-900/40 border border-indigo-500/25 rounded-[2.5rem] p-6 sm:p-8 space-y-6 relative overflow-hidden shadow-inner">
+                      <div className="flex flex-col gap-6">
+                        {/* IMMERSIVE ACTIVE RAID ENCOUNTER HUD */}
+                        <div className="bg-slate-900/40 border border-indigo-500/25 rounded-[2.5rem] p-6 sm:p-8 space-y-6 relative overflow-hidden shadow-inner">
                         <div className="absolute inset-0 bg-gradient-to-b from-indigo-550/5 via-transparent to-transparent pointer-events-none" />
                         
                         {/* Boss Identification Panel */}
@@ -1612,6 +2169,10 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                         </div>
 
                       </div>
+                      
+                      {/* ULTRA VERY MUCH DETAILED BOSSES VIEW */}
+                      <BossTacticalCompendium bossName={currentLobby.boss.name} currentBossState={currentLobby.boss} />
+                    </div>
 
                     ) : (currentLobby.status === "Raid Cleared" || currentLobby.status === "Defeated" || currentLobby.status?.includes("Defeated")) ? (
  
@@ -1679,59 +2240,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            })()}
                          </div>
  
-                         {/* RECHARTS PIE CHART FOR DPS CONTRIBUTION */}
-                         <div className="bg-slate-950/40 border border-slate-850 p-6 rounded-[2rem] space-y-4 relative z-10">
-                           <h3 className="text-center font-mono font-bold text-xs uppercase tracking-[0.2em] text-indigo-400">
-                              Damage Contribution Matrix (DPS Allocation)
-                           </h3>
-                           
-                           {(() => {
-                             const contributions = currentLobby.contributions || {};
-                             const chartColors = ["#06b6d4", "#d946ef", "#6366f1", "#a855f7", "#ec4899"];
-                             const chartData = Object.keys(contributions).map(member => ({
-                               name: member,
-                               value: contributions[member]?.damage || 0
-                             })).filter(item => item.value > 0);
- 
-                             const finalChartData = chartData.length > 0 ? chartData : (currentLobby.members || []).map((m: string, idx: number) => ({
-                               name: m,
-                               value: 2000 + (idx * 500)
-                             }));
- 
-                             return (
-                               <div className="h-64 sm:h-72 w-full flex items-center justify-center font-mono my-4">
-                                 <ResponsiveContainer width="100%" height="100%">
-                                   <PieChart>
-                                     <Pie
-                                       data={finalChartData}
-                                       cx="50%"
-                                       cy="50%"
-                                       innerRadius={60}
-                                       outerRadius={85}
-                                       paddingAngle={5}
-                                       dataKey="value"
-                                     >
-                                       {finalChartData.map((entry, index) => (
-                                         <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                                       ))}
-                                     </Pie>
-                                     <Tooltip 
-                                       contentStyle={{ backgroundColor: "#020617", border: "1px solid #334155", borderRadius: "1rem" }}
-                                       itemStyle={{ color: "#f1f5f9", fontSize: "11px", fontFamily: "monospace" }}
-                                     />
-                                     <Legend 
-                                       verticalAlign="bottom" 
-                                       height={36} 
-                                       iconType="circle"
-                                       formatter={(value) => <span className="text-[10px] text-slate-300 font-mono uppercase tracking-wider">{value}</span>}
-                                     />
-                                   </PieChart>
-                                 </ResponsiveContainer>
-                               </div>
-                             );
-                           })()}
-                         </div>
- 
+                         <DpsChart currentLobby={currentLobby} memberProfiles={memberProfiles} />
                          {/* HUNTER DETAILS DATAGRID */}
                          <div className="space-y-4 relative z-10">
                            <h3 className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500 font-mono">Hunter Contributions Summary</h3>
@@ -1892,34 +2401,88 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                               </div>
                             );
                           }
+                          const senderProfile = isMe ? playerProfileData : (memberProfiles[msg.sender] || {});
                           return (
-                            <div key={i} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                               <span className={`text-[8.5px] mb-1 font-bold ${isMe ? "text-indigo-400" : "text-emerald-400"}`}>{msg.sender}</span>
-                               <div className={`px-3 py-2 rounded-xl max-w-[85%] flex flex-col gap-1 ${isMe ? "bg-indigo-600 text-white rounded-tr-sm" : "bg-slate-850 text-slate-200 rounded-tl-sm border border-slate-800"}`}>
-                                  {msg.text && <div className="leading-relaxed break-words">{msg.text}</div>}
-                                  {msg.audioUrl && (
-                                    <div className="mt-1 block">
-                                      <AudioVoiceMemoPlayer audioUrl={msg.audioUrl} />
-                                    </div>
+                            <div key={i} className={`flex gap-2 items-start ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                               <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500 font-mono text-[9px] font-bold overflow-hidden shrink-0 shadow-inner">
+                                  {senderProfile?.customAvatar ? (
+                                    <img src={senderProfile.customAvatar} alt={msg.sender} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    msg.sender.substring(0, 2).toUpperCase()
                                   )}
+                               </div>
+                               <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[80%]`}>
+                                  <span className={`text-[8.5px] mb-1 font-bold ${isMe ? "text-indigo-400" : "text-emerald-400"}`}>{msg.sender}</span>
+                                  <div className={`px-3 py-2 rounded-xl flex flex-col gap-1 ${isMe ? "bg-indigo-600 text-white rounded-tr-sm" : "bg-slate-850 text-slate-200 rounded-tl-sm border border-slate-800"}`}>
+                                     {msg.text && <div className="leading-relaxed break-words">{msg.text}</div>}
+                                     {msg.audioUrl && (
+                                       <div className="mt-1 block">
+                                         <AudioVoiceMemoPlayer audioUrl={msg.audioUrl} />
+                                       </div>
+                                     )}
+                                  </div>
                                </div>
                             </div>
                           );
                         })}
                         <div ref={chatEndRef} />
                      </div>
-                     <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/80 shrink-0 flex gap-2">
-                        <input
-                           type="text"
-                           value={chatInput}
-                           onChange={(e) => setChatInput(e.target.value)}
-                           placeholder="Transmit to party..."
-                           className="flex-1 bg-slate-900 border border-slate-850 rounded-xl px-3 py-2.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500/50 font-mono"
-                        />
-                        <button type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
-                           <Send className="w-3.5 h-3.5" />
-                        </button>
-                     </form>
+                     {isRecording ? (
+                       <div className="p-3 border-t border-rose-900 bg-rose-950/20 shrink-0 flex items-center justify-between gap-3">
+                         <div className="flex items-center gap-2 font-mono text-[10px] text-rose-400">
+                           <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                           <span className="font-extrabold uppercase tracking-wider">AUDIO MEMO BROADCAST ACTIVE</span>
+                           <span className="text-slate-400">({recordingSeconds}s)</span>
+                         </div>
+                         <div className="flex gap-2">
+                           <button
+                             type="button"
+                             onClick={() => {
+                               if (mediaRecorderRef.current) {
+                                 mediaRecorderRef.current.onstop = null;
+                                 mediaRecorderRef.current.stop();
+                               }
+                               setIsRecording(false);
+                               if (recordingTimerRef.current) {
+                                 clearInterval(recordingTimerRef.current);
+                               }
+                               triggerLocalAlert("Voice broadcast aborted.", "warning");
+                             }}
+                             className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-[9px] uppercase tracking-wider font-extrabold rounded-lg cursor-pointer transition-all font-mono"
+                           >
+                             Abort
+                           </button>
+                           <button
+                             type="button"
+                             onClick={stopVoiceRecording}
+                             className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-[9px] uppercase tracking-wider font-extrabold rounded-lg shadow-lg cursor-pointer transition-all font-mono"
+                           >
+                             Transmit Memo
+                           </button>
+                         </div>
+                       </div>
+                     ) : (
+                       <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/80 shrink-0 flex gap-2">
+                          <button 
+                             type="button" 
+                             onClick={startVoiceRecording} 
+                             className="px-3 bg-slate-900 border border-slate-850 hover:bg-slate-800 hover:border-slate-705 text-indigo-400 hover:text-indigo-350 rounded-xl flex items-center justify-center cursor-pointer transition-all"
+                             title="Calibrate tactical voice memo frequency"
+                          >
+                             <Mic className="w-3.5 h-3.5" />
+                          </button>
+                          <input
+                             type="text"
+                             value={chatInput}
+                             onChange={(e) => setChatInput(e.target.value)}
+                             placeholder="Transmit to party..."
+                             className="flex-1 bg-slate-900 border border-slate-850 rounded-xl px-3 py-2.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500/50 font-mono"
+                          />
+                          <button type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
+                             <Send className="w-3.5 h-3.5" />
+                          </button>
+                       </form>
+                     )}
                   </div>
 
                 </div>
@@ -2079,6 +2642,42 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               exit={{ opacity: 0, scale: 0.99 }}
               className="max-w-4xl mx-auto space-y-6"
             >
+              {/* Hunter Profile & Biometric Optical Sync */}
+              <div className="bg-slate-900/50 border border-slate-800/80 p-6 sm:p-8 rounded-[2.2rem] flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5 font-mono text-center sm:text-left flex-col sm:flex-row">
+                  <div className="relative group shrink-0">
+                    <div className="w-20 h-20 rounded-[2rem] bg-indigo-950/20 border-2 border-indigo-505/20 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono text-2xl shadow-xl">
+                      {playerProfileData?.customAvatar ? (
+                        <img src={playerProfileData.customAvatar} alt={playerName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        playerName.substring(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <button
+                      onClick={toggleCameraSetup}
+                      className="absolute -bottom-1 -right-1 p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl border border-indigo-550 text-white cursor-pointer transition-transform hover:scale-110 shadow-lg"
+                      title="Capture custom avatar"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-[0.25em]">Sovereign Hunter License</span>
+                    <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight italic mt-0.5">{playerName}</h2>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                      Status: <span className="text-emerald-400 font-bold">Authorized Fleet Commander</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={toggleCameraSetup}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-950 border border-indigo-500/20 hover:border-indigo-505/50 text-indigo-400 font-bold rounded-xl text-[10px] font-mono tracking-widest uppercase cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-indigo-950/10 active:scale-98"
+                >
+                  <Camera className="w-4 h-4 animate-pulse" />
+                  optical/biometric sync
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  {[
                    { label: "Gate Conquests", value: playerProfileData?.level ? Math.floor(playerProfileData.level * 1.5) : "24", trend: "+4 cleared", icon: Trophy, color: "text-amber-400" },
@@ -2211,6 +2810,75 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* OPTICAL BIOMETRIC CAMERA SCAN MODAL */}
+      <AnimatePresence>
+        {cameraStreamActive && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-md cursor-pointer"
+              onClick={deactivateCamera}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-slate-900 border border-slate-800 rounded-[2.2rem] p-6 sm:p-8 w-full max-w-sm relative z-10 shadow-2xl font-mono text-xs text-center space-y-6"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-indigo-400 animate-pulse" />
+                  <span className="text-xs font-[1000] text-white uppercase tracking-wider">OPTICAL BIOMETRIC CALIBRATION</span>
+                </div>
+                <button 
+                  onClick={deactivateCamera}
+                  className="text-[10px] bg-slate-800 hover:bg-slate-755 border border-slate-700 text-slate-400 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer uppercase font-black"
+                >
+                  Close
+                </button>
+              </div>
+
+              {/* Video Feed Component */}
+              <div className="relative aspect-square w-full max-w-[240px] mx-auto rounded-3xl overflow-hidden border-2 border-indigo-500/20 bg-slate-950 flex items-center justify-center shadow-inner">
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  className="w-full h-full object-cover scale-x-[-1]"
+                />
+                {/* Tactical scanner lines */}
+                <div className="absolute inset-0 border-2 border-dashed border-indigo-500/20 rounded-3xl pointer-events-none animate-pulse" />
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-[bounce_3s_infinite]" />
+              </div>
+
+              <p className="text-[9.5px] text-slate-500 uppercase tracking-widest leading-relaxed">
+                Position your optical profile clearly in the frame to register a custom combat avatar.
+              </p>
+
+              <div className="flex gap-3 pt-2 font-mono text-xs">
+                <button 
+                  type="button"
+                  onClick={deactivateCamera}
+                  className="flex-1 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                >
+                  ABORT
+                </button>
+                <button 
+                  type="button"
+                  onClick={capturePhotoFrame}
+                  className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  CAPTURE PROFILE
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
