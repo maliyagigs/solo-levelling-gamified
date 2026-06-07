@@ -25,6 +25,14 @@
           "type": "string",
           "description": "The current rank of the player"
         },
+        "customAvatar": {
+          "type": "string",
+          "description": "The base64-encoded profile picture from camera capture"
+        },
+        "exp": {
+          "type": "integer",
+          "description": "Current player progress points"
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
@@ -116,6 +124,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "hostName", "mode", "playerCount", "createdAt"]
+    },
+    "HunterForumPost": {
+      "title": "Hunter Forum Post",
+      "description": "An intel bulletin broadcasted to the communal network",
+      "type": "object",
+      "properties": {
+        "sender": { "type": "string" },
+        "hunterClass": { "type": "string" },
+        "guild": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "integer" }
+      },
+      "required": ["sender", "hunterClass", "guild", "text", "timestamp"]
     }
   },
   "firestore": {
@@ -146,6 +167,10 @@
     "/party_lobbies/{lobbyId}": {
       "schema": "PartyLobby",
       "description": "Active multiplayer party sessions"
+    },
+    "/hunter_forum/{postId}": {
+      "schema": "HunterForumPost",
+      "description": "Communal intel reports and global bulletins"
     }
   }
 }

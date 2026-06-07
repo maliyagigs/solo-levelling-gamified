@@ -12,8 +12,34 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getFriendlyErrorMessage = (err: any) => {
+    const code = err?.code || "";
+    const msg = err?.message || "";
+    
+    if (code.includes("invalid-credential") || msg.includes("invalid-credential")) {
+      return "Access Denied: Incorrect credentials passcode or email coordinate. If you don't have an account, make sure to click 'Need an account? Sign Up' below!";
+    }
+    if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
+      return "Registration Error: This email coordinate is already bound to an active Shadow Monarch hunter card.";
+    }
+    if (code.includes("weak-password") || msg.includes("weak-password")) {
+      return "Security Firewall: The password passcode is too weak. Ensure it is at least 6 characters of mana strength!";
+    }
+    if (code.includes("invalid-email") || msg.includes("invalid-email")) {
+      return "Format Error: Your email is not a valid coordinate structure.";
+    }
+    if (code.includes("user-not-found") || msg.includes("user-not-found")) {
+      return "No hunter found on this frequency. Toggle 'Sign Up' first!";
+    }
+    if (code.includes("too-many-requests") || msg.includes("too-many-requests")) {
+      return "Firewall Alert: System is temporarily locked due to intense signal noise. Please try again in a bit.";
+    }
+    return msg.replace("Firebase: ", "");
+  };
+
   const handleEmailAuth = async () => {
     try {
+      setError(null);
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
@@ -21,7 +47,8 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
       }
       onSuccess();
     } catch (err: any) {
-      setError(err.message);
+      console.error("Auth error details:", err);
+      setError(getFriendlyErrorMessage(err));
     }
   };
 

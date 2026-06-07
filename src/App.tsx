@@ -93,7 +93,8 @@ export default function App() {
     await import("firebase/auth").then(m => m.signOut(auth));
     localStorage.removeItem("monarch_active_player");
     localStorage.removeItem("monarch_onboard_profile");
-    setPhase("landing");
+    setOnboardingStep(0);
+    setPhase("onboarding");
     setProfile(null);
   };
 

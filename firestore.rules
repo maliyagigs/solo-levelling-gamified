@@ -14,7 +14,7 @@ service cloud.firestore {
 
     // Leaderboard entries
     match /leaderboard/{playerId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow create, update: if (
         request.auth != null &&
         playerId == request.auth.uid &&
@@ -66,6 +66,13 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
+
+    // Hunter Forum Posts
+    match /hunter_forum/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isValidId(postId) && isValidForumPost(request.resource.data);
+      allow update, delete: if false; // Posts are immutable
+    }
     
     // Helper Primitives & ID Hardening
     function isValidId(id) { 
@@ -96,12 +103,14 @@ service cloud.firestore {
     function isValidLeaderboardEntry(data) {
       return (
         data.keys().hasAll(['playerName', 'level', 'gold', 'job', 'rank', 'updatedAt']) &&
-        data.keys().size() == 6 &&
+        data.keys().size() >= 6 && data.keys().size() <= 10 &&
         data.playerName is string && data.playerName.size() > 0 && data.playerName.size() <= 64 &&
         data.level is number && data.level >= 0 && data.level <= 9999 &&
         data.gold is number && data.gold >= 0 &&
         data.job is string && data.job.size() <= 64 &&
-        data.rank is string && data.rank.size() <= 64
+        data.rank is string && data.rank.size() <= 64 &&
+        (!data.keys().hasAll(['customAvatar']) || data.customAvatar is string) &&
+        (!data.keys().hasAll(['exp']) || data.exp is number)
       );
     }
 
@@ -142,6 +151,18 @@ service cloud.firestore {
         data.goldReward is number && data.goldReward >= 0 &&
         data.lootItemName is string && data.lootItemName.size() <= 128 &&
         data.isActive is bool
+      );
+    }
+
+    function isValidForumPost(data) {
+      return (
+        data.keys().hasAll(['sender', 'hunterClass', 'guild', 'text', 'timestamp']) &&
+        data.keys().size() == 5 &&
+        data.sender is string && data.sender.size() <= 64 &&
+        data.hunterClass is string && data.hunterClass.size() <= 64 &&
+        data.guild is string && data.guild.size() <= 64 &&
+        data.text is string && data.text.size() <= 2048 &&
+        data.timestamp is number
       );
     }
   }
