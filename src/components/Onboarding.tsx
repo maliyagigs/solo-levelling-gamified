@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Dumbbell, 
@@ -238,6 +238,15 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
     onComplete(finalData);
   };
 
+  const showAdvancedParticles = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const isMobile = window.innerWidth < 768;
+      const isLowEnd = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 4 : false;
+      return !isMobile && !isLowEnd;
+    }
+    return true;
+  }, []);
+
   return (
     <div id="onboarding_container" className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-hidden font-sans select-none">
       {/* Background artwork with a tiny blur to add textured atmosphere */}
@@ -248,6 +257,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
         }}
       />
       {/* Floating Detailed Particles Overlay */}
+      {showAdvancedParticles && (
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {/* Layer 1: Tiny ambient dust */}
         {[...Array(40)].map((_, i) => (
@@ -329,6 +339,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
           />
         ))}
       </div>
+      )}
       {/* Absolute Dark Cyber Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,rgba(9,9,11,0.6)_80%)] pointer-events-none z-0" />
       <div className="absolute top-10 left-10 w-96 h-96 bg-purple-900/10 rounded-full filter blur-[120px] pointer-events-none animate-pulse z-0" />

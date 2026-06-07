@@ -41,9 +41,15 @@ export default function CosmicBackground() {
       pulseDirection: number;
     }
 
+    const isMobile = window.innerWidth < 768;
+    const isLowEnd = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 4 : false;
+    const simplifyGraphics = isMobile || isLowEnd;
+
     const particles: Particle[] = [];
-    // Reduction in particle count for performance
-    const particleCount = Math.min(80, Math.floor((width * height) / 20000));
+    // Drastically reduce particle count for performance on low-end devices
+    const particleRatio = simplifyGraphics ? 40000 : 20000;
+    const maxParticles = simplifyGraphics ? 25 : 80;
+    const particleCount = Math.min(maxParticles, Math.floor((width * height) / particleRatio));
 
     const colors = [
       "rgba(6, 182, 212, ",   // Cyan
@@ -158,10 +164,14 @@ export default function CosmicBackground() {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = `${p.color}${p.alpha})`;
-        ctx.shadowBlur = p.baseRadius > 1.2 ? 10 : 0;
-        ctx.shadowColor = p.baseRadius > 1.2 ? `${p.color}0.5)` : "transparent";
+        if (!simplifyGraphics) {
+          ctx.shadowBlur = p.baseRadius > 1.2 ? 10 : 0;
+          ctx.shadowColor = p.baseRadius > 1.2 ? `${p.color}0.5)` : "transparent";
+        }
         ctx.fill();
-        ctx.shadowBlur = 0; // reset
+        if (!simplifyGraphics) {
+          ctx.shadowBlur = 0; // reset
+        }
       }
 
       // Render shooting stars
@@ -206,27 +216,29 @@ export default function CosmicBackground() {
       }
 
       // Draw elegant constellation connectors between closest nodes
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const pi = particles[i];
-          const pj = particles[j];
+      if (!simplifyGraphics) {
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const pi = particles[i];
+            const pj = particles[j];
 
-          const distSquare = Math.pow(pi.x - pj.x, 2) + Math.pow(pi.y - pj.y, 2);
-          const maxDistance = 140;
+            const distSquare = Math.pow(pi.x - pj.x, 2) + Math.pow(pi.y - pj.y, 2);
+            const maxDistance = 140;
 
-          if (distSquare < maxDistance * maxDistance) {
-            const dist = Math.sqrt(distSquare);
-            const force = (maxDistance - dist) / maxDistance;
-            const alphaVal = force * 0.12 * (pi.alpha + pj.alpha) * 0.5;
+            if (distSquare < maxDistance * maxDistance) {
+              const dist = Math.sqrt(distSquare);
+              const force = (maxDistance - dist) / maxDistance;
+              const alphaVal = force * 0.12 * (pi.alpha + pj.alpha) * 0.5;
 
-            ctx.beginPath();
-            ctx.moveTo(pi.x, pi.y);
-            ctx.lineTo(pj.x, pj.y);
-            
-            // Draw dual tone connection vectors
-            ctx.strokeStyle = `rgba(99, 102, 241, ${alphaVal})`;
-            ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(pi.x, pi.y);
+              ctx.lineTo(pj.x, pj.y);
+              
+              // Draw dual tone connection vectors
+              ctx.strokeStyle = `rgba(99, 102, 241, ${alphaVal})`;
+              ctx.stroke();
+            }
           }
         }
       }

@@ -143,7 +143,10 @@ export default function App() {
               }
               setPhase("rpg_dashboard");
             } else {
-              setPhase("onboarding");
+              setPhase((currentPhase) => {
+                if (currentPhase === "plan_preview" || currentPhase === "authentication") return currentPhase;
+                return "onboarding";
+              });
             }
           }
         } catch (err) {
@@ -154,21 +157,27 @@ export default function App() {
           if (savedName && savedProfile) {
             setPhase("rpg_dashboard");
           } else {
-            setPhase("onboarding");
+            setPhase((currentPhase) => {
+              if (currentPhase === "plan_preview" || currentPhase === "authentication") return currentPhase;
+              return "onboarding";
+            });
           }
         }
       } else {
         // Logged out: clean local variables if they was in active game
-        if (phase === "rpg_dashboard") {
-          setPhase("onboarding");
-          setProfile(null);
-        }
+        setPhase((currentPhase) => {
+          if (currentPhase === "rpg_dashboard") {
+            setProfile(null);
+            return "onboarding";
+          }
+          return currentPhase;
+        });
       }
       setIsSyncing(false);
     });
 
     return () => unsubscribe();
-  }, [phase]);
+  }, []);
 
   const handleOnboardingComplete = (data: OnboardingData) => {
     setProfile(data);
