@@ -65,7 +65,7 @@ import {
   X, 
   Check 
 } from "lucide-react";
-import { db } from "../utils/firebase";
+import { db, handleFirestoreError, OperationType } from "../utils/firebase";
 import DpsChart from "../components/DpsChart";
 
 interface PartyPageProps {
@@ -202,7 +202,7 @@ function AudioVoiceMemoPlayer({ audioUrl }: { audioUrl: string }) {
   };
 
   return (
-    <button 
+    <button aria-label="Interactive Button" 
       type="button"
       onClick={togglePlayback}
       className={`px-3 py-1.5 rounded-xl border font-mono text-[9px] uppercase tracking-widest cursor-pointer flex items-center gap-2 transition-all shrink-0 ${
@@ -459,7 +459,7 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
       {/* Sub Tabs Selector */}
       <div className="grid grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-850/80 relative z-10">
         {(["physiology", "abilities", "vulnerabilities", "loot"] as const).map((tab) => (
-          <button
+          <button aria-label="Interactive Button"
             key={tab}
             onClick={() => setActiveSubTab(tab)}
             className={`py-2 px-1 rounded-xl text-[8px] sm:text-[9.5px] font-mono font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
@@ -696,7 +696,7 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
                   )}
                 </div>
 
-                <button
+                <button aria-label="Interactive Button"
                   type="button"
                   onClick={simulateLootRoll}
                   disabled={isSimulating}
@@ -750,6 +750,8 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             [member]: snap.data()
           }));
         }
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, `leaderboard/${member}`);
       });
     });
     return () => {
@@ -984,7 +986,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
         setPlayerProfileData(snap.data());
       }
     }, (err) => {
-      console.warn("Player profile snap subscription failed:", err);
+      handleFirestoreError(err, OperationType.GET, `leaderboard/${playerName}`);
     });
     return () => unsub();
   }, [playerName]);
@@ -1022,7 +1024,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
         if (activeTab === "active") setActiveTab("explorer");
       }
     }, (error) => {
-      console.warn("Lobby sync failed, using mock fallbacks:", error);
+      handleFirestoreError(error, OperationType.GET, "party_lobbies");
     });
     return () => unsub();
   }, [playerName, activeTab]);
@@ -1037,7 +1039,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
       });
       setForumPosts(list);
     }, (error) => {
-      console.warn("Hunter forum connection failure, using seeded defaults.", error);
+      handleFirestoreError(error, OperationType.GET, "hunter_forum");
     });
     return () => unsub();
   }, []);
@@ -1662,7 +1664,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               <div className="flex-1 text-xs font-mono font-black uppercase leading-tight tracking-wider">
                 {systemAlert.message}
               </div>
-              <button 
+              <button aria-label="Interactive Button" 
                 onClick={() => setSystemAlert(null)}
                 className="text-[10px] bg-slate-850 px-2 py-1 rounded hover:bg-slate-800 uppercase font-black font-mono tracking-widest cursor-pointer"
               >
@@ -1676,7 +1678,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
       {/* Primary HUD Header */}
       <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-xl border-b border-indigo-500/15 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button 
+          <button aria-label="Interactive Button" 
             onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); onBack(); }}
             className="p-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all active:scale-95 cursor-pointer hover:border-indigo-500/30"
           >
@@ -1700,7 +1702,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             <span className="text-xs font-black text-indigo-400">{playerName}</span>
           </div>
           
-          <button 
+          <button aria-label="Interactive Button" 
             onClick={toggleCameraSetup}
             title="Calibrate Biometric Avatar"
             className="w-10 h-10 rounded-2xl bg-slate-900 border border-indigo-500/25 hover:border-indigo-500/60 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono group relative cursor-pointer transition-all hover:scale-105 shrink-0"
@@ -1746,7 +1748,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               const Icon = tab.icon;
               const isSel = activeTab === tab.id;
               return (
-                <button 
+                <button aria-label="Interactive Button" 
                   key={tab.id}
                   onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); setActiveTab(tab.id as any); }}
                   className={`flex-1 md:flex-none px-4 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
@@ -1774,7 +1776,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               {/* Manual Expedition Boot Interface */}
-              <button 
+              <button aria-label="Interactive Button" 
                 onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); setShowCreateModal(true); }}
                 className="group relative flex flex-col items-center justify-center p-8 bg-slate-900/35 border-2 border-dashed border-slate-800 rounded-[2.2rem] hover:border-indigo-500/40 transition-all cursor-pointer overflow-hidden min-h-[280px]"
               >
@@ -1864,14 +1866,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                         </div>
 
                         {currentLobbyId === lobby.id ? (
-                          <button 
+                          <button aria-label="Interactive Button" 
                             onClick={() => setActiveTab("active")}
                             className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-105 cursor-pointer shadow-lg shadow-indigo-500/20"
                           >
                             OPEN PORTAL
                           </button>
                         ) : (
-                          <button 
+                          <button aria-label="Interactive Button" 
                             onClick={() => handleJoinLobby(lobby.id)}
                             disabled={joiningLobbyId !== null || (lobby.members?.length >= lobby.maxMembers) || currentLobbyId !== null}
                             className={`px-5 py-2.5 ${
@@ -1912,7 +1914,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                     <h3 className="text-xs sm:text-base font-black text-white uppercase tracking-[0.2em]">Solo Status Confirmed</h3>
                     <p className="text-slate-500 text-[10px] uppercase font-mono tracking-widest">No active party linkage spotted in your quantum registers.</p>
                   </div>
-                  <button 
+                  <button aria-label="Interactive Button" 
                     onClick={() => setActiveTab("explorer")}
                     className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/10 cursor-pointer"
                   >
@@ -2055,7 +2057,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                               
                               {/* Option ⚔️ ASSAULT CLEAVE */}
-                              <button 
+                              <button aria-label="Interactive Button" 
                                 onClick={() => handleRaidInteractiveAction("strike")}
                                 disabled={cooldowns.strike > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2075,7 +2077,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                               </button>
 
                               {/* Option 🛡️ AEGIS COVENANT */}
-                              <button 
+                              <button aria-label="Interactive Button" 
                                 onClick={() => handleRaidInteractiveAction("shield")}
                                 disabled={cooldowns.shield > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2095,7 +2097,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                               </button>
 
                               {/* Option 🧪 POTION MATRIX */}
-                              <button 
+                              <button aria-label="Interactive Button" 
                                 onClick={() => handleRaidInteractiveAction("heal")}
                                 disabled={cooldowns.heal > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2115,7 +2117,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                               </button>
 
                               {/* Option 💀 SHADOW ARMY EXTRACTION */}
-                              <button 
+                              <button aria-label="Interactive Button" 
                                 onClick={() => handleRaidInteractiveAction("shadows")}
                                 disabled={cooldowns.shadows > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2138,7 +2140,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
 
                            {/* Forbidden Bypass Safeguards (Cheat Option to trigger Anti-Cheat fail conditions) */}
                            <div className="pt-2">
-                             <button
+                             <button aria-label="Interactive Button"
                                onClick={() => handleRaidInteractiveAction("cheat")}
                                className="w-full py-2 bg-gradient-to-r from-rose-950/30 to-slate-950 border border-rose-900/30 hover:border-rose-700/60 rounded-xl text-[8.5px] font-mono font-black text-rose-500/80 hover:text-rose-450 uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
                              >
@@ -2281,7 +2283,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                          {/* Portal Calibration Reboot Actions */}
                          <div className="pt-6 border-t border-slate-850/80 flex flex-col items-center gap-4 relative z-10">
                            {currentLobby.hostName === playerName ? (
-                             <button 
+                             <button aria-label="Interactive Button" 
                                onClick={handleResetLobby}
                                className="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-103"
                              >
@@ -2312,7 +2314,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                              </h2>
                              <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">Raid Commander: {currentLobby.hostName} &middot; PHASE: <span className="text-amber-400">{currentLobby.status}</span></p>
                            </div>
-                           <button 
+                           <button aria-label="Interactive Button" 
                              onClick={handleLeaveParty}
                              className="px-4 py-2 bg-red-950/20 text-red-400 hover:bg-red-900/30 hover:text-red-300 border border-red-900/40 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shrink-0"
                            >
@@ -2368,7 +2370,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest">Divergence Gate Command</h3>
                                <p className="text-[9px] text-indigo-400/70 font-mono mt-0.5 uppercase">Authorize transition mapping when the assault squad completes setup.</p>
                              </div>
-                             <button 
+                             <button aria-label="Interactive Button" 
                                onClick={handleCommenceRaid}
                                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/40 cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-103"
                              >
@@ -2435,7 +2437,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            <span className="text-slate-400">({recordingSeconds}s)</span>
                          </div>
                          <div className="flex gap-2">
-                           <button
+                           <button aria-label="Interactive Button"
                              type="button"
                              onClick={() => {
                                if (mediaRecorderRef.current) {
@@ -2452,7 +2454,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            >
                              Abort
                            </button>
-                           <button
+                           <button aria-label="Interactive Button"
                              type="button"
                              onClick={stopVoiceRecording}
                              className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-[9px] uppercase tracking-wider font-extrabold rounded-lg shadow-lg cursor-pointer transition-all font-mono"
@@ -2463,7 +2465,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                        </div>
                      ) : (
                        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/80 shrink-0 flex gap-2">
-                          <button 
+                          <button aria-label="Interactive Button" 
                              type="button" 
                              onClick={startVoiceRecording} 
                              className="px-3 bg-slate-900 border border-slate-850 hover:bg-slate-800 hover:border-slate-705 text-indigo-400 hover:text-indigo-350 rounded-xl flex items-center justify-center cursor-pointer transition-all"
@@ -2478,7 +2480,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                              placeholder="Transmit to party..."
                              className="flex-1 bg-slate-900 border border-slate-850 rounded-xl px-3 py-2.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500/50 font-mono"
                           />
-                          <button type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
+                          <button aria-label="Interactive Button" type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
                              <Send className="w-3.5 h-3.5" />
                           </button>
                        </form>
@@ -2554,7 +2556,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                        />
                     </div>
 
-                    <button 
+                    <button aria-label="Interactive Button" 
                       type="submit"
                       disabled={!forumInput.trim()}
                       className="w-full py-3 bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer disabled:opacity-40"
@@ -2653,7 +2655,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                         playerName.substring(0, 2).toUpperCase()
                       )}
                     </div>
-                    <button
+                    <button aria-label="Interactive Button"
                       onClick={toggleCameraSetup}
                       className="absolute -bottom-1 -right-1 p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl border border-indigo-550 text-white cursor-pointer transition-transform hover:scale-110 shadow-lg"
                       title="Capture custom avatar"
@@ -2669,7 +2671,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                     </p>
                   </div>
                 </div>
-                <button
+                <button aria-label="Interactive Button"
                   onClick={toggleCameraSetup}
                   className="w-full sm:w-auto px-6 py-3.5 bg-slate-950 border border-indigo-500/20 hover:border-indigo-505/50 text-indigo-400 font-bold rounded-xl text-[10px] font-mono tracking-widest uppercase cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-indigo-950/10 active:scale-98"
                 >
@@ -2795,14 +2797,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                 </div>
 
                 <div className="flex gap-3 pt-4 font-mono text-xs">
-                  <button 
+                  <button aria-label="Interactive Button" 
                     type="button"
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
                   >
                     ABORT
                   </button>
-                  <button 
+                  <button aria-label="Interactive Button" 
                     type="submit"
                     className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 cursor-pointer"
                   >
@@ -2837,7 +2839,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                   <Camera className="w-5 h-5 text-indigo-400 animate-pulse" />
                   <span className="text-xs font-[1000] text-white uppercase tracking-wider">OPTICAL BIOMETRIC CALIBRATION</span>
                 </div>
-                <button 
+                <button aria-label="Interactive Button" 
                   onClick={deactivateCamera}
                   className="text-[10px] bg-slate-800 hover:bg-slate-755 border border-slate-700 text-slate-400 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer uppercase font-black"
                 >
@@ -2863,14 +2865,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               </p>
 
               <div className="flex gap-3 pt-2 font-mono text-xs">
-                <button 
+                <button aria-label="Interactive Button" 
                   type="button"
                   onClick={deactivateCamera}
                   className="flex-1 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
                 >
                   ABORT
                 </button>
-                <button 
+                <button aria-label="Interactive Button" 
                   type="button"
                   onClick={capturePhotoFrame}
                   className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 cursor-pointer flex items-center justify-center gap-1.5"

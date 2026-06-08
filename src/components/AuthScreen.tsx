@@ -40,6 +40,12 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   // Monitor returning redirect auth state transitions on mount
   useEffect(() => {
     let active = true;
+
+    if (auth.currentUser) {
+      onSuccess();
+      return;
+    }
+
     const processRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
@@ -173,7 +179,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           disabled={authLoading}
           className="w-full p-4 mb-6 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
         />
-        <button
+        <button aria-label="Interactive Button"
           onClick={handleEmailAuth}
           disabled={authLoading}
           className="w-full p-4 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 mb-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -183,7 +189,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           ) : null}
           {isSignUp ? "Create Account" : "Access Console"}
         </button>
-        <button
+        <button aria-label="Interactive Button"
           onClick={() => setIsSignUp(!isSignUp)}
           disabled={authLoading}
           className="w-full text-sm text-slate-400 hover:text-white transition-colors mb-6 text-center underline underline-offset-4 disabled:opacity-40"
@@ -200,7 +206,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           </div>
         </div>
 
-        <button
+        <button aria-label="Interactive Button"
           onClick={handleGoogleAuth}
           disabled={authLoading}
           className="w-full p-3 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-lg transition-all flex items-center justify-center gap-2 border border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"

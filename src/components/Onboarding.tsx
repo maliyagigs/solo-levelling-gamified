@@ -381,7 +381,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 &ldquo;Do you desire to break your limits? The System offers a path. Break away from your battered E-Rank shell and ascend as the Sovereign ruler of your own flesh.&rdquo;
               </div>
 
-              <motion.button
+              <motion.button aria-label="Interactive Button"
                 id="btn_get_started"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -407,7 +407,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="gender_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
                 {["Male", "Female", "Other"].map((gen) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={gen}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -443,7 +443,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="goal_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
                 {SOVEREIGN_ASCENSION_GOALS.map((goal) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={goal.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -479,7 +479,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="academic_subject_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
                 {ACADEMIC_DISCIPLINE_LIST.map((subj) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={subj.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -517,7 +517,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 {ACADEMIC_SESSIONS_GOALS.map((ses) => {
                   const sessionsCount = ses.id === "sessions_2" ? 2 : ses.id === "sessions_4" ? 4 : ses.id === "sessions_6" ? 6 : 8;
                   return (
-                    <motion.button
+                    <motion.button aria-label="Interactive Button"
                       key={ses.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -554,7 +554,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="career_role_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
                 {CAREER_TARGET_ROLES.map((role) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={role.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -590,7 +590,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="career_prep_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
                 {CAREER_PREPARATION_ACTIVITIES.map((act) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={act.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -626,7 +626,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="bodybuilding_split_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
                 {BODYBUILDING_SPLITS.map((split) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={split.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -662,7 +662,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               
               <div id="diet_goal_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
                 {DIET_METABOLIC_GOALS.map((diet) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={diet.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -702,7 +702,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   { id: "intermediate", title: "INTERMEDIATE (C-Rank)", desc: "Familiar with lift patterns and gate environments." },
                   { id: "advanced", title: "ADVANCED (S-Rank equivalent)", desc: "Highly conditioned warrior seeking cosmic evolution." }
                 ].map((item) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={item.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -743,7 +743,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   { id: "moderately active", title: "Moderately Active", detail: "Active 4-6 days a week. Standard guild warrior." },
                   { id: "very active", title: "Very Active", detail: "Grinding the gym heavy. Supreme legion commander." }
                 ].map((item) => (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     key={item.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -783,7 +783,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 <div className="absolute w-20 h-20 bg-cyan-500/10 rounded-full blur pointer-events-none" />
                 
                 <div className="flex items-center gap-6 z-10">
-                  <button 
+                  <button aria-label="Interactive Button" 
                     className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full cursor-pointer text-cyan-400 disabled:opacity-20"
                     disabled={age <= 12}
                     onClick={() => setAge((prev) => prev - 1)}
@@ -803,7 +803,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                     <span className="text-[10px] uppercase font-mono text-slate-500 mt-2 block tracking-widest">cycles</span>
                   </div>
 
-                  <button 
+                  <button aria-label="Interactive Button" 
                     className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full cursor-pointer text-cyan-400 disabled:opacity-20"
                     disabled={age >= 90}
                     onClick={() => setAge((prev) => prev + 1)}
@@ -820,7 +820,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_age_next"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -848,17 +848,17 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <div className="bg-slate-950 p-4 border border-slate-900 rounded-2xl relative">
                     <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Feet</div>
                     <div className="flex items-center justify-center gap-3">
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.max(3, heightFeet - 1))}>-</button>
+                      <button aria-label="Interactive Button" className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.max(3, heightFeet - 1))}>-</button>
                       <span className="text-4xl font-extrabold font-mono text-cyan-300">{heightFeet}</span>
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.min(9, heightFeet + 1))}>+</button>
+                      <button aria-label="Interactive Button" className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.min(9, heightFeet + 1))}>+</button>
                     </div>
                   </div>
                   <div className="bg-slate-950 p-4 border border-slate-900 rounded-2xl relative">
                     <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Inches</div>
                     <div className="flex items-center justify-center gap-3">
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.max(0, heightInches - 1))}>-</button>
+                      <button aria-label="Interactive Button" className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.max(0, heightInches - 1))}>-</button>
                       <span className="text-4xl font-extrabold font-mono text-cyan-300">{heightInches}</span>
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.min(11, heightInches + 1))}>+</button>
+                      <button aria-label="Interactive Button" className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.min(11, heightInches + 1))}>+</button>
                     </div>
                   </div>
                 </div>
@@ -867,9 +867,9 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <div className="bg-slate-950 p-6 border border-slate-900 rounded-2xl">
                     <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Centimeters</div>
                     <div className="flex items-center justify-center gap-4">
-                      <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.max(90, prev - 1))}>-</button>
+                      <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.max(90, prev - 1))}>-</button>
                       <span className="text-4xl sm:text-5xl font-extrabold font-mono text-cyan-300">{heightCm}</span>
-                      <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.min(270, prev + 1))}>+</button>
+                      <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.min(270, prev + 1))}>+</button>
                     </div>
                   </div>
                 </div>
@@ -889,7 +889,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <span className={`text-xs font-mono transition-opacity ${isMetricHeight ? "opacity-100 text-cyan-300 font-bold" : "opacity-40 text-slate-500"}`}>METRIC (CM)</span>
                 </div>
 
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_height_next"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -917,7 +917,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <div className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-3">CURRENT MASS</div>
                   
                   <div className="flex items-center justify-center gap-4">
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
+                    <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
                       if (isMetricWeight) setWeightKg(Math.max(30, weightKg - 1));
                       else setWeight(Math.max(60, weight - 2));
                     }}>-</button>
@@ -926,7 +926,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                       {isMetricWeight ? weightKg : weight}
                     </span>
                     
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
+                    <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
                       if (isMetricWeight) setWeightKg(Math.min(250, weightKg + 1));
                       else setWeight(Math.min(500, weight + 2));
                     }}>+</button>
@@ -948,7 +948,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <span className={`text-xs font-mono transition-opacity ${isMetricWeight ? "opacity-100 text-indigo-300 font-bold" : "opacity-40 text-slate-500"}`}>KG</span>
                 </div>
 
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_weight_next"
                   className="bg-slate-950 border border-slate-800 text-indigo-300 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-900 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -976,7 +976,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <div className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-3">TARGET MASS</div>
                   
                   <div className="flex items-center justify-center gap-4">
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
+                    <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
                       if (isMetricWeight) setTargetWeightKg(Math.max(30, targetWeightKg - 1));
                       else setTargetWeight(Math.max(60, targetWeight - 2));
                     }}>-</button>
@@ -985,7 +985,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                       {isMetricWeight ? targetWeightKg : targetWeight}
                     </span>
                     
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
+                    <button aria-label="Interactive Button" className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
                       if (isMetricWeight) setTargetWeightKg(Math.min(250, targetWeightKg + 1));
                       else setTargetWeight(Math.min(500, targetWeight + 2));
                     }}>+</button>
@@ -995,7 +995,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_target_next"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -1030,7 +1030,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_health_next"
                   className="bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-mono tracking-wider text-xs uppercase px-12 py-3 rounded-full hover:from-cyan-500 hover:to-indigo-500 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -1054,7 +1054,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               <p className="text-slate-400 text-sm mb-6 font-mono">Select which tools are available at your training gate.</p>
               
               <div id="equipment_extra_buttons" className="flex justify-center gap-4 mb-6">
-                <button 
+                <button aria-label="Interactive Button" 
                   className={`px-4 py-2 border rounded-full text-xs font-mono cursor-pointer transition text-center ${
                     selectedEquipment.length === 0 
                       ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
@@ -1070,7 +1070,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 {EQUIPMENTS_LIST.map((item) => {
                   const isSel = selectedEquipment.includes(item.id);
                   return (
-                    <motion.button
+                    <motion.button aria-label="Interactive Button"
                       key={item.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -1089,7 +1089,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_equipment_next"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-12 py-3 rounded-full hover:bg-slate-805 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -1139,7 +1139,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_frequency_next"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
                   onClick={handleNext}
@@ -1167,7 +1167,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
                   const active = workoutDays.includes(day);
                   return (
-                    <motion.button
+                    <motion.button aria-label="Interactive Button"
                       key={day}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -1207,14 +1207,14 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
 
               {/* Absolute Action button */}
               <div className="flex justify-between items-center max-w-md mx-auto px-2">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_days_back"
                   className="bg-slate-950 border border-slate-900 text-slate-500 font-mono tracking-wider text-xs uppercase px-6 py-3 rounded-full hover:bg-slate-900 cursor-pointer"
                   onClick={handlePrev}
                 >
                   Back
                 </button>
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_days_continue"
                   className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-mono tracking-wider font-bold text-xs uppercase px-12 py-4 rounded-full shadow-lg shadow-cyan-500/10 cursor-pointer border border-cyan-300/10 animate-pulse"
                   onClick={finishJourney}
@@ -1231,7 +1231,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
       {/* Footer back controls during onboarding */}
       {step > 0 && step < 18 && (
         <footer className="py-4 border-t border-slate-900 w-full max-w-4xl mx-auto flex justify-between items-center z-10">
-          <button
+          <button aria-label="Interactive Button"
             id="btn_footer_back"
             className="flex items-center gap-2 text-slate-500 hover:text-slate-300 text-xs font-mono uppercase cursor-pointer"
             onClick={handlePrev}
@@ -1244,7 +1244,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
             MONARCH SWIFT SCANNER
           </div>
 
-          <button
+          <button aria-label="Interactive Button"
             id="btn_footer_next"
             className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-xs font-mono uppercase cursor-pointer font-bold"
             onClick={handleNext}
@@ -1293,14 +1293,14 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               )}
 
               <div id="popup_actions" className="flex justify-end gap-3 font-mono text-xs">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_popup_decline"
                   className="px-5 py-3 border border-slate-800 hover:border-red-900 text-slate-400 hover:text-red-400 rounded-lg cursor-pointer font-bold"
                   onClick={declineCall}
                 >
                   DECLINE
                 </button>
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_popup_accept"
                   className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg cursor-pointer hover:shadow-md hover:shadow-cyan-500/20"
                   onClick={acceptCall}

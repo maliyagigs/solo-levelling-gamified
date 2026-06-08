@@ -65,7 +65,7 @@ export const PartyMode: React.FC<PartyModeProps> = ({ onBack, playSelectSound })
           </div>
 
           <div className="w-full max-w-sm space-y-4">
-            <button 
+            <button aria-label="Interactive Button" 
                 onClick={() => setIsLobbyActive(true)}
                 className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black rounded-3xl shadow-[0_10px_30px_rgba(99,102,241,0.4)] tracking-[0.2em] uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-indigo-500/20"
             >

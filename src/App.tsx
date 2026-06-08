@@ -142,9 +142,20 @@ export default function App() {
                 console.error("Failed to seed initial Firestore data:", e);
               }
               setPhase("rpg_dashboard");
+            } else if (savedProfileStr) {
+              try {
+                setProfile(JSON.parse(savedProfileStr));
+                setPhase("plan_preview");
+              } catch (e) {
+                setPhase("onboarding");
+              }
             } else {
               setPhase((currentPhase) => {
-                if (currentPhase === "plan_preview" || currentPhase === "authentication") return currentPhase;
+                if (currentPhase === "authentication") {
+                  setOnboardingStep(1);
+                  return "onboarding";
+                }
+                if (currentPhase === "plan_preview") return currentPhase;
                 return "onboarding";
               });
             }
@@ -153,12 +164,24 @@ export default function App() {
           console.error("Firestore sync error:", err);
           // Fallback to local storage
           const savedName = localStorage.getItem("monarch_active_player");
-          const savedProfile = localStorage.getItem("monarch_onboard_profile");
-          if (savedName && savedProfile) {
+          const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
+          if (savedName && savedProfileStr) {
+            try { setProfile(JSON.parse(savedProfileStr)); } catch(e){}
             setPhase("rpg_dashboard");
+          } else if (savedProfileStr) {
+            try {
+              setProfile(JSON.parse(savedProfileStr));
+              setPhase("plan_preview");
+            } catch (e) {
+              setPhase("onboarding");
+            }
           } else {
             setPhase((currentPhase) => {
-              if (currentPhase === "plan_preview" || currentPhase === "authentication") return currentPhase;
+              if (currentPhase === "authentication") {
+                setOnboardingStep(1);
+                return "onboarding";
+              }
+              if (currentPhase === "plan_preview") return currentPhase;
               return "onboarding";
             });
           }

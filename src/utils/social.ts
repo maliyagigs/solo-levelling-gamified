@@ -112,6 +112,17 @@ export async function acceptFriendRequest(friendshipId: string) {
 }
 
 /**
+ * Declines or deletes a friendship
+ */
+export async function deleteFriendship(friendshipId: string) {
+  try {
+    await deleteDoc(doc(db, "friendships", friendshipId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `friendships/${friendshipId}`);
+  }
+}
+
+/**
  * Listens to a user's friendships (requests and accepted)
  */
 export function listenToFriendships(userId: string, callback: (friends: Friendship[]) => void) {

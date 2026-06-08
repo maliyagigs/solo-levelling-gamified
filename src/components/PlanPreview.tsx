@@ -288,7 +288,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
               </div>
 
               <div id="preview_confirm_actions" className="pt-4 flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_continue_plan_preview"
                   className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 font-mono tracking-widest text-xs uppercase px-14 py-4 rounded-full font-extrabold flex items-center gap-3 hover:from-cyan-400 hover:to-indigo-500 shadow-xl shadow-cyan-800/10 cursor-pointer animate-pulse border border-cyan-300/10"
                   onClick={() => setSubStep("loading")}
@@ -406,7 +406,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
               </div>
 
               <div className="flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_current_potential_continue"
                   className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-widest text-xs uppercase px-12 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer flex items-center gap-2"
                   onClick={() => setSubStep("attributes")}
@@ -512,7 +512,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
               {/* Command button area */}
               <div id="attributes_show_potential_actions" className="flex flex-col items-center gap-4 pt-3">
                 {!showPotentialAttr ? (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     id="btn_show_potential"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -523,7 +523,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
                     <span>Show Potential</span>
                   </motion.button>
                 ) : (
-                  <motion.button
+                  <motion.button aria-label="Interactive Button"
                     id="btn_attributes_continue"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -610,7 +610,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
               </div>
 
               <div id="growth_verify_actions" className="pt-2 flex justify-center">
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_unlock_my_potential"
                   className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-mono tracking-widest text-xs uppercase px-14 py-4 rounded-full font-extrabold flex items-center gap-2 hover:from-cyan-400 hover:to-indigo-500 shadow-xl shadow-cyan-800/10 cursor-pointer border border-cyan-300/15 animate-bounce"
                   onClick={() => setSubStep("signup")}
@@ -672,7 +672,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
                   </div>
                 )}
 
-                <button
+                <button aria-label="Interactive Button"
                   id="btn_submit_signup"
                   type="submit"
                   className="w-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-mono font-extrabold tracking-widest text-xs uppercase p-4 h-12 rounded-xl flex items-center justify-center gap-2 hover:from-cyan-400 hover:to-indigo-500 shadow-md cursor-pointer border border-cyan-400/10"
