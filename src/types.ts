@@ -139,5 +139,6 @@ export interface GameState {
   weeklyExpAccumulated?: number;
   weeklyCyclesCompleted?: number;
   weeklyHistory?: { weekStart: string, mp: number, exp: number, targetMp: number, targetExp: number }[];
+  isEconomicValueDoubled?: boolean;
 }
 

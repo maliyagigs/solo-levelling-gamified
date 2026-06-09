@@ -455,6 +455,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           weeklyExpAccumulated: parsed.weeklyExpAccumulated ?? 0,
           weeklyCyclesCompleted: parsed.weeklyCyclesCompleted ?? 0,
           weeklyHistory: parsed.weeklyHistory || [],
+          isEconomicValueDoubled: parsed.isEconomicValueDoubled ?? false,
         };
       } catch (e) {
         // Fallback
@@ -496,7 +497,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       weeklyCyclesCompleted: 0,
       weeklyHistory: [],
       dailyGatesCleared: 0,
-      dailyFocusMinutes: 0
+      dailyFocusMinutes: 0,
+      isEconomicValueDoubled: false
     };
   });
 
@@ -1707,11 +1709,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
     const sigilsCount = gameState.sigils ?? 0;
     const rawBooster = gameState.boosterMultiplier ?? 1.0;
-    const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
+    const econMultiplier = gameState.isEconomicValueDoubled ? 2.0 : 1.0;
+    const prestigeHaloMultiplier = (1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0)) * econMultiplier;
     const finalGoldAward = Math.round(quest.rewardGold * prestigeHaloMultiplier);
 
     // Add reward
-    addExp(quest.rewardExp);
+    addExp(Math.round(quest.rewardExp * econMultiplier));
     setPlayerMp(prev => Math.min(playerMaxMp, prev + 25)); // Completing daily quest restores 25 MP!
     setGameState(prev => {
       const list = prev.quests.map((q: any) => {
@@ -1735,7 +1738,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setMilestoneOverlay({
       title: "QUEST BOUNTY CLAIMS",
       subtitle: quest.name,
-      desc: `Sovereign discipline has granted +${quest.rewardExp} EXP and +${finalGoldAward} MP!`,
+      desc: `Sovereign discipline has granted +${Math.round(quest.rewardExp * econMultiplier)} EXP and +${finalGoldAward} MP!`,
       icon: "⚡"
     });
   };
@@ -1752,10 +1755,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
     const sigilsCount = gameState.sigils ?? 0;
     const rawBooster = gameState.boosterMultiplier ?? 1.0;
-    const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
+    const econMultiplier = gameState.isEconomicValueDoubled ? 2.0 : 1.0;
+    const prestigeHaloMultiplier = (1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0)) * econMultiplier;
     const finalDailyGold = Math.round(5 * prestigeHaloMultiplier);
 
-    addExp(50);
+    addExp(Math.round(50 * econMultiplier));
     setGameState(prev => {
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
@@ -1771,7 +1775,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setMilestoneOverlay({
       title: "DAILY SYSTEM OVERLOAD",
       subtitle: "Absolute Sovereignty Archive Complete",
-      desc: `Legendary! You cleared the entire Sovereign Grind today! Rewarded +200 EXP and +${finalDailyGold} MP. Keep leveling!`,
+      desc: `Legendary! You cleared the entire Sovereign Grind today! Rewarded +${Math.round(50 * econMultiplier)} EXP and +${finalDailyGold} MP. Keep leveling!`,
       icon: "👑"
     });
   };
@@ -3037,8 +3041,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     playLootSound();
 
     // Reward math
-    const xp = selectedDungeon.expReward;
-    const gold = selectedDungeon.goldReward;
+    const econMultiplier = gameState.isEconomicValueDoubled ? 2.0 : 1.0;
+    const xp = Math.round(selectedDungeon.expReward * econMultiplier);
+    const gold = Math.round(selectedDungeon.goldReward * econMultiplier);
     
     addExp(xp);
     
@@ -4098,11 +4103,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         playLootSound();
                         
                         // Add actual real game parameters!
-                        addExp(quest.rewardExp);
+                        const econMultiplier = gameState.isEconomicValueDoubled ? 2.0 : 1.0;
+                        addExp(Math.round(quest.rewardExp * econMultiplier));
                         setGameState(prev => {
                           const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
                           const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-                          const actualGold = Math.min(quest.rewardGold, allowedGold, 5);
+                          const actualGold = Math.min(Math.round(quest.rewardGold * econMultiplier), allowedGold, 5);
                           return {
                             ...prev,
                             gold: prev.gold + actualGold,
@@ -4117,7 +4123,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             claimed: true
                           }
                         }));
-                        triggerSystemToast(`⭐ COMPENSATION RETRIEVED: Successfully claimed +${quest.rewardExp} EXP and +${quest.rewardGold} Mana MP from Admin Protocol!`);
+                        triggerSystemToast(`⭐ COMPENSATION RETRIEVED: Successfully claimed +${Math.round(quest.rewardExp * econMultiplier)} EXP and +${Math.round(quest.rewardGold * econMultiplier)} Mana MP from Admin Protocol!`);
                       };
 
                       return (
@@ -4831,6 +4837,71 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
                     Purchase exclusive artifacts and items manifested by the System Monarch. All transactions require pure gold tokens.
                   </p>
+                </div>
+
+                {/* PREMIUM SYSTEM REVENUE & ECONOMIC CATALYST CARD */}
+                <div className="bg-gradient-to-r from-amber-600/10 via-amber-950/15 to-purple-950/10 border-2 border-amber-500/30 p-6 rounded-[2rem] relative overflow-hidden shadow-2xl backdrop-blur-lg">
+                  <div className="absolute -right-16 -top-16 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                  <div className="absolute -left-16 -bottom-16 w-36 h-36 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                    <div className="space-y-2 max-w-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-amber-500 text-black text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest animate-bounce">SOCIOLOGICAL MASTERCORE</span>
+                        {gameState.isEconomicValueDoubled && (
+                          <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded tracking-wider uppercase">ACTIVE MULTIPLIER</span>
+                        )}
+                      </div>
+                      <h4 className="font-extrabold text-[#f59e0b] hover:text-amber-400 transition-colors text-base font-mono tracking-tight flex items-center gap-1.5 uppercase">
+                        👑 Catalyst Syndicate - Double Sovereign Contract
+                      </h4>
+                      <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                        Authorize a permanent macro-economic upgrade contract. Overrides and **instantly doubles all future rewards (2.0x Gold MP & 2.0x EXP)** earned across all system activities: all physical grinds, study gates, meditation focus blocks, dungeon raids, and administrative requests.
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col items-start md:items-end justify-center min-w-[200px] shrink-0 gap-3 font-mono">
+                      <div>
+                        <div className="text-[9px] text-slate-500 uppercase tracking-widest">Upgrade Cost</div>
+                        <div className="text-xl font-extrabold text-amber-400">15 G (Sovereign MP)</div>
+                      </div>
+                      
+                      {gameState.isEconomicValueDoubled ? (
+                        <div className="w-full text-center bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 px-4 py-2.5 rounded-xl text-[10px] font-mono font-black uppercase tracking-widest animate-pulse shadow-inner shadow-emerald-500/10">
+                          ⚡ 2.0X SYSTEM BOUNTY ENGAGED
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (gameState.gold < 15) {
+                              triggerSystemToast("❌ INSUFFICIENT RESERVES: Complete more training grinds to accumulate 15 G.");
+                              return;
+                            }
+                            playLootSound();
+                            setGameState(prev => ({
+                              ...prev,
+                              gold: prev.gold - 15,
+                              isEconomicValueDoubled: true
+                            }));
+                            setMilestoneOverlay({
+                              title: "ECONOMIC OVERLORD ACTIVE",
+                              subtitle: "Sovereign Double Catalyst engaged",
+                              desc: "Incredible! Your entire neural system interfaces have received the 2.0x Economic Catalyst. All future daily quests, training cycles, focus tasks, and dimensional gates will reward 2X Gold and 2X EXP permanently!",
+                              icon: "🪐"
+                            });
+                            triggerSystemToast("👑 SOVEREIGN UPGRADE: Permanent 2.0x Economic Catalyst established!");
+                          }}
+                          className={`w-full px-5 py-3 rounded-xl text-[10px] font-gray uppercase tracking-widest transition-all duration-300 active:scale-95 shadow-xl ${
+                            gameState.gold < 15 
+                              ? "bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed" 
+                              : "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 font-extrabold"
+                          }`}
+                        >
+                          {gameState.gold < 15 ? "LACKS SUFFICIENT FUND" : "ACQUIRE ECONOMIC DOUBLE"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">

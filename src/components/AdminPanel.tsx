@@ -981,6 +981,77 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         });
       }
 
+      // 4. Seed system black market items (balanced economy conforming to 5 MP bounds)
+      const marketItemsData = [
+        {
+          id: "mki-kamish",
+          name: "Demon King's Shortsword",
+          description: "An SS-Rank obsidian blade radiating an ominous aura. Adds standard system attack and speed enhancements.",
+          price: 25,
+          type: "Weapon",
+          rank: "SS-Rank",
+          stock: 5,
+          isActive: true,
+          imageUrl: "",
+          adCodeSnippet: "",
+          attackBoost: 15,
+          defenseBoost: 5,
+          manaBoost: 10
+        },
+        {
+          id: "mki-wisdom",
+          name: "Monarch Ring of Wisdom",
+          description: "S-Rank divine gold ring inscribed with ancient sovereign logic runes.",
+          price: 15,
+          type: "Relic",
+          rank: "S-Rank",
+          stock: 10,
+          isActive: true,
+          imageUrl: "",
+          adCodeSnippet: "",
+          attackBoost: 5,
+          defenseBoost: 5,
+          manaBoost: 25
+        },
+        {
+          id: "mki-cloak",
+          name: "Shadow Veil Cloak",
+          description: "A-Rank midnight-dyed linen layer providing unmatched atmospheric evasion variables.",
+          price: 10,
+          type: "Armor",
+          rank: "A-Rank",
+          stock: 15,
+          isActive: true,
+          imageUrl: "",
+          adCodeSnippet: "",
+          attackBoost: 2,
+          defenseBoost: 12,
+          manaBoost: 5
+        },
+        {
+          id: "mki-elixir",
+          name: "Sovereign MP Mana Elixir",
+          description: "B-Rank viscous liquid essence filtered directly from standard ley lines.",
+          price: 5,
+          type: "Elixir",
+          rank: "B-Rank",
+          stock: 30,
+          isActive: true,
+          imageUrl: "",
+          adCodeSnippet: "",
+          attackBoost: 0,
+          defenseBoost: 2,
+          manaBoost: 15
+        }
+      ];
+
+      for (const item of marketItemsData) {
+        await setDoc(doc(db, "admin_market_items", item.id), {
+          ...item,
+          createdAt: serverTimestamp()
+        });
+      }
+
       showNotification("SUCCESS: Archetype templates loaded!");
     } catch (err) {
       showNotification("SEPARATE DATA SYNCING UNSTABLE", "error");
