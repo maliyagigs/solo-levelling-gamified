@@ -398,18 +398,22 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
           {step === 1 && (
             <motion.div
               key="gender_step"
+              role="region"
+              aria-labelledby="gender-step-title"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">CHOOSE YOUR AVATAR PROFILE</h2>
+              <h2 id="gender-step-title" className="text-2xl font-bold tracking-tight mb-2">CHOOSE YOUR AVATAR PROFILE</h2>
               <p className="text-slate-400 text-sm mb-8 font-mono">The System calibrates metabolic constants based on your anatomy.</p>
               
-              <div id="gender_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
+              <div id="gender_options" role="radiogroup" aria-labelledby="gender-step-title" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
                 {["Male", "Female", "Other"].map((gen) => (
                   <motion.button
                     key={gen}
+                    role="radio"
+                    aria-checked={gender === gen}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`p-5 rounded-xl border font-bold text-lg cursor-pointer text-left flex justify-between items-center transition-colors ${
@@ -423,7 +427,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                     }}
                   >
                     <span>{gen}</span>
-                    <ChevronRight className="w-5 h-5 text-slate-500" />
+                    <ChevronRight className="w-5 h-5 text-slate-500" aria-hidden="true" />
                   </motion.button>
                 ))}
               </div>
@@ -434,18 +438,21 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
           {step === 2 && (
             <motion.div
               key="goal_step"
+              role="region"
+              aria-labelledby="goal-step-title"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2 font-sans">DEFINE YOUR SOVEREIGN QUEST</h2>
+              <h2 id="goal-step-title" className="text-2xl font-bold tracking-tight mb-2 font-sans">DEFINE YOUR SOVEREIGN QUEST</h2>
               <p className="text-slate-400 text-sm mb-8 font-mono">Select the primary awakening objective of your physical and mental form.</p>
               
               <div id="goal_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
                 {SOVEREIGN_ASCENSION_GOALS.map((goal) => (
                   <motion.button
                     key={goal.id}
+                    aria-pressed={focusGoal === goal.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`p-5 rounded-xl border text-left cursor-pointer transition-all ${
@@ -1234,24 +1241,31 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
         <footer className="py-4 border-t border-slate-900 w-full max-w-4xl mx-auto flex justify-between items-center z-10">
           <button
             id="btn_footer_back"
+            aria-label="Previous Step"
             className="flex items-center gap-2 text-slate-500 hover:text-slate-300 text-xs font-mono uppercase cursor-pointer"
             onClick={handlePrev}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             <span>Prev Factor</span>
           </button>
           
-          <div className="text-xs text-slate-600 font-mono">
-            MONARCH SWIFT SCANNER
+          <div className="flex gap-1.5" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={17}>
+            {[...Array(17)].map((_, i) => (
+              <div 
+                key={i} 
+                className={`w-1 h-1 rounded-full ${i < step ? "bg-cyan-500" : "bg-slate-800"}`} 
+              />
+            ))}
           </div>
 
           <button
             id="btn_footer_next"
+            aria-label="Next Step"
             className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-xs font-mono uppercase cursor-pointer font-bold"
             onClick={handleNext}
           >
             <span>Skip Forward</span>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         </footer>
       )}

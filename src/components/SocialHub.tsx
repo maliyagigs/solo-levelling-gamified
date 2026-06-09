@@ -37,7 +37,9 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
     <motion.div layout className="bg-slate-950/80 border border-slate-900 overflow-hidden rounded-2xl flex flex-col group hover:border-cyan-500/30 transition-all">
        <div className="p-4 flex items-center justify-between">
          <div 
-           className="flex items-center gap-3 cursor-pointer"
+           role="button"
+           tabIndex={0}
+           className="flex items-center gap-3 cursor-pointer outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg p-1"
            onClick={() => {
              if (friendship.status === 'accepted') {
                onOpenDm(friendName);
@@ -45,8 +47,18 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
                setShowChatOption(!showChatOption);
              }
            }}
+           onKeyDown={(e) => {
+             if (e.key === 'Enter' || e.key === ' ') {
+               if (friendship.status === 'accepted') {
+                 onOpenDm(friendName);
+               } else {
+                 setShowChatOption(!showChatOption);
+               }
+             }
+           }}
+           aria-label={`Friend: ${friendName}. Status: ${friendship.status}. Click for options.`}
          >
-            <div className={`w-2.5 h-2.5 rounded-full ${friendship.status === 'accepted' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_#eab308]'}`} />
+            <div className={`w-2.5 h-2.5 rounded-full ${friendship.status === 'accepted' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-yellow-500 animate-pulse shadow-[0_0_10px_#eab308]'}`} aria-hidden="true" />
             <div>
               <p className="text-sm font-black text-white uppercase tracking-wider group-hover:text-cyan-300 transition-colors">{friendName}</p>
               <p className="text-[9px] text-slate-500 font-mono uppercase">{friendship.status === 'pending' ? 'Holographic Request' : 'Shadow Ally'}</p>
@@ -61,10 +73,11 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
           )}
           {friendship.status === 'accepted' && (
             <button 
+              aria-label={`Open chat with ${friendName}`}
               onClick={() => { try { playSelectSound(); } catch(e){} onOpenDm(friendName); }}
               className="p-2 bg-slate-900 text-cyan-400 border border-slate-800 rounded-xl hover:bg-cyan-500 hover:text-white transition-all shadow-lg"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
          </div>
@@ -204,29 +217,32 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
       </div>
 
       {/* Social Navigation Tabs */}
-      <div className="flex bg-slate-950 border border-slate-900 rounded-xl p-1 gap-1">
+      <nav role="tablist" aria-label="Social Sections" className="flex bg-slate-950 border border-slate-900 rounded-xl p-1 gap-1">
         {(["chat", "leaderboard", "friends"] as const).map(tab => (
           <button
             key={tab}
+            role="tab"
+            aria-selected={socialTab === tab}
+            aria-controls={`${tab}-panel`}
             onClick={() => { 
                try { playSelectSound(); } catch(e){} 
                setSocialTab(tab); 
                if (tab !== "friends") setActiveDmFriend(null);
             }}
             className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg flex items-center justify-center gap-1.5 ${socialTab === tab ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[inset_0_0_10px_rgba(6,182,212,0.1)]" : "text-slate-500 hover:text-slate-300"}`}
-            title={tab === "chat" ? "Community" : tab === "friends" ? "Friends" : "Leaderboard"}
+            aria-label={tab === "chat" ? "Community Chat" : tab === "friends" ? "Shadow Allies" : "Hunter Leaderboard"}
           >
-            {tab === "chat" && <MessageSquare className="w-5 h-5" />}
-            {tab === "leaderboard" && <Trophy className="w-5 h-5" />}
-            {tab === "friends" && <Users className="w-5 h-5" />}
+            {tab === "chat" && <MessageSquare className="w-5 h-5" aria-hidden="true" />}
+            {tab === "leaderboard" && <Trophy className="w-5 h-5" aria-hidden="true" />}
+            {tab === "friends" && <Users className="w-5 h-5" aria-hidden="true" />}
           </button>
         ))}
-      </div>
+      </nav>
 
       {/* Tab Content */}
       <div className="min-h-[500px]">
         {socialTab === "chat" && (
-           <div className="flex flex-col h-[500px] bg-slate-950/60 border border-slate-900 rounded-2xl overflow-hidden backdrop-blur-sm">
+           <div id="chat-panel" role="tabpanel" aria-labelledby="chat-tab" className="flex flex-col h-[500px] bg-slate-950/60 border border-slate-900 rounded-2xl overflow-hidden backdrop-blur-sm">
              {activeDmFriend ? (
                <>
                  <div className="p-3 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center">
@@ -317,7 +333,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
         )}
 
         {socialTab === "leaderboard" && (
-           <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md">
+           <div id="leaderboard-panel" role="tabpanel" className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md">
            {loadingLeaderboard ? (
              <div className="flex flex-col items-center justify-center py-20 space-y-4">
                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
@@ -339,7 +355,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                      <tr key={i} className={`group transition-colors ${hunter.playerName === playerName ? "bg-cyan-500/5" : "hover:bg-slate-900/40"}`}>
                        <td className="py-4 px-2 font-black text-slate-500 group-hover:text-cyan-400 transition-colors">#{i + 1}</td>
                        <td className="py-4 px-2 font-bold text-white flex items-center gap-2 flex-wrap">
-                         <span className={hunter.playerName === playerName ? "text-cyan-400" : ""}>{hunter.playerName}</span>
+                         <span className={hunter.playerName === playerName ? "text-cyan-400" : ""}>{hunter.playerName}</span>{hunter.hasMasterpieceBadge && <span className="bg-white text-black font-black text-[8px] sm:text-[9px] px-1.5 py-0.5 border border-neutral-300 rounded tracking-wider leading-none shadow-sm animate-pulse ml-1.5" title="White Room - 4th Gen Graduate">★ MASTERPIECE</span>}
                          {hunter.playerName !== playerName && (
                            <button 
                              onClick={() => handleAddFriend(hunter.playerName)} 
@@ -361,7 +377,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
         )}
 
         {socialTab === "friends" && (
-          <div className="space-y-4">
+          <div id="friends-panel" role="tabpanel" className="space-y-4">
              <div className="flex items-center gap-2 px-2">
                <div className="w-1 h-3 bg-cyan-500 rounded-full" />
                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">FRIENDS</h3>

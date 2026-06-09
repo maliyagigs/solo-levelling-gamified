@@ -240,6 +240,7 @@ interface BossTacticalCompendiumProps {
     level: string;
     teamShield?: number;
     timeRemaining: number;
+    isStudySession?: boolean;
   };
 }
 

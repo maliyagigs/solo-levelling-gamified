@@ -3167,36 +3167,45 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* SYNCED TOP HUD: MANA & LEVEL (LEFT), MESSAGES (RIGHT) */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
+      <nav aria-label="System Status" className="fixed top-0 left-0 right-0 z-50 h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">MANA CAPACITY</span>
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,1)]" />
-              <span className="text-lg font-black text-white font-mono tracking-tighter leading-none">{gameState.gold}</span>
+              <Zap className="w-4 h-4 text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,1)]" aria-hidden="true" />
+              <span className="text-lg font-black text-white font-mono tracking-tighter leading-none" aria-label={`Current Mana: ${gameState.gold}`}>{gameState.gold}</span>
             </div>
           </div>
           
           <div className="flex flex-col">
             <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">STAT RANK</span>
             <div className="flex items-center gap-1">
-              <span className="text-lg font-black text-cyan-300 font-mono italic leading-none">LV.{gameState.level}</span>
+              <span className="text-lg font-black text-cyan-300 font-mono italic leading-none" aria-label={`Current Level: ${gameState.level}`}>LV.{gameState.level}</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <button 
+            aria-label="Open Communication Hub"
+            aria-haspopup="true"
             onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("chat"); }}
             className="p-3 relative flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
             <MessageSquare 
               className="w-6 h-6 text-cyan-400 group-hover:text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.75)] hover:scale-110 transition-transform" 
+              aria-hidden="true"
             />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse" />
+            {friendRequests.length > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse">
+                <span className="sr-only">New messages available</span>
+              </span>
+            )}
           </button>
           
           <button 
+            aria-label="Open System Registry Settings"
+            aria-haspopup="true"
             onClick={() => setShowProfileDrawer(true)}
             className="p-3 flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
@@ -3205,7 +3214,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             />
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Main split dashboard area */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-48 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -3423,6 +3432,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 {tab.label}
               </button>
             ))}
+            <button
+              id="desktop_whiteroom_launcher"
+              className="px-4 py-2 rounded-xl text-xs font-mono uppercase cursor-pointer tracking-wider font-bold bg-white text-black border border-neutral-200 hover:bg-neutral-100 transition-colors shadow-sm ml-auto flex items-center gap-1.5"
+              onClick={() => {
+                window.location.hash = "#whiteroom";
+              }}
+            >
+              🔐 White Room
+            </button>
           </div>
 
           {/* Render Active Tab Screen details */}
@@ -3431,6 +3449,25 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {/* A0_1. HOME TAB (Mobile only view representing character overview) */}
             {activeTab === "home" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:hidden space-y-4">
+                
+                {/* Mobile White Room launcher card */}
+                <div 
+                  id="mobile_whiteroom_launcher"
+                  className="bg-white border-2 border-neutral-900 text-black p-4 flex items-center justify-between shadow-md cursor-pointer hover:bg-neutral-100 transition-colors rounded-2xl"
+                  onClick={() => {
+                    window.location.hash = "#whiteroom";
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🔐</span>
+                    <div>
+                      <h4 className="text-xs font-mono font-black uppercase tracking-wider text-black">WHITE ROOM PROTOCOL</h4>
+                      <p className="text-[10px] font-mono text-neutral-500 uppercase leading-none mt-1">Extreme clinical development</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black font-mono uppercase bg-neutral-900 text-white px-2.5 py-1.5 rounded-lg">CALIBRATE ➔</span>
+                </div>
+
                 {/* Level Up details / player indicator */}
                 <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex items-center gap-4">
@@ -6345,7 +6382,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">2. System Synthesizer Volume</span>
                     <div className="flex justify-between items-center bg-slate-900/60 p-2.5 px-3 rounded-xl border border-slate-800">
                       <span className="text-[10px] text-slate-300">Auditory sound FX core</span>
-                      <span className="text-cyan-400 font-bold uppercase text-[9px] tracking-widest bg-cyan-500/10 border border-cyan-400/20 px-2 py-0.5 rounded-full animate-pulse">
+                      <span aria-label="Volume Status: Active at 100 percent" className="text-cyan-400 font-bold uppercase text-[9px] tracking-widest bg-cyan-500/10 border border-cyan-400/20 px-2 py-0.5 rounded-full animate-pulse">
                         Active [100%]
                       </span>
                     </div>
@@ -6371,8 +6408,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">4. System Sound Signals</span>
                     <div className="flex justify-between items-center bg-slate-900/60 p-2 px-3 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-300 block">Daily Quest Reminders</span>
-                      <div 
+                      <span id="label_reminders" className="text-[10px] text-slate-300 block">Daily Quest Reminders</span>
+                      <button 
+                        type="button"
+                        role="switch"
+                        aria-checked={dailyQuestReminder}
+                        aria-labelledby="label_reminders"
                         className={`w-10 h-6 rounded-full p-0.5 cursor-pointer flex items-center transition-colors duration-200 ${dailyQuestReminder ? "bg-cyan-500 justify-end" : "bg-slate-800 justify-start"}`}
                         onClick={() => {
                           const newVal = !dailyQuestReminder;
@@ -6382,7 +6423,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         }}
                       >
                         <div className="w-4 h-4 bg-slate-950 rounded-full shadow-sm" />
-                      </div>
+                      </button>
                     </div>
                   </div>
 
@@ -6497,13 +6538,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
+      <nav aria-label="Mobile Navigation" className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
         {[
-          { icon: Activity, idx: 0 },
-          { icon: Users, idx: 1 },
-          { icon: Home, idx: 2 },
-          { icon: Skull, idx: 3 },
-          { icon: ShoppingBag, idx: 4 }
+          { icon: Activity, idx: 0, label: "Character Stats" },
+          { icon: Users, idx: 1, label: "Social Hub" },
+          { icon: Home, idx: 2, label: "Command Center" },
+          { icon: Skull, idx: 3, label: "Daily Quests" },
+          { icon: ShoppingBag, idx: 4, label: "Black Market" }
         ].map(item => {
           const Icon = item.icon;
           const currentSec = getMobileSection(activeTab);
@@ -6513,12 +6554,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             return (
               <div key={item.idx} className="relative z-10 -mt-10 flex flex-col items-center justify-center">
                 <motion.button
+                  aria-label={item.label}
+                  aria-current={isActive ? "page" : undefined}
                   animate={{ y: [0, -5, 0], rotate: [0, 1.5, -1.5, 0] }}
                   transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                   className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer bg-sky-400 text-white shadow-[0_5px_18px_rgba(56,189,248,0.45)] hover:bg-sky-300 active:scale-95 transition-all outline-none"
                   onClick={() => handleMobileSectionClick(item.idx)}
                 >
-                  <Icon className="w-6 h-6 text-white" />
+                  <Icon className="w-6 h-6 text-white" aria-hidden="true" />
                 </motion.button>
                 {isActive && (
                   <motion.div 
@@ -6534,10 +6577,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           return (
             <button
               key={item.idx}
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
               className="p-3 relative flex flex-col items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none"
               onClick={() => handleMobileSectionClick(item.idx)}
             >
               <Icon 
+                aria-hidden="true"
                 className={`w-5 h-5 transition-all duration-300 ${
                   isActive 
                     ? "text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,1)] drop-shadow-[0_0_4px_rgba(34,211,238,0.8)] scale-110" 
@@ -6545,7 +6591,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 }`} 
               />
               {item.idx === 1 && friendRequests.length > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse">
+                  <span className="sr-only">Social updates available</span>
+                </span>
               )}
               {isActive && (
                 <motion.div 
@@ -6557,7 +6605,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             </button>
           );
         })}
-      </div>
+      </nav>
 
       {/* FULLSCREEN STUDY BOOST CLOCK OVERLAY */}
       <AnimatePresence>
@@ -6662,7 +6710,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                      {inspectMarketItem.name}
                   </h2>
                   
-                  <div className="flex gap-4 mb-8">
+                  <div className="flex gap-4 mb-4">
                      <div className="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex flex-col items-center justify-center flex-1">
                         <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Classification</span>
                         <span className="text-sm font-black text-slate-300 uppercase">{inspectMarketItem.type}</span>
@@ -6673,6 +6721,22 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                            {inspectMarketItem.stock < 0 ? "INFINITE" : inspectMarketItem.stock === 0 ? "DEPLETED" : `${inspectMarketItem.stock} UNITS`}
                         </span>
                      </div>
+                  </div>
+
+                  {/* ITEM STATS GRIDS */}
+                  <div className="grid grid-cols-3 gap-2 mb-8 bg-slate-950/20 p-3 rounded-2xl border border-slate-800/40 shadow-inner">
+                    <div className="flex flex-col items-center justify-center p-2">
+                       <span className="text-[8px] text-rose-500 font-black uppercase tracking-[0.2em] mb-1">ATK</span>
+                       <span className="text-sm font-bold text-rose-300 font-mono">+{inspectMarketItem.attackBoost || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-2 border-x border-slate-800/30">
+                       <span className="text-[8px] text-blue-500 font-black uppercase tracking-[0.2em] mb-1">DEF</span>
+                       <span className="text-sm font-bold text-blue-300 font-mono">+{inspectMarketItem.defenseBoost || 0}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-2">
+                       <span className="text-[8px] text-cyan-500 font-black uppercase tracking-[0.2em] mb-1">MANA</span>
+                       <span className="text-sm font-bold text-cyan-300 font-mono">+{inspectMarketItem.manaBoost || 0}</span>
+                    </div>
                   </div>
 
                   <div className="space-y-2 mb-8 flex-1">

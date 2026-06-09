@@ -16,6 +16,7 @@ const RpgGame = lazy(() => import("./components/RpgGame"));
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 const PartyApp = lazy(() => import("./party/PartyApp"));
 const AuthScreen = lazy(() => import("./components/AuthScreen"));
+const WhiteRoomChallenge = lazy(() => import("./components/WhiteRoomChallenge"));
 
 type AppPhase = "authentication" | "onboarding" | "plan_preview" | "rpg_dashboard";
 
@@ -31,6 +32,13 @@ export default function App() {
     return (
       window.location.pathname === "/party" ||
       window.location.hash === "#party"
+    );
+  });
+
+  const [isWhiteRoom, setIsWhiteRoom] = useState<boolean>(() => {
+    return (
+      window.location.pathname === "/whiteroom" ||
+      window.location.hash === "#whiteroom"
     );
   });
 
@@ -66,6 +74,7 @@ export default function App() {
       const hash = window.location.hash;
       setIsAdminMode(path === "/admin" || hash === "#admin");
       setIsPartyMode(path === "/party" || hash === "#party");
+      setIsWhiteRoom(path === "/whiteroom" || hash === "#whiteroom");
     };
 
     window.addEventListener("popstate", checkRoutes);
@@ -293,6 +302,21 @@ export default function App() {
             setIsPartyMode(false);
           }}
           playSelectSound={() => {}}
+        />
+      </Suspense>
+    );
+  }
+
+  if (isWhiteRoom) {
+    return (
+      <Suspense fallback={suspenseFallback}>
+        <WhiteRoomChallenge 
+          playerName={activePlayerName}
+          onBack={() => {
+            window.history.pushState({}, "", "/");
+            window.location.hash = "";
+            setIsWhiteRoom(false);
+          }}
         />
       </Suspense>
     );

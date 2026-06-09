@@ -112,6 +112,9 @@ interface AdminMarketItem {
   createdAt?: any;
   imageUrl?: string;
   adCodeSnippet?: string;
+  attackBoost?: number;
+  defenseBoost?: number;
+  manaBoost?: number;
 }
 
 export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
@@ -185,7 +188,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     stock: 10,
     isActive: true,
     imageUrl: "",
-    adCodeSnippet: ""
+    adCodeSnippet: "",
+    attackBoost: 0,
+    defenseBoost: 0,
+    manaBoost: 0
   });
 
   // Notification banners
@@ -658,6 +664,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         isActive: marketItemForm.isActive,
         imageUrl: marketItemForm.imageUrl,
         adCodeSnippet: marketItemForm.adCodeSnippet,
+        attackBoost: Number(marketItemForm.attackBoost || 0),
+        defenseBoost: Number(marketItemForm.defenseBoost || 0),
+        manaBoost: Number(marketItemForm.manaBoost || 0),
         createdAt: serverTimestamp()
       }, { merge: true });
       showNotification(editingMarketItemId ? "SUCCESS: Market listing stabilized!" : "SUCCESS: Equipment materialized into market cache!");
@@ -670,7 +679,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         stock: 10,
         isActive: true,
         imageUrl: "",
-        adCodeSnippet: ""
+        adCodeSnippet: "",
+        attackBoost: 0,
+        defenseBoost: 0,
+        manaBoost: 0
       });
       setEditingMarketItemId(null);
     } catch (err) {
@@ -689,7 +701,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       stock: item.stock,
       isActive: item.isActive,
       imageUrl: item.imageUrl || "",
-      adCodeSnippet: item.adCodeSnippet || ""
+      adCodeSnippet: item.adCodeSnippet || "",
+      attackBoost: item.attackBoost || 0,
+      defenseBoost: item.defenseBoost || 0,
+      manaBoost: item.manaBoost || 0
     });
     addSystemLog(`Loaded Market Item '${item.name}' into system editor buffers.`, "info");
   };
@@ -708,7 +723,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
           type: "Weapon",
           rank: "A-Rank",
           stock: 10,
-          isActive: true
+          isActive: true,
+          attackBoost: 0,
+          defenseBoost: 0,
+          manaBoost: 0
         });
       }
     } catch (err) {
@@ -921,12 +939,12 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   };
 
   return (
-    <div id="admin_main_layout" className="min-h-screen bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300">
+    <main role="main" id="admin_main_layout" className="min-h-screen bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300">
       
       {/* Absolute Header with back button */}
-      <div className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      <nav aria-label="Admin Navigation" className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Shield className="w-6 h-6 text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.4)]" />
+          <Shield className="w-6 h-6 text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.4)]" aria-hidden="true" />
           <div>
             <h1 className="text-sm font-black uppercase text-purple-400 tracking-widest flex items-center gap-2">
               MONARCH MASTER DECK
@@ -937,13 +955,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         </div>
         
         <button 
+          aria-label="Exit Administration Deck"
           onClick={onBackToApp} 
           className="px-4 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 text-slate-300 transition-colors uppercase cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Exit Deck</span>
         </button>
-      </div>
+      </nav>
 
       <AnimatePresence>
         {notification && (
@@ -983,8 +1002,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
             <form onSubmit={handleAuthorize} className="space-y-4">
               <div>
-                <label className="text-[9px] text-slate-400 uppercase tracking-wider block mb-1">Enter Master Deck Passcode</label>
+                <label htmlFor="passcode" className="text-[9px] text-slate-400 uppercase tracking-wider block mb-1">Enter Master Deck Passcode</label>
                 <input 
+                  id="passcode"
                   type="password" 
                   value={passcode} 
                   onChange={(e) => setPasscode(e.target.value)} 
@@ -995,7 +1015,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
               </div>
 
               {authError && (
-                <div className="p-3 bg-red-950/25 border border-red-900/40 text-red-400 text-[10px] font-bold rounded-lg text-center tracking-wide">
+                <div role="alert" className="p-3 bg-red-950/25 border border-red-900/40 text-red-400 text-[10px] font-bold rounded-lg text-center tracking-wide">
                   {authError}
                 </div>
               )}
@@ -1046,6 +1066,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 return (
                   <button
                     key={tab.id}
+                    role="tab"
+                    aria-selected={isSel}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
                       isSel 
@@ -1983,6 +2005,36 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       />
                     </div>
 
+                    <div className="grid grid-cols-3 gap-2 md:col-span-2 bg-slate-950/30 p-4 rounded-xl border border-slate-900">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-rose-500 uppercase">Attack Buff</label>
+                        <input 
+                          type="number" 
+                          value={marketItemForm.attackBoost}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, attackBoost: Number(e.target.value)})}
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-rose-500 text-rose-400 text-center text-xs p-2 rounded-lg focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-blue-500 uppercase">Defense Buff</label>
+                        <input 
+                          type="number" 
+                          value={marketItemForm.defenseBoost}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, defenseBoost: Number(e.target.value)})}
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-blue-500 text-blue-400 text-center text-xs p-2 rounded-lg focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-cyan-500 uppercase">Mana Buff</label>
+                        <input 
+                          type="number" 
+                          value={marketItemForm.manaBoost}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, manaBoost: Number(e.target.value)})}
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-cyan-500 text-cyan-400 text-center text-xs p-2 rounded-lg focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
                     {marketItemForm.imageUrl && (
                       <div className="md:col-span-2 mt-2 border border-slate-800 rounded-xl overflow-hidden bg-slate-950/50 p-2">
                         <label className="text-[10px] font-black text-amber-500 uppercase block mb-2 tracking-widest leading-none">High-Def Asset Preview</label>
@@ -2007,7 +2059,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               stock: 10,
                               isActive: true,
                               imageUrl: "",
-                              adCodeSnippet: ""
+                              adCodeSnippet: "",
+                              attackBoost: 0,
+                              defenseBoost: 0,
+                              manaBoost: 0
                             });
                           }}
                           className="flex-1 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
@@ -2196,6 +2251,6 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         </div>
       )}
 
-    </div>
+      </main>
   );
 }

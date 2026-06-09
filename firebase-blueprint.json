@@ -137,9 +137,29 @@
         "timestamp": { "type": "integer" }
       },
       "required": ["sender", "hunterClass", "guild", "text", "timestamp"]
+    },
+    "WhiteRoomLeaderboardEntry": {
+      "title": "White Room Leaderboard Entry",
+      "description": "Anonymized record of a user's extreme training stats, mapped from their user ID anonymously",
+      "type": "object",
+      "properties": {
+        "subjectId": { "type": "string", "description": "Subject alias code, e.g. Subject #A14F" },
+        "generation": { "type": "string", "enum": ["4th", "5th"] },
+        "streak": { "type": "integer", "description": "Current 30-day streak day" },
+        "efficiency": { "type": "integer", "description": "Pillar completion efficiency index percentage" },
+        "responseTime": { "type": "number", "description": "Response action rate" },
+        "consistency": { "type": "integer", "description": "Task check-off window compliance index" },
+        "isMasterpiece": { "type": "boolean", "description": "Completed a 4th Generation curriculum successfully" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subjectId", "generation", "streak", "efficiency", "responseTime", "consistency", "isMasterpiece", "updatedAt"]
     }
   },
   "firestore": {
+    "/white_room_leaderboard/{userId}": {
+      "schema": "WhiteRoomLeaderboardEntry",
+      "description": "Anonymized leaderboard mapping UIDs to clinical scores"
+    },
     "/leaderboard/{playerId}": {
       "schema": "LeaderboardEntry",
       "description": "Firestore collection containing all players and their current stats"
