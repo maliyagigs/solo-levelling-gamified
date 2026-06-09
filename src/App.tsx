@@ -93,12 +93,39 @@ export default function App() {
 
   // Monitor Authentication and Sync with Firestore
   useEffect(() => {
+    let syncedOrTimedOut = false;
+    
+    const failsafeTimeout = setTimeout(() => {
+      if (!syncedOrTimedOut) {
+        syncedOrTimedOut = true;
+        console.warn("Failsafe: System database sync timed out or was blocked. Engaging local offline recovery.");
+        const savedName = localStorage.getItem("monarch_active_player");
+        const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
+        if (savedName && savedProfileStr) {
+          try { setProfile(JSON.parse(savedProfileStr)); } catch(e){}
+          setPhase("rpg_dashboard");
+        } else if (savedProfileStr) {
+          try {
+            setProfile(JSON.parse(savedProfileStr));
+            setPhase("plan_preview");
+          } catch (e) {
+            setPhase("onboarding");
+          }
+        } else {
+          setPhase("onboarding");
+        }
+        setIsSyncing(false);
+      }
+    }, 1800);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setIsSyncing(true);
       if (user) {
         try {
           const userDocRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(userDocRef);
+          if (syncedOrTimedOut) return; // Skip if we already timed out and fell back
+          
           if (docSnap.exists()) {
             const data = docSnap.data();
             
@@ -119,6 +146,7 @@ export default function App() {
               setOnboardingStep(0);
               setPhase("onboarding");
               setIsSyncing(false);
+              syncedOrTimedOut = true;
               return;
             }
             
@@ -195,6 +223,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("Firestore sync error:", err);
+          if (syncedOrTimedOut) return;
           // Fallback to local storage
           const savedName = localStorage.getItem("monarch_active_player");
           const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
@@ -220,6 +249,7 @@ export default function App() {
           }
         }
       } else {
+        if (syncedOrTimedOut) return;
         // Logged out: clean local variables if they was in active game
         setPhase((currentPhase) => {
           if (currentPhase === "rpg_dashboard") {
@@ -230,9 +260,13 @@ export default function App() {
         });
       }
       setIsSyncing(false);
+      syncedOrTimedOut = true;
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(failsafeTimeout);
+      unsubscribe();
+    };
   }, []);
 
   const handleOnboardingComplete = (data: OnboardingData) => {
