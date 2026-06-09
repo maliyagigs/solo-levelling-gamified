@@ -132,7 +132,7 @@ export default function App() {
               localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
             }
             if (data.gameState) {
-              localStorage.setItem(`monarch_save_v3_balanced_${pName}`, JSON.stringify(data.gameState));
+              localStorage.setItem(`monarch_save_v4_reset_${pName}`, JSON.stringify(data.gameState));
             }
             
             // Restore secondary stats

@@ -362,11 +362,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly!`);
           return {
             ...prev,
-            level: Number(d.level) ?? prev.level,
-            exp: Number(d.exp) ?? prev.exp,
-            maxExp: Number(d.maxExp) ?? prev.maxExp,
-            gold: Number(d.gold) ?? prev.gold,
-            statPoints: Number(d.statPoints) ?? prev.statPoints,
+            level: d.level !== undefined && d.level !== null ? Number(d.level) : prev.level,
+            exp: d.exp !== undefined && d.exp !== null ? Number(d.exp) : prev.exp,
+            maxExp: d.maxExp !== undefined && d.maxExp !== null ? Number(d.maxExp) : prev.maxExp,
+            gold: d.gold !== undefined && d.gold !== null ? Number(d.gold) : prev.gold,
+            statPoints: d.statPoints !== undefined && d.statPoints !== null ? Number(d.statPoints) : prev.statPoints,
             baseStats: d.baseStats ?? prev.baseStats,
             job: d.job ?? prev.job,
             rank: d.rank ?? prev.rank,
@@ -374,17 +374,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             shadows: d.shadows ?? prev.shadows,
             skills: d.skills ?? prev.skills,
             quests: d.quests ?? prev.quests,
-            storyStep: Number(d.storyStep) ?? prev.storyStep,
-            manaStaked: Number(d.manaStaked) ?? prev.manaStaked,
-            boosterMultiplier: Number(d.boosterMultiplier) ?? prev.boosterMultiplier,
-            sigils: Number(d.sigils) ?? prev.sigils,
-            prestigePoints: Number(d.prestigePoints) ?? prev.prestigePoints,
-            weeklyManaAccumulated: Number(d.weeklyManaAccumulated) ?? prev.weeklyManaAccumulated,
-            weeklyExpAccumulated: Number(d.weeklyExpAccumulated) ?? prev.weeklyExpAccumulated,
-            weeklyCyclesCompleted: Number(d.weeklyCyclesCompleted) ?? prev.weeklyCyclesCompleted,
+            storyStep: d.storyStep !== undefined && d.storyStep !== null ? Number(d.storyStep) : prev.storyStep,
+            manaStaked: d.manaStaked !== undefined && d.manaStaked !== null ? Number(d.manaStaked) : prev.manaStaked,
+            boosterMultiplier: d.boosterMultiplier !== undefined && d.boosterMultiplier !== null ? Number(d.boosterMultiplier) : prev.boosterMultiplier,
+            sigils: d.sigils !== undefined && d.sigils !== null ? Number(d.sigils) : prev.sigils,
+            prestigePoints: d.prestigePoints !== undefined && d.prestigePoints !== null ? Number(d.prestigePoints) : prev.prestigePoints,
+            weeklyManaAccumulated: d.weeklyManaAccumulated !== undefined && d.weeklyManaAccumulated !== null ? Number(d.weeklyManaAccumulated) : prev.weeklyManaAccumulated,
+            weeklyExpAccumulated: d.weeklyExpAccumulated !== undefined && d.weeklyExpAccumulated !== null ? Number(d.weeklyExpAccumulated) : prev.weeklyExpAccumulated,
+            weeklyCyclesCompleted: d.weeklyCyclesCompleted !== undefined && d.weeklyCyclesCompleted !== null ? Number(d.weeklyCyclesCompleted) : prev.weeklyCyclesCompleted,
             weeklyHistory: d.weeklyHistory ?? prev.weeklyHistory,
-            dailyGatesCleared: Number(d.dailyGatesCleared) ?? prev.dailyGatesCleared,
-            dailyFocusMinutes: Number(d.dailyFocusMinutes) ?? prev.dailyFocusMinutes
+            dailyGatesCleared: d.dailyGatesCleared !== undefined && d.dailyGatesCleared !== null ? Number(d.dailyGatesCleared) : prev.dailyGatesCleared,
+            dailyFocusMinutes: d.dailyFocusMinutes !== undefined && d.dailyFocusMinutes !== null ? Number(d.dailyFocusMinutes) : prev.dailyFocusMinutes
           };
         });
       }
@@ -1006,7 +1006,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setGameState(prev => {
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(goldAward, allowedGold);
+      const actualGold = Math.min(goldAward, allowedGold, 5);
 
       const offeringItem = {
         id: `offering_${Date.now()}`,
@@ -1101,7 +1101,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (allowedGold <= 0) {
         return prev;
       }
-      const actualGold = Math.min(amt, allowedGold);
+      const actualGold = Math.min(amt, allowedGold, 5);
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -1347,7 +1347,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Auto-save both locally and to Cloud Firestore (with debounce) whenever progress stats change
   const lastCloudSavedRef = useRef<string>("");
   useEffect(() => {
-    localStorage.setItem(`monarch_save_v3_balanced_${playerName}`, JSON.stringify(gameState));
+    localStorage.setItem(`monarch_save_v4_reset_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
 
   useEffect(() => {
@@ -1722,7 +1722,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       });
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(finalGoldAward, allowedGold);
+      const actualGold = Math.min(finalGoldAward, allowedGold, 5);
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -1759,7 +1759,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setGameState(prev => {
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(finalDailyGold, allowedGold);
+      const actualGold = Math.min(finalDailyGold, allowedGold, 5);
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -1867,7 +1867,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setGameState(prev => {
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(stakedYield, allowedGold);
+      const actualGold = Math.min(stakedYield, allowedGold, 5);
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -3061,7 +3061,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       }
       const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
       const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(gold, allowedGold);
+      const actualGold = Math.min(gold, allowedGold, 5);
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -4102,7 +4102,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         setGameState(prev => {
                           const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
                           const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-                          const actualGold = Math.min(quest.rewardGold, allowedGold);
+                          const actualGold = Math.min(quest.rewardGold, allowedGold, 5);
                           return {
                             ...prev,
                             gold: prev.gold + actualGold,
@@ -6291,6 +6291,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   className="py-2.5 bg-red-900/80 hover:bg-red-950 border border-red-500 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={async () => {
                     // Wipe everything from LocalStorage
+                    localStorage.removeItem(`monarch_save_v4_reset_${playerName}`);
                     localStorage.removeItem(`monarch_save_v3_balanced_${playerName}`);
                     localStorage.removeItem(`monarch_save_v2_${playerName}`);
                     localStorage.removeItem(`monarch_daily_claim_${playerName}`);

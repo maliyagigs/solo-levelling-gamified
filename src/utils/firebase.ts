@@ -101,9 +101,9 @@ export async function saveToLeaderboard(playerName: string, level: number, gold:
   if (!playerName || playerName.trim() === "") return;
   const uid = auth.currentUser?.uid;
   if (!uid) return;
-  const pathForWrite = `leaderboard/${uid}`;
+  const pathForWrite = `leaderboard/${playerName}`;
   try {
-    const docRef = doc(db, "leaderboard", uid);
+    const docRef = doc(db, "leaderboard", playerName);
     await setDoc(docRef, {
       uid,
       playerName,
