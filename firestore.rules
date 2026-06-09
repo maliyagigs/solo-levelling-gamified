@@ -17,11 +17,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == "mchethiyabandara@gmail.com" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
-      );
+      return isEmailVerified() && request.auth.token.email == "mchethiyabandara@gmail.com";
     }
 
     function hasPlayerName(name) {

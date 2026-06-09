@@ -1303,7 +1303,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
         const engagementScore = myContribs.damage + myContribs.heals + myContribs.interrupts;
 
         // Base caps
-        const maxGold = 5; // Capped to 5 max mana per task/bonus as requested
+        const maxGold = 30;
         const maxExp = 100;
 
         let addedGold = currentLobby?.boss?.isStudySession ? Math.min(maxGold, 5 + Math.floor(engagementScore / 300)) : maxGold;

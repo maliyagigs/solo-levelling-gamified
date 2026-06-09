@@ -6,9 +6,9 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import CosmicBackground from "./components/CosmicBackground";
 import { OnboardingData } from "./types";
-import { auth, db, saveToLeaderboard } from "./utils/firebase";
+import { auth, db } from "./utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const Onboarding = lazy(() => import("./components/Onboarding"));
 const PlanPreview = lazy(() => import("./components/PlanPreview"));
@@ -19,19 +19,39 @@ const AuthScreen = lazy(() => import("./components/AuthScreen"));
 
 type AppPhase = "authentication" | "onboarding" | "plan_preview" | "rpg_dashboard";
 
-export default function App() {
-  // Ensure synchronous legacy data wipe before any state initializers render!
-  const resetKey = "monarch_v3_balanced_reset_enforced";
-  if (!localStorage.getItem(resetKey)) {
-    // Clear all legacy progress
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith("monarch_")) {
-        localStorage.removeItem(key);
-      }
-    });
-    localStorage.setItem(resetKey, "true");
-  }
+import { ErrorBoundary } from "react-error-boundary";
 
+function ErrorFallback({ error, resetErrorBoundary }: any) {
+  return (
+    <div role="alert" className="flex flex-col items-center justify-center min-h-screen text-red-500 bg-slate-900 z-50 relative p-8 text-center max-w-xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <span className="text-3xl">⚠️</span> System Crash Detected
+      </h2>
+      <p className="mb-4 text-slate-300">The Monarch System encountered a critical anomaly:</p>
+      <pre className="text-xs bg-slate-950 p-4 rounded text-left overflow-auto w-full max-h-[300px] mb-6">
+        {error.message}
+        {"\n\n"}
+        {error.stack}
+      </pre>
+      <div className="flex gap-4">
+        <button className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold" onClick={resetErrorBoundary}>
+          Reboot System
+        </button>
+        <button 
+          className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold" 
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+        >
+          Factory Reset Data
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     return (
       window.location.pathname === "/admin" ||
@@ -93,62 +113,14 @@ export default function App() {
 
   // Monitor Authentication and Sync with Firestore
   useEffect(() => {
-    let syncedOrTimedOut = false;
-    
-    const failsafeTimeout = setTimeout(() => {
-      if (!syncedOrTimedOut) {
-        syncedOrTimedOut = true;
-        console.warn("Failsafe: System database sync timed out or was blocked. Engaging local offline recovery.");
-        const savedName = localStorage.getItem("monarch_active_player");
-        const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
-        if (savedName && savedProfileStr) {
-          try { setProfile(JSON.parse(savedProfileStr)); } catch(e){}
-          setPhase("rpg_dashboard");
-        } else if (savedProfileStr) {
-          try {
-            setProfile(JSON.parse(savedProfileStr));
-            setPhase("plan_preview");
-          } catch (e) {
-            setPhase("onboarding");
-          }
-        } else {
-          setPhase("onboarding");
-        }
-        setIsSyncing(false);
-      }
-    }, 1800);
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setIsSyncing(true);
       if (user) {
         try {
           const userDocRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(userDocRef);
-          if (syncedOrTimedOut) return; // Skip if we already timed out and fell back
-          
           if (docSnap.exists()) {
             const data = docSnap.data();
-            
-            // Force reset balance v3 on the cloud database
-            if (!data.v3_reset) {
-              await setDoc(userDocRef, {
-                v3_reset: true,
-                updatedAt: new Date().toISOString()
-              });
-              
-              Object.keys(localStorage).forEach(key => {
-                if (key.startsWith("monarch_") && key !== "monarch_v3_balanced_reset_enforced") {
-                  localStorage.removeItem(key);
-                }
-              });
-              
-              setProfile(null);
-              setOnboardingStep(0);
-              setPhase("onboarding");
-              setIsSyncing(false);
-              syncedOrTimedOut = true;
-              return;
-            }
             
             // Restore name and profile
             const pName = data.playerName || "Hunter";
@@ -160,7 +132,7 @@ export default function App() {
               localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
             }
             if (data.gameState) {
-              localStorage.setItem(`monarch_save_v4_reset_${pName}`, JSON.stringify(data.gameState));
+              localStorage.setItem(`monarch_save_v2_${pName}`, JSON.stringify(data.gameState));
             }
             
             // Restore secondary stats
@@ -177,7 +149,11 @@ export default function App() {
             
             setActivePlayerName(pName);
             setProfile(oProfile);
-            setPhase("rpg_dashboard");
+            if (oProfile) {
+              setPhase("rpg_dashboard");
+            } else {
+              setPhase("onboarding");
+            }
           } else {
             // New account: check if we have local onboarding to seed Firestore
             const savedName = localStorage.getItem("monarch_active_player");
@@ -189,20 +165,21 @@ export default function App() {
                 const initialSave: any = {
                   playerName: savedName,
                   onboardProfile: parsedProfile,
-                  v3_reset: true,
                   updatedAt: new Date().toISOString()
                 };
                 
-                const existingGameStateStr = localStorage.getItem(`monarch_save_v4_reset_${savedName}`);
+                const existingGameStateStr = localStorage.getItem(`monarch_save_v2_${savedName}`);
                 if (existingGameStateStr) {
                   initialSave.gameState = JSON.parse(existingGameStateStr);
                 }
                 
                 await setDoc(userDocRef, initialSave);
+                setProfile(parsedProfile);
+                setPhase("rpg_dashboard");
               } catch (e) {
                 console.error("Failed to seed initial Firestore data:", e);
+                setPhase("onboarding");
               }
-              setPhase("rpg_dashboard");
             } else if (savedProfileStr) {
               try {
                 setProfile(JSON.parse(savedProfileStr));
@@ -223,13 +200,17 @@ export default function App() {
           }
         } catch (err) {
           console.error("Firestore sync error:", err);
-          if (syncedOrTimedOut) return;
           // Fallback to local storage
           const savedName = localStorage.getItem("monarch_active_player");
           const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
           if (savedName && savedProfileStr) {
-            try { setProfile(JSON.parse(savedProfileStr)); } catch(e){}
-            setPhase("rpg_dashboard");
+            try { 
+              const prof = JSON.parse(savedProfileStr);
+              setProfile(prof); 
+              setPhase("rpg_dashboard");
+            } catch(e){
+              setPhase("onboarding");
+            }
           } else if (savedProfileStr) {
             try {
               setProfile(JSON.parse(savedProfileStr));
@@ -249,7 +230,6 @@ export default function App() {
           }
         }
       } else {
-        if (syncedOrTimedOut) return;
         // Logged out: clean local variables if they was in active game
         setPhase((currentPhase) => {
           if (currentPhase === "rpg_dashboard") {
@@ -260,13 +240,9 @@ export default function App() {
         });
       }
       setIsSyncing(false);
-      syncedOrTimedOut = true;
     });
 
-    return () => {
-      clearTimeout(failsafeTimeout);
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const handleOnboardingComplete = (data: OnboardingData) => {
@@ -286,11 +262,8 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           playerName: name,
           onboardProfile: profile,
-          updatedAt: serverTimestamp()
+          updatedAt: new Date().toISOString()
         });
-        
-        // Ensure they appear in the leaderboard (hunter directory) immediately
-        await saveToLeaderboard(name, 1, 0, "Hunter", "E-Rank");
       } catch (e) {
         console.error("Failed to write user profile to database:", e);
       }
@@ -373,34 +346,44 @@ export default function App() {
       <CosmicBackground />
 
       <main role="main" className="relative z-10 w-full h-full">
-        <Suspense fallback={suspenseFallback}>
-          {phase === "onboarding" && (
-            <Onboarding 
-              initialStep={onboardingStep} 
-              onStartGate={() => setPhase("authentication")} 
-              onComplete={handleOnboardingComplete} 
-            />
-          )}
+        <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
+          <Suspense fallback={suspenseFallback}>
+            {phase === "onboarding" && (
+              <Onboarding 
+                initialStep={onboardingStep} 
+                onStartGate={() => setPhase("authentication")} 
+                onComplete={handleOnboardingComplete} 
+              />
+            )}
 
-          {phase === "authentication" && (
-            <AuthScreen onSuccess={() => {
-                setPhase("onboarding");
-                setOnboardingStep(1);
-            }} />
-          )}
+            {phase === "authentication" && (
+              <AuthScreen onSuccess={() => {
+                  setPhase("onboarding");
+                  setOnboardingStep(1);
+              }} />
+            )}
 
-          {phase === "plan_preview" && profile && (
-            <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
-          )}
+            {phase === "plan_preview" && profile && (
+              <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
+            )}
 
-          {phase === "rpg_dashboard" && profile && (
-            <RpgGame 
-              playerName={activePlayerName}
-              onboardProfile={profile}
-              onLogout={handleLogout}
-            />
-          )}
-        </Suspense>
+            {phase === "rpg_dashboard" && profile ? (
+              <RpgGame 
+                playerName={activePlayerName}
+                onboardProfile={profile}
+                onLogout={handleLogout}
+              />
+            ) : null}
+            
+            {(phase === "plan_preview" || phase === "rpg_dashboard") && !profile && (
+               <div className="flex flex-col items-center justify-center p-10 text-center space-y-4">
+                  <h2 className="text-2xl text-red-400 font-bold">Profile Sync Error</h2>
+                  <p className="text-slate-300">Your hunter profile data is missing or corrupted.</p>
+                  <button onClick={() => setPhase("onboarding")} className="px-4 py-2 bg-slate-800 text-cyan-400 hover:bg-slate-700 rounded transition">Return to Tutorial</button>
+               </div>
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   );

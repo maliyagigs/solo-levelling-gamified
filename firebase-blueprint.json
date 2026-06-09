@@ -137,28 +137,6 @@
         "timestamp": { "type": "integer" }
       },
       "required": ["sender", "hunterClass", "guild", "text", "timestamp"]
-    },
-    "AdminMarketItem": {
-      "title": "Admin Market Item",
-      "description": "Custom weapons, armor or relics registered in the system Black Market",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "price": { "type": "integer" },
-        "type": { "type": "string" },
-        "rank": { "type": "string" },
-        "stock": { "type": "integer" },
-        "isActive": { "type": "boolean" },
-        "imageUrl": { "type": "string" },
-        "adCodeSnippet": { "type": "string" },
-        "attackBoost": { "type": "integer" },
-        "defenseBoost": { "type": "integer" },
-        "manaBoost": { "type": "integer" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "name", "price", "type", "rank", "stock", "isActive", "createdAt"]
     }
   },
   "firestore": {
@@ -177,10 +155,6 @@
     "/admin_gates/{gateId}": {
       "schema": "AdminGate",
       "description": "Custom dungeons injected by global system overrides"
-    },
-    "/admin_market_items/{itemId}": {
-      "schema": "AdminMarketItem",
-      "description": "Equipment, armor, and elixir offerings live on the global marketplace"
     },
     "/messages/{msgId}": {
       "schema": "ChatMessage",
