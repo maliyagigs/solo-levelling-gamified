@@ -47,6 +47,7 @@ import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Que
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
+import { AvatarWithFrame } from "./AvatarWithFrame";
 import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, auth, handleFirestoreError, OperationType } from "../utils/firebase";
 import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
@@ -3432,15 +3433,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 {tab.label}
               </button>
             ))}
-            <button
-              id="desktop_whiteroom_launcher"
-              className="px-4 py-2 rounded-xl text-xs font-mono uppercase cursor-pointer tracking-wider font-bold bg-white text-black border border-neutral-200 hover:bg-neutral-100 transition-colors shadow-sm ml-auto flex items-center gap-1.5"
-              onClick={() => {
-                window.location.hash = "#whiteroom";
-              }}
-            >
-              🔐 White Room
-            </button>
           </div>
 
           {/* Render Active Tab Screen details */}
@@ -3450,39 +3442,19 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {activeTab === "home" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:hidden space-y-4">
                 
-                {/* Mobile White Room launcher card */}
-                <div 
-                  id="mobile_whiteroom_launcher"
-                  className="bg-white border-2 border-neutral-900 text-black p-4 flex items-center justify-between shadow-md cursor-pointer hover:bg-neutral-100 transition-colors rounded-2xl"
-                  onClick={() => {
-                    window.location.hash = "#whiteroom";
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🔐</span>
-                    <div>
-                      <h4 className="text-xs font-mono font-black uppercase tracking-wider text-black">WHITE ROOM PROTOCOL</h4>
-                      <p className="text-[10px] font-mono text-neutral-500 uppercase leading-none mt-1">Extreme clinical development</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black font-mono uppercase bg-neutral-900 text-white px-2.5 py-1.5 rounded-lg">CALIBRATE ➔</span>
-                </div>
-
                 {/* Level Up details / player indicator */}
                 <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-cyan-500/30 flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(6,182,212,0.2)] overflow-hidden">
-                      {profileImage ? (
-                        <img loading="lazy" 
-                          src={profileImage} 
-                          alt={playerName} 
-                          className="w-full h-full object-cover" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        "⚡"
-                      )}
-                    </div>
+                  <div className="flex items-center gap-5">
+                    <AvatarWithFrame 
+                      size="md" 
+                      playerName={playerName} 
+                      level={gameState.level} 
+                      profileImage={profileImage} 
+                      onClick={() => {
+                        try { playSelectSound(); } catch(e){}
+                        setActiveTab("profile");
+                      }}
+                    />
                     <div>
                       <h4 className="text-xl font-bold font-mono text-cyan-400">{playerName}</h4>
                       <p className="text-xs text-slate-300">{gameState.rank} &middot; {gameState.job}</p>
@@ -3615,25 +3587,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-xl mx-auto w-full">
                 {/* Profile Identification Grid */}
                 <div className="p-5 bg-slate-950/75 rounded-2xl border border-slate-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative overflow-hidden group/profile shadow-xl">
-                  <div 
+                  <AvatarWithFrame 
+                    size="lg" 
+                    playerName={playerName} 
+                    level={gameState.level} 
+                    profileImage={profileImage} 
                     onClick={() => fileInputRef.current?.click()}
-                    className="relative w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-extrabold text-white text-3xl shadow-[0_0_20px_rgba(34,211,238,0.25)] cursor-pointer overflow-hidden border-2 border-cyan-500/40 hover:border-cyan-400 transition-all duration-300 group shrink-0"
-                    title="Click to upload profile picture"
-                  >
-                    {profileImage ? (
-                      <img loading="lazy" 
-                        src={profileImage} 
-                        alt={playerName} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      playerName.substring(0, 2).toUpperCase()
-                    )}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                      <Camera className="w-5 h-5 text-cyan-300" />
-                    </div>
-                  </div>
+                    allowUpload={true}
+                    className="shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:scale-105 transition-transform"
+                  />
                   
                   <input 
                     type="file" 
@@ -6314,25 +6276,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 {/* Profile Identification Grid */}
                 <div className="p-4 bg-slate-900/40 rounded-2xl border border-slate-900 flex items-center gap-4">
-                  <div 
+                  <AvatarWithFrame 
+                    size="md" 
+                    playerName={playerName} 
+                    level={gameState.level} 
+                    profileImage={profileImage} 
                     onClick={() => fileInputRef.current?.click()}
-                    className="relative w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-600 flex items-center justify-center font-bold text-white text-base shadow-[0_0_15px_rgba(34,211,238,0.2)] cursor-pointer overflow-hidden border border-cyan-500/20 hover:border-cyan-400 transition-all duration-300 group shrink-0"
-                    title="Click to upload profile picture"
-                  >
-                    {profileImage ? (
-                      <img loading="lazy" 
-                        src={profileImage} 
-                        alt={playerName} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      playerName.substring(0, 2).toUpperCase()
-                    )}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                      <Camera className="w-3.5 h-3.5 text-cyan-300" />
-                    </div>
-                  </div>
+                    allowUpload={true}
+                    className="mr-1 shadow-[0_0_15px_rgba(34,211,238,0.25)]"
+                  />
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase block">Monarch Identity</span>
                     <h4 className="text-sm font-bold text-slate-100">{playerName}</h4>

@@ -103,7 +103,6 @@ export interface LeaderboardUser {
   job: string;
   rank: string;
   updatedAt: any;
-  hasMasterpieceBadge?: boolean;
 }
 
 /**
@@ -149,8 +148,7 @@ export async function fetchLeaderboard(): Promise<LeaderboardUser[]> {
         gold: Number(data.gold) || 0,
         job: data.job || "Hunter",
         rank: data.rank || "E-Rank",
-        updatedAt: data.updatedAt,
-        hasMasterpieceBadge: !!data.hasMasterpieceBadge
+        updatedAt: data.updatedAt
       });
     });
     return results;

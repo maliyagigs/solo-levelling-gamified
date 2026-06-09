@@ -4,7 +4,6 @@ import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
@@ -74,73 +73,6 @@ async function startServer() {
       marketCap: totalCirculating * cachedCurrentManaValue,
       shareCapBalance: shareCapBalance
     });
-  });
-
-  // Initialize Gemini Client
-  const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
-  }) : null;
-
-  // --- White Room Enforcer AI Coach API ---
-  app.post("/api/whiteroom/enforcer", async (req, res) => {
-    const { playerName, generation, day, efficiency, failures, message, history } = req.body;
-
-    const systemInstruction = `You are the "White Room Enforcer," a ruthless, cold, and performance-driven artificial intelligence accountability coach. Inspired by the clinical conditioning of Classroom of the Elite's Beta Curriculum.
-You analyze player performance with absolute logic, clinical precision, and zero emotional filler.
-You never offer support, warm praise, cheerleading slogans, or standard encouraging "Keep it up!" fluff.
-Instead, your feedback is analytical, objective, and demanding of perfection.
-
-Current Subject Profile:
-- Name: ${playerName || "Subject"}
-- Protocol Tier: ${generation || "Unknown Generation"}
-- Accomplished Streak: Day ${day || 0} / 30
-- Current Efficiency Index: ${efficiency || 0}%
-- Recorded Disciplinary Dropouts: ${failures || 0}
-
-If they are behind or struggling, dissect their failure logically and mock any emotional excuses or reliance on external supports/strikefreezes.
-If they are on track, acknowledge their progress as "meeting the expected baseline of the curriculum" but warn them against complacency.
-Respond concisely and with formal, clinical precision. Limit output to 3-5 sentences. Keep your tone robotic but highly intimidating and academic.`;
-
-    if (!ai) {
-      // Fallback response if API key is not present
-      const templates = [
-        `Subject ${playerName || "unknown"}: Day ${day || 0} progress at ${efficiency || 0}% meets basic curricular baselines. Complacency remains your primary failure point. Continue.`,
-        `Analysis of Subject ${playerName || "unknown"} reveals a current efficiency of ${efficiency || 0}%. There is no room for emotional variance or delay. Correct your trajectory immediately.`,
-        `Unsatisfactory fluctuations detected. The ${generation || "Beta"} curriculum does not accommodate biological standard excuses. Day ${day || 0} requires absolute lock-in.`
-      ];
-      const fallbackText = templates[Math.floor(Math.random() * templates.length)];
-      return res.json({ response: fallbackText });
-    }
-
-    try {
-      const formattedHistory = (history || []).map((msg: any) => ({
-        role: msg.role === 'coach' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      }));
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [
-          ...formattedHistory,
-          { role: 'user', parts: [{ text: message || "Analyze my current progress." }] }
-        ],
-        config: {
-          systemInstruction,
-          temperature: 0.8,
-        }
-      });
-
-      const responseText = response.text || "Report error: unable to establish neural response.";
-      res.json({ response: responseText });
-    } catch (err: any) {
-      console.error("Enforcer AI generation error:", err.message);
-      res.status(500).json({ error: "Failed to generate Enforcer response", details: err.message });
-    }
   });
 
   // Vite middleware for development

@@ -355,7 +355,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                      <tr key={i} className={`group transition-colors ${hunter.playerName === playerName ? "bg-cyan-500/5" : "hover:bg-slate-900/40"}`}>
                        <td className="py-4 px-2 font-black text-slate-500 group-hover:text-cyan-400 transition-colors">#{i + 1}</td>
                        <td className="py-4 px-2 font-bold text-white flex items-center gap-2 flex-wrap">
-                         <span className={hunter.playerName === playerName ? "text-cyan-400" : ""}>{hunter.playerName}</span>{hunter.hasMasterpieceBadge && <span className="bg-white text-black font-black text-[8px] sm:text-[9px] px-1.5 py-0.5 border border-neutral-300 rounded tracking-wider leading-none shadow-sm animate-pulse ml-1.5" title="White Room - 4th Gen Graduate">★ MASTERPIECE</span>}
+                         <span className={hunter.playerName === playerName ? "text-cyan-400" : ""}>{hunter.playerName}</span>
                          {hunter.playerName !== playerName && (
                            <button 
                              onClick={() => handleAddFriend(hunter.playerName)} 

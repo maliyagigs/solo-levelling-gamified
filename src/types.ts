@@ -139,26 +139,5 @@ export interface GameState {
   weeklyExpAccumulated?: number;
   weeklyCyclesCompleted?: number;
   weeklyHistory?: { weekStart: string, mp: number, exp: number, targetMp: number, targetExp: number }[];
-  whiteRoomState?: WhiteRoomState;
-}
-
-export interface WhiteRoomState {
-  isActive: boolean;
-  onboarded: boolean;
-  generation: "4th" | "5th" | null;
-  startDay: string | null;
-  currentStreakDay: number;
-  highestStreakDay: number;
-  dropoutCount: number;
-  efficiencyPercentage: number;
-  responseTimeScore: number;
-  consistencyScore: number;
-  pillars: {
-    cognitive: { completed: boolean; completedAt: string | null; durationMinutes: number };
-    conditioning: { completed: boolean; completedAt: string | null; workoutType: string | null };
-    stoic: { completed: boolean; completedAt: string | null; meditationMinutes: number };
-  };
-  coachHistory: { role: "coach" | "user" | "system"; text: string; timestamp: string }[];
-  lastCheckedDate: string | null;
 }
 

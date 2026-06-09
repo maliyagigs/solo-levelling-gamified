@@ -66,22 +66,7 @@ service cloud.firestore {
         data.job is string && data.job.size() <= 64 &&
         data.rank is string && data.rank.size() <= 64 &&
         (!data.keys().hasAll(['customAvatar']) || data.customAvatar is string) &&
-        (!data.keys().hasAll(['exp']) || data.exp is number) &&
-        (!data.keys().hasAll(['hasMasterpieceBadge']) || data.hasMasterpieceBadge is bool)
-      );
-    }
-
-    function isValidWhiteRoomLeaderboardEntry(data) {
-      return (
-        data.keys().hasAll(['subjectId', 'generation', 'streak', 'efficiency', 'responseTime', 'consistency', 'isMasterpiece', 'updatedAt']) &&
-        data.keys().size() == 8 &&
-        data.subjectId is string && data.subjectId.size() <= 64 &&
-        data.generation is string && (data.generation == '4th' || data.generation == '5th') &&
-        data.streak is number && data.streak >= 0 && data.streak <= 100 &&
-        data.efficiency is number && data.efficiency >= 0 && data.efficiency <= 100 &&
-        data.responseTime is number && data.responseTime >= 0 &&
-        data.consistency is number && data.consistency >= 0 && data.consistency <= 100 &&
-        data.isMasterpiece is bool
+        (!data.keys().hasAll(['exp']) || data.exp is number)
       );
     }
 
@@ -144,13 +129,6 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && (userId == request.auth.uid || isAdmin());
     }
 
-    // White Room Leaderboard
-    match /white_room_leaderboard/{userId} {
-      allow read: if true;
-      allow create, update: if isSignedIn() && (userId == request.auth.uid) && isValidWhiteRoomLeaderboardEntry(request.resource.data);
-      allow delete: if isSignedIn() && (userId == request.auth.uid || isAdmin());
-    }
-
     // Leaderboard entries (Public access read, restricted creator write)
     match /leaderboard/{playerId} {
       allow read: if true;
@@ -201,7 +179,8 @@ service cloud.firestore {
 
     // Friendships (Fully mapped relational authorization)
     match /friendships/{friendshipId} {
-      allow read: if isSignedIn() && isFriendshipMember(resource.data.userUids);
+      allow get: if isSignedIn() && isFriendshipMember(resource.data.userUids);
+      allow list: if isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
       allow create: if isSignedIn() && (
         hasPlayerName(request.resource.data.requestedBy) &&
         isFriendshipMember(request.resource.data.userUids) &&
