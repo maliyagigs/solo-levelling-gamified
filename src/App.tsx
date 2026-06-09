@@ -6,9 +6,9 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import CosmicBackground from "./components/CosmicBackground";
 import { OnboardingData } from "./types";
-import { auth, db } from "./utils/firebase";
+import { auth, db, saveToLeaderboard } from "./utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Onboarding = lazy(() => import("./components/Onboarding"));
 const PlanPreview = lazy(() => import("./components/PlanPreview"));
@@ -252,8 +252,11 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           playerName: name,
           onboardProfile: profile,
-          updatedAt: new Date().toISOString()
+          updatedAt: serverTimestamp()
         });
+        
+        // Ensure they appear in the leaderboard (hunter directory) immediately
+        await saveToLeaderboard(name, 1, 0, "Hunter", "E-Rank");
       } catch (e) {
         console.error("Failed to write user profile to database:", e);
       }

@@ -3257,7 +3257,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </nav>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-48 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-32 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start min-h-screen">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -3475,11 +3475,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           </div>
 
           {/* Render Active Tab Screen details */}
-          <div className="bg-slate-900/20 rounded-3xl min-h-[400px]">
+          <div className="bg-slate-900/20 rounded-3xl min-h-[500px] flex flex-col w-full">
             
             {/* A0_1. HOME TAB (Now visible on all sizes for a unified dashboard experience) */}
             {activeTab === "home" && (
-              <motion.div key="home-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 block">
+              <motion.div key="home-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 w-full flex-1">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Level Up details / player indicator - Main Profile Card */}

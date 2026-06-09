@@ -99,10 +99,13 @@ export interface LeaderboardUser {
  */
 export async function saveToLeaderboard(playerName: string, level: number, gold: number, job: string, rank: string) {
   if (!playerName || playerName.trim() === "") return;
-  const pathForWrite = `leaderboard/${playerName}`;
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+  const pathForWrite = `leaderboard/${uid}`;
   try {
-    const docRef = doc(db, "leaderboard", playerName);
+    const docRef = doc(db, "leaderboard", uid);
     await setDoc(docRef, {
+      uid,
       playerName,
       level,
       gold,
