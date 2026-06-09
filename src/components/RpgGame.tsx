@@ -539,6 +539,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [systemToast, setSystemToast] = useState<string | null>(null);
   const [activeAnnouncements, setActiveAnnouncements] = useState<any[]>([]);
 
+  // Ad Reward System
+  const [adModalItem, setAdModalItem] = useState<any | null>(null);
+  const [inspectMarketItem, setInspectMarketItem] = useState<any | null>(null);
+  const [adTimeRemaining, setAdTimeRemaining] = useState<number>(30);
+  const [adTouched, setAdTouched] = useState<boolean>(false);
+
+  // Daily Summary Briefing
+  const [showDailyBriefingModal, setShowDailyBriefingModal] = useState<boolean>(() => {
+    return localStorage.getItem(`monarch_daily_briefing_${playerName}`) !== new Date().toDateString();
+  });
+
   // Auto-remove mechanism for new announcements
   useEffect(() => {
     const newAnns = adminAnnouncements.filter(aa =>
@@ -553,6 +564,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       });
     }
   }, [adminAnnouncements]);
+
+  useEffect(() => {
+    let timer: any;
+    if (adModalItem && adTimeRemaining > 0) {
+      timer = setInterval(() => {
+        setAdTimeRemaining(t => Math.max(0, t - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [adModalItem, adTimeRemaining]);
 
   const combatPower = useMemo(() => {
     const equippedW = gameState.inventory.find(i => i.equipped && i.type === "Weapon") || null;
@@ -2553,7 +2574,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       <div className="relative w-full h-full flex flex-col items-center justify-between pointer-events-auto">
         {/* Helper instructions overlay */}
         <div className="absolute top-2 right-2 flex items-center gap-2 z-30 select-none">
-          <button aria-label="Interactive Button" 
+          <button 
             type="button"
             onClick={resetRotation}
             className="text-[9px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded border border-slate-800 hover:bg-slate-800 hover:text-white transition-colors flex items-center gap-1 cursor-pointer z-40"
@@ -2566,7 +2587,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
         {/* Outer Perspective Wrapper */}
         <div 
-          className="relative w-full aspect-square flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+          className="relative w-full aspect-square flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
           style={{ perspective: "1000px" }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -2732,12 +2753,19 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const handleBuyAdminMarketItem = async (item: any) => {
     try {
       playSelectSound();
-      if (gameState.gold < item.price) {
-        triggerSystemToast("INSUFFICIENT FUNDS: Need more gold to purchase from the black market.");
-        return;
-      }
       if (item.stock === 0) {
         triggerSystemToast("TRANSACTION FAILED: The system inventory for this item is depleted.");
+        return;
+      }
+      if (item.adCodeSnippet) {
+        setAdModalItem(item);
+        setAdTimeRemaining(30);
+        setAdTouched(false);
+        return;
+      }
+      
+      if (gameState.gold < item.price) {
+        triggerSystemToast("INSUFFICIENT FUNDS: Need more gold to purchase from the black market.");
         return;
       }
       
@@ -2765,6 +2793,36 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     } catch (err) {
       console.error(err);
       triggerSystemToast("Transaction failed.");
+    }
+  };
+
+  const handleClaimAdItem = async () => {
+    if (!adModalItem) return;
+    try {
+      playSelectSound();
+      const leaderRef = doc(db, "leaderboard", playerName);
+      
+      // Decrease stock if not infinite (-1)
+      if (adModalItem.stock > 0) {
+         const marketItemRef = doc(db, "admin_market_items", adModalItem.id);
+         await setDoc(marketItemRef, { stock: adModalItem.stock - 1 }, { merge: true });
+      }
+
+      setGameState(prev => ({
+        ...prev,
+        inventory: [...prev.inventory, { 
+          id: adModalItem.id + "_" + Date.now(),
+          name: adModalItem.name,
+          type: "Item",
+          rarity: adModalItem.rank,
+          equipped: false
+        }]
+      }));
+      triggerSystemToast(`Successfully claimed [${adModalItem.name}] via System Sponsor!`);
+      setAdModalItem(null);
+    } catch (err) {
+      console.error(err);
+      triggerSystemToast("Claim failed.");
     }
   };
 
@@ -3009,7 +3067,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   };
 
   return (
-    <div id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans select-none relative overflow-y-auto">
+    <main role="main" id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans relative">
       
       {/* 🚨 SOVEREIGN PENALTY INTERCEPT PROTOCOL OVERLAY */}
       {false && (
@@ -3059,7 +3117,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </p>
 
                 <div className="flex justify-center my-2">
-                  <motion.button aria-label="Interactive Button" 
+                  <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.9 }}
                     className="relative px-6 py-4 bg-gradient-to-r from-red-600 via-rose-700 to-red-700 hover:from-red-500 hover:to-rose-600 border border-red-500 text-white rounded-2xl cursor-pointer shadow-[0_0_20px_rgba(239,68,68,0.3)] tracking-widest text-xs font-black uppercase flex items-center gap-2 group"
@@ -3128,7 +3186,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         </div>
 
         <div className="flex items-center gap-4">
-          <button aria-label="Interactive Button" 
+          <button 
             onClick={() => { try { playSelectSound(); } catch(e){} setActiveTab("social"); setSocialSubTab("chat"); }}
             className="p-3 relative flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
@@ -3138,7 +3196,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red] animate-pulse" />
           </button>
           
-          <button aria-label="Interactive Button" 
+          <button 
             onClick={() => setShowProfileDrawer(true)}
             className="p-3 flex items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none group"
           >
@@ -3156,7 +3214,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
 
           
-          <button aria-label="Interactive Button" 
+          <button 
             className="absolute top-2 right-2 p-1 bg-slate-900 rounded-full border border-slate-700 text-slate-400 hover:text-white"
             onClick={() => {/* Need a way to close this panel - maybe toggle visibility state? */}}
           >
@@ -3284,7 +3342,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
           {/* Special trigger bonus button at Level 90 */}
           {gameState.level >= 90 && !gameState.inventory.some(i => i.id === "sovereigns_wrath") && (
-            <motion.button aria-label="Interactive Button"
+            <motion.button
               whileHover={{ scale: 1.02 }}
               className="w-full py-1.5 bg-gradient-to-r from-yellow-500 via-purple-600 to-indigo-600 rounded-lg text-[10px] font-mono font-black tracking-widest text-white uppercase animate-pulse cursor-pointer border border-yellow-400/20"
               onClick={summonSovereignsWrath}
@@ -3313,7 +3371,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   
                   return (
                     <div key={tab.id} className={`${colClass} flex justify-center items-center`}>
-                      <button aria-label="Interactive Button"
+                      <button
                         className={`w-full max-w-[140px] px-2 sm:px-4 py-2.5 rounded-xl text-[10px] font-mono uppercase cursor-pointer tracking-widest transition-all font-black text-center border shadow-lg truncate ${
                           activeTab === tab.id 
                             ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3),inset_0_0_8px_rgba(6,182,212,0.1)] ring-1 ring-cyan-400/50" 
@@ -3350,7 +3408,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               { id: "market", label: "Market" },
               { id: "profile", label: "Profile" }
             ].map(tab => (
-              <button aria-label="Interactive Button"
+              <button
                 key={tab.id}
                 className={`px-4 py-2 rounded-xl text-xs font-mono uppercase cursor-pointer tracking-wider transition-colors font-bold ${
                   activeTab === tab.id 
@@ -3555,7 +3613,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
 
                   <div className="sm:ml-auto">
-                    <button aria-label="Interactive Button" 
+                    <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-[10px] font-mono font-bold uppercase rounded-xl tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
                     >
@@ -3563,7 +3621,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       <span>Change Photo</span>
                     </button>
                     {profileImage && (
-                      <button aria-label="Interactive Button" 
+                      <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           setProfileImage(null);
@@ -3609,10 +3667,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">3. Regimen Difficulty standard</span>
                     <div className="grid grid-cols-2 gap-2 mt-1">
-                      <button aria-label="Interactive Button" className="py-2.5 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+                      <button className="py-2.5 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
                         RECRUIT COMPLIANCE
                       </button>
-                      <button aria-label="Interactive Button" 
+                      <button 
                         className="py-2 px-1 border border-slate-800 text-slate-500 rounded-xl text-[9px] font-bold uppercase hover:border-slate-700 hover:text-slate-300 transition-all duration-300 cursor-pointer"
                         onClick={() => triggerSystemToast("SYSTEM NOTIFICATION: S-Rank Grind forces intense Penalty sequences upon daily quest neglect!")}
                       >
@@ -3643,7 +3701,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {/* OPTION 5: Erase registry save data */}
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">5. Erase registry save data</span>
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer animate-pulse"
                       onClick={() => {
                         setShowPurgeModal(true);
@@ -3655,7 +3713,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                   {/* OPTION 6: Real Sign Out Action Button */}
                   <div className="border-t border-slate-900 pt-4">
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
                       onClick={() => {
                         setShowDisconnectModal(true);
@@ -3719,7 +3777,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <div className="flex items-center gap-4 font-mono">
                             <span id={`val_stat_${stat.key}`} className="text-xl font-bold font-mono text-cyan-300 w-12 text-right">{val}</span>
                             
-                            <motion.button aria-label="Interactive Button"
+                            <motion.button
                               whileHover={{ scale: gameState.statPoints > 0 ? 1.15 : 1 }}
                               whileTap={{ scale: gameState.statPoints > 0 ? 0.9 : 1 }}
                               id={`btn_upgrade_${stat.key}`}
@@ -3754,7 +3812,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black block">SYSTEM INTEGRATED PRIORITY</span>
                       <h3 className="font-extrabold text-white text-lg tracking-wider">LIFE FORGE QUICK OVERVIEW</h3>
                     </div>
-                    <motion.button aria-label="Interactive Button"
+                    <motion.button
                       whileHover={{ scale: 1.05, backgroundColor: "rgba(99, 102, 241, 0.1)" }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setActiveTab("life_forge")}
@@ -3896,7 +3954,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <span className="text-xs font-bold text-slate-400">{quest.current} / {quest.target} {quest.id === "quest_run" ? "km" : "reps"}</span>
                             
                             {quest.completed ? (
-                              <motion.button aria-label="Interactive Button"
+                              <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase cursor-pointer border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                                 onClick={() => claimQuestReward(quest)}
@@ -3905,13 +3963,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               </motion.button>
                             ) : (
                               <div className="flex gap-1.5">
-                                <button aria-label="Interactive Button"
+                                <button
                                   className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white"
                                   onClick={() => incrementQuest(quest.id, quest.id === "quest_run" ? 1 : 10)}
                                 >
                                   +{quest.id === "quest_run" ? "1km" : "10 reps"}
                                 </button>
-                                <button aria-label="Interactive Button"
+                                <button
                                   className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white"
                                   onClick={() => incrementQuest(quest.id, quest.id === "quest_run" ? 3 : 25)}
                                 >
@@ -4020,7 +4078,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   CLAIMED ✔
                                 </span>
                               ) : prog.completed ? (
-                                <motion.button aria-label="Interactive Button"
+                                <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase cursor-pointer border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.25)] font-bold"
                                   onClick={claimAdminQuestReward}
@@ -4029,13 +4087,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 </motion.button>
                               ) : (
                                 <div className="flex gap-1.5">
-                                  <button aria-label="Interactive Button"
+                                  <button
                                     className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/40 text-slate-350 hover:text-white rounded-lg transition-colors cursor-pointer"
                                     onClick={() => incrementAdminQuest(5)}
                                   >
                                     +5 reps
                                   </button>
-                                  <button aria-label="Interactive Button"
+                                  <button
                                     className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-purple-500/40 text-slate-350 hover:text-white rounded-lg transition-colors cursor-pointer"
                                     onClick={() => incrementAdminQuest(25)}
                                   >
@@ -4072,7 +4130,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                   <div className="flex flex-wrap items-center gap-3">
                     {/* Reset Daily Quests Matrix button */}
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className="px-4 py-3 bg-slate-900 border border-slate-800 text-slate-350 font-bold uppercase text-[10px] tracking-wider rounded-xl hover:border-slate-750 hover:text-white cursor-pointer transition-all duration-300"
                       onClick={resetDailyMatrix}
                     >
@@ -4080,7 +4138,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </button>
 
                     {/* Simulated fail trigger button */}
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className="px-4 py-3 bg-red-950/20 border border-red-500/20 text-red-400 font-extrabold uppercase text-[10px] tracking-wider rounded-xl hover:bg-slate-900 hover:border-red-500/50 cursor-pointer transition-all duration-300"
                       onClick={() => {
                         const incompleteCount = gameState.quests.filter((q: any) => q.current < q.target).length || 2;
@@ -4102,7 +4160,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     ) : (
                       <>
                         {gameState.quests.every((q: any) => q.current >= q.target) ? (
-                          <motion.button aria-label="Interactive Button"
+                          <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className="bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-500 text-white font-black text-[10px] uppercase py-3 px-6 rounded-xl cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.2)] tracking-widest block text-center animate-pulse"
@@ -4149,7 +4207,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       ))}
                     </div>
                     <div className="pt-2">
-                      <button aria-label="Interactive Button" 
+                      <button 
                         className="px-6 py-2.5 bg-red-950/50 hover:bg-slate-900 border border-red-500/30 text-white font-bold uppercase rounded-xl text-xs transition-colors cursor-pointer"
                         onClick={() => setActiveTab("quests")}
                       >
@@ -4233,24 +4291,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                             <div className="mt-5 pt-3">
                               {isLocked ? (
-                                <button aria-label="Interactive Button" className="w-full py-2.5 bg-slate-900 border border-slate-900 rounded-xl text-[10px] text-slate-500 uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1">
+                                <button className="w-full py-2.5 bg-slate-900 border border-slate-900 rounded-xl text-[10px] text-slate-500 uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1">
                                   <Lock className="w-3.5 h-3.5" />
                                   <span>GATE CELL LOCKED</span>
                                 </button>
                               ) : preparedGateIds.includes(dung.id) ? (
-                                <button aria-label="Interactive Button"
+                                <button
                                   className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400/20 font-bold rounded-xl text-[10px] uppercase tracking-widest cursor-pointer transition-all shadow-lg shadow-cyan-900/20"
                                   onClick={() => startCombat(dung)}
                                 >
                                   ENTER GATE PREFECTURE
                                 </button>
                               ) : preparingGateId === dung.id ? (
-                                <button aria-label="Interactive Button" className="w-full py-2.5 bg-indigo-950/60 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] uppercase tracking-widest cursor-wait flex items-center justify-center gap-2">
+                                <button className="w-full py-2.5 bg-indigo-950/60 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] uppercase tracking-widest cursor-wait flex items-center justify-center gap-2">
                                   <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                                   ASYNC SYNCING ({prepTimer}s)
                                 </button>
                               ) : (
-                                <button aria-label="Interactive Button"
+                                <button
                                   className="w-full py-2.5 bg-indigo-900/40 hover:bg-indigo-600 text-indigo-100 border border-indigo-500/30 font-bold rounded-xl text-[10px] uppercase tracking-widest cursor-pointer transition-all flex items-center justify-center gap-2"
                                   onClick={() => startPreparation(dung.id)}
                                 >
@@ -4270,7 +4328,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     
                     <div className="p-4 bg-slate-900 border-b border-slate-900 flex justify-between items-center font-mono text-xs">
                       <span className="text-cyan-400 font-bold tracking-widest uppercase">ACTIVE GATE COMBAT ENGINE</span>
-                      <button aria-label="Interactive Button" 
+                      <button 
                         className="text-slate-500 hover:text-red-400 cursor-pointer"
                         onClick={leaveDungeon}
                       >
@@ -4359,7 +4417,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             </div>
                           )}
 
-                          <button aria-label="Interactive Button"
+                          <button
                             className="bg-slate-950/75 border border-slate-800/80 text-slate-300 px-8 py-3 rounded-xl font-mono text-xs uppercase hover:bg-slate-900/80 backdrop-blur-md cursor-pointer"
                             onClick={leaveDungeon}
                           >
@@ -4371,21 +4429,21 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <span className="text-slate-500 font-mono text-xs">Select active combat strategy:</span>
                           
                           <div className="flex flex-wrap gap-2 mb-2 md:mb-0">
-                            <button aria-label="Interactive Button"
+                            <button
                               id="btn_battle_strike"
                               className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-extrabold text-xs uppercase rounded-xl cursor-pointer"
                               onClick={() => executeCombatTurn("strike")}
                             >
                               Weapon Strike
                             </button>
-                            <button aria-label="Interactive Button"
+                            <button
                               id="btn_battle_spell"
                               className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs uppercase rounded-xl cursor-pointer"
                               onClick={() => executeCombatTurn("skill")}
                             >
                               Cast Skill
                             </button>
-                            <button aria-label="Interactive Button"
+                            <button
                               id="btn_battle_shadows"
                               className="px-6 py-3 bg-slate-950/75 border border-slate-800/80 text-slate-300 font-mono text-xs uppercase rounded-xl hover:text-white backdrop-blur-md cursor-pointer"
                               onClick={() => executeCombatTurn("shadows")}
@@ -4449,7 +4507,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                       <div className="text-right flex flex-col justify-between h-full gap-2 pl-3">
                         <div className="text-indigo-400 font-semibold text-xs">{shadow.cost} MP</div>
-                        <button aria-label="Interactive Button"
+                        <button
                           className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-[10px] text-slate-300 uppercase font-black cursor-pointer disabled:opacity-20"
                           disabled={gameState.gold < shadow.cost}
                           onClick={() => summonShadow(shadow.id)}
@@ -4500,7 +4558,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             <span>Unlocked Matrix</span>
                           </span>
                         ) : (
-                          <button aria-label="Interactive Button"
+                          <button
                             className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl hover:border-indigo-400 uppercase text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer disabled:opacity-30"
                             disabled={gameState.gold < skill.cost || gameState.level < skill.levelRequired}
                             onClick={() => buySkill(skill.id)}
@@ -4735,7 +4793,20 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               }`}>{item.rank}</span>
                             </div>
                             
-                            <p className="text-[10px] text-slate-400 font-mono line-clamp-2 leading-relaxed mb-4">
+                            {item.imageUrl && (
+                              <div 
+                                className="w-full h-32 mt-2 mb-3 rounded-xl overflow-hidden border border-slate-800 relative shadow-inner cursor-pointer group-hover:border-amber-500/50 transition-colors"
+                                onClick={() => { playSelectSound(); setInspectMarketItem(item); }}
+                              >
+                                <span className="absolute top-1 left-2 z-10 text-[8px] bg-black/60 px-1.5 py-0.5 rounded uppercase font-mono tracking-widest text-amber-500">Preview Scan</span>
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 backdrop-blur-[2px]">
+                                  <span className="text-white text-[10px] font-black uppercase tracking-widest border border-white/20 px-3 py-1 rounded-lg">Inspect Artifact</span>
+                                </div>
+                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover opacity-90 transition-opacity hover:opacity-100" referrerPolicy="no-referrer" />
+                              </div>
+                            )}
+
+                            <p className="text-[10px] text-slate-400 font-mono line-clamp-3 leading-relaxed mb-4">
                               {item.description || "A mysterious item vibrating with spatial energy."}
                             </p>
                           </div>
@@ -4743,20 +4814,36 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           <div className="flex items-end justify-between mt-4">
                             <div>
                                <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">{item.type}</div>
-                               <div className="font-mono text-sm font-black text-amber-400">{item.price.toLocaleString()} G</div>
+                               <div className="font-mono text-sm font-black text-amber-400">
+                                 {item.adCodeSnippet ? "SYNDICATOR AD" : `${item.price.toLocaleString()} G`}
+                               </div>
                             </div>
                             
-                            <button aria-label="Interactive Button"
-                              onClick={() => handleBuyAdminMarketItem(item)}
-                              disabled={gameState.gold < item.price || (item.stock === 0)}
-                              className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-lg ${
-                                gameState.gold < item.price || item.stock === 0
-                                  ? "bg-slate-900 text-slate-600 cursor-not-allowed" 
-                                  : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/20 active:scale-95"
-                              }`}
-                            >
-                              {item.stock === 0 ? "SOLD OUT" : gameState.gold < item.price ? "NO FUNDS" : "PURCHASE"}
-                            </button>
+                            {item.adCodeSnippet ? (
+                               <button
+                                 onClick={() => handleBuyAdminMarketItem(item)}
+                                 disabled={item.stock === 0}
+                                 className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors shadow-lg ${
+                                   item.stock === 0
+                                     ? "bg-slate-900 text-slate-600 cursor-not-allowed" 
+                                     : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 active:scale-95 border border-emerald-400/30"
+                                 }`}
+                               >
+                                 {item.stock === 0 ? "SOLD OUT" : "WATCH AD"}
+                               </button>
+                            ) : (
+                               <button
+                                 onClick={() => handleBuyAdminMarketItem(item)}
+                                 disabled={gameState.gold < item.price || (item.stock === 0)}
+                                 className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-lg ${
+                                   gameState.gold < item.price || item.stock === 0
+                                     ? "bg-slate-900 text-slate-600 cursor-not-allowed" 
+                                     : "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-500/20 active:scale-95"
+                                 }`}
+                               >
+                                 {item.stock === 0 ? "SOLD OUT" : gameState.gold < item.price ? "NO FUNDS" : "PURCHASE"}
+                               </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -4789,7 +4876,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </span>
                     </div>
 
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className={`px-3 py-1.5 rounded-lg border text-[9px] font-mono uppercase font-bold tracking-wider cursor-pointer transition-colors ${
                         forceSystemEnforcement 
                           ? "bg-red-950/20 border-red-500/30 text-red-300 hover:bg-slate-900" 
@@ -4816,7 +4903,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     const Icon = sub.icon;
                     const isActive = forgeSubTab === sub.id;
                     return (
-                      <button aria-label="Interactive Button"
+                      <button
                         key={sub.id}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono uppercase font-bold tracking-wider cursor-pointer transition-all ${
                           isActive 
@@ -4885,7 +4972,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
 
                       <div className="pt-2 flex justify-end">
-                        <button aria-label="Interactive Button" 
+                        <button 
                           className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border border-purple-500/30 text-white font-extrabold text-[10px] tracking-widest uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(147,51,234,0.15)] transition-all"
                           onClick={addAcademicQuest}
                         >
@@ -4915,7 +5002,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                     <span className="text-[9px] font-black text-purple-400 bg-purple-400/10 border border-purple-400/20 px-2 py-0.5 rounded uppercase tracking-wider">
                                       {quest.completed ? "✓ SECURED" : "INTELLIGENCE FOCUS"}
                                     </span>
-                                    <button aria-label="Interactive Button" 
+                                    <button 
                                       className="text-slate-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
                                       onClick={() => deleteAcademicQuest(quest.id)}
                                     >
@@ -4939,7 +5026,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                                   {!quest.completed ? (
                                     <div className="flex gap-2">
-                                      <button aria-label="Interactive Button" 
+                                      <button 
                                         className="flex-1 py-2 bg-purple-950/35 hover:bg-purple-600 hover:text-white border border-purple-500/20 text-purple-400 font-extrabold uppercase rounded-lg text-[10px] tracking-wider cursor-pointer transition-all"
                                         onClick={() => incrementAcademicQuest(quest.id, 1)}
                                       >
@@ -4988,7 +5075,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                           </div>
 
                           <div className="flex justify-center gap-2">
-                            <button aria-label="Interactive Button"
+                            <button
                               className={`px-4 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all ${
                                 focusIsActive 
                                   ? "bg-amber-600/10 border-amber-500/30 text-amber-400 hover:bg-slate-900" 
@@ -5005,7 +5092,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             >
                               {focusIsActive ? "PAUSE GRIND" : "ARISEN GRIND (START)"}
                             </button>
-                            <button aria-label="Interactive Button"
+                            <button
                               className="px-4 py-2 bg-purple-900/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-300 hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
                               onClick={() => {
                                 playSelectSound();
@@ -5014,7 +5101,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             >
                               FULLSCREEN
                             </button>
-                            <button aria-label="Interactive Button"
+                            <button
                               className="px-4 py-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
                               onClick={() => {
                                 playDaggerSwipe();
@@ -5039,7 +5126,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   { label: "45m Deep", sec: 2700 },
                                   { label: "5m Break", sec: 300 }
                                 ].map(t => (
-                                  <button aria-label="Interactive Button"
+                                  <button
                                     key={t.label}
                                     className={`px-2 py-1.5 rounded-lg border text-[9px] uppercase font-bold text-center cursor-pointer transition-colors ${
                                       focusTarget === t.sec 
@@ -5137,7 +5224,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       </div>
 
                       <div className="pt-2 flex justify-end">
-                        <button aria-label="Interactive Button" 
+                        <button 
                           className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 border border-orange-500/30 text-white font-extrabold text-[10px] tracking-widest uppercase rounded-xl cursor-pointer shadow-[0_0_15px_rgba(249,115,22,0.15)] transition-all"
                           onClick={addLiftWorkout}
                         >
@@ -5167,7 +5254,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                     <span className="text-[9px] font-black text-orange-400 bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 rounded uppercase tracking-wider">
                                       {l.weight} Load
                                     </span>
-                                    <button aria-label="Interactive Button" 
+                                    <button 
                                       className="text-slate-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
                                       onClick={() => deleteLiftWorkout(l.id)}
                                     >
@@ -5187,7 +5274,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   </div>
 
                                   {!l.completed ? (
-                                    <button aria-label="Interactive Button" 
+                                    <button 
                                       className="w-full py-2 bg-orange-955 hover:bg-orange-600 hover:text-white border border-orange-500/20 text-orange-400 font-extrabold uppercase rounded-lg text-[10px] tracking-wider cursor-pointer transition-all"
                                       onClick={() => incrementLiftSet(l.id)}
                                     >
@@ -5233,7 +5320,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               { label: "+500 kcal", val: 500 },
                               { label: "Wipe Log", val: -9999 }
                             ].map(btn => (
-                              <button aria-label="Interactive Button"
+                              <button
                                 key={btn.label}
                                 className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-[9px] font-bold text-slate-350 hover:text-white cursor-pointer"
                                 onClick={() => {
@@ -5266,7 +5353,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                               { label: "+50g protein", val: 50 },
                               { label: "Wipe Log", val: -9999 }
                             ].map(btn => (
-                              <button aria-label="Interactive Button"
+                              <button
                                 key={btn.label}
                                 className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-[9px] font-bold text-slate-400 hover:text-white cursor-pointer"
                                 onClick={() => {
@@ -5313,7 +5400,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 ✓ CLEARED (+1 AGIL)
                               </div>
                             ) : (
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
                                 onClick={completeResumeObjective}
                               >
@@ -5340,7 +5427,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 ✓ CLEARED (+2 INT)
                               </div>
                             ) : (
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
                                 onClick={incrementPortfolioProjects}
                               >
@@ -5367,7 +5454,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 ✓ CLEARED (+2 PERC)
                               </div>
                             ) : (
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
                                 onClick={incrementRecruiterOutreach}
                               >
@@ -5394,7 +5481,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 ✓ CLEARED (+3 INT)
                               </div>
                             ) : (
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 className="w-full py-1.5 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] cursor-pointer"
                                 onClick={incrementLeetcodeGrind}
                               >
@@ -5468,7 +5555,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         </div>
 
                         <div className="flex justify-end pt-1">
-                          <button aria-label="Interactive Button" 
+                          <button 
                             className="px-4 py-2 bg-cyan-950/40 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/20 text-cyan-300 font-extrabold uppercase rounded-lg text-[9px] tracking-wider cursor-pointer transition-all"
                             onClick={addJobApplication}
                           >
@@ -5511,7 +5598,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                   </select>
                                 </div>
 
-                                <button aria-label="Interactive Button"
+                                <button
                                   className="p-1.5 bg-slate-950 rounded-lg text-slate-600 hover:text-red-400 border border-transparent hover:border-red-950 hover:bg-slate-900 transition-all cursor-pointer"
                                   onClick={() => deleteJobApplication(app.id)}
                                 >
@@ -5614,7 +5701,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     {selectedWeaponDetails.name}
                   </h3>
                 </div>
-                <motion.button aria-label="Interactive Button" 
+                <motion.button 
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
                   className="w-10 h-10 flex items-center justify-center bg-slate-900/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 rounded-xl transition-colors"
@@ -5837,7 +5924,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               {/* Bottom Action buttons */}
               <div className="mt-6 pt-5 border-t border-slate-900 flex justify-end gap-4 z-10 relative">
                 {selectedWeaponDetails.isShopTemplate ? (
-                  <motion.button aria-label="Interactive Button" 
+                  <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`w-full lg:w-auto px-10 py-4 focus:outline-none text-white font-extrabold text-xs uppercase tracking-widest rounded-xl cursor-pointer shadow-lg transition-all ${
@@ -5880,7 +5967,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         ✓ ACTIVE PRIMARY ARSENAL ENGAGED IN SLOT
                       </div>
                     ) : (
-                      <motion.button aria-label="Interactive Button" 
+                      <motion.button 
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className={`w-full lg:w-auto px-12 py-4 bg-slate-950 border text-center text-xs tracking-widest uppercase font-extrabold rounded-xl cursor-pointer shadow-md transition-all relative overflow-hidden ${
@@ -5981,7 +6068,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 "Your shadow potential has aligned to higher spatial realms. Base strength capability upgraded."
               </div>
 
-              <button aria-label="Interactive Button" 
+              <button 
                 className="w-full py-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 hover:text-white font-extrabold text-xs uppercase rounded-xl cursor-pointer transition-all duration-300 uppercase block tracking-widest"
                 onClick={() => setLevelUpOverlay(null)}
               >
@@ -6049,7 +6136,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </p>
               </div>
 
-              <button aria-label="Interactive Button" 
+              <button 
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 hover:text-white font-extrabold text-xs cursor-pointer transition-all duration-300 uppercase block tracking-widest rounded-xl"
                 onClick={() => setMilestoneOverlay(null)}
               >
@@ -6085,13 +6172,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 Are you absolutely sure you want to disconnect? Your current Level <strong className="text-cyan-400">{gameState.level}</strong> character stats and weapons inventory remain saved securely on your local device registrar.
               </p>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <button aria-label="Interactive Button" 
+                <button 
                   className="py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={() => setShowDisconnectModal(false)}
                 >
                   ABORT
                 </button>
-                <button aria-label="Interactive Button" 
+                <button 
                   className="py-2.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-200 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={() => {
                     setShowDisconnectModal(false);
@@ -6131,13 +6218,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 This will immediately purge your current stats, Level <strong className="text-red-400">{gameState.level}</strong> experience, custom grinds, and database-aligned items. <span className="text-red-400 font-bold block mt-1.5 font-mono uppercase text-[10px]">Warning: This action is permanent and irreversible!</span>
               </p>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <button aria-label="Interactive Button" 
+                <button 
                   className="py-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={() => setShowPurgeModal(false)}
                 >
                   CANCEL
                 </button>
-                <button aria-label="Interactive Button" 
+                <button 
                   className="py-2.5 bg-red-900/80 hover:bg-red-950 border border-red-500 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
                   onClick={() => {
                     localStorage.removeItem(`monarch_save_v2_${playerName}`);
@@ -6180,7 +6267,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <User className="w-5 h-5 text-cyan-400" />
                     <h3 className="font-extrabold text-xs uppercase tracking-widest text-slate-200">WARRIOR REGISTRY</h3>
                   </div>
-                  <button aria-label="Interactive Button" 
+                  <button 
                     className="p-1 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs lowercase"
                     onClick={() => setShowProfileDrawer(false)}
                   >
@@ -6268,10 +6355,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">3. Regimen Difficulty standard</span>
                     <div className="grid grid-cols-2 gap-2 mt-1">
-                      <button aria-label="Interactive Button" className="py-2 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+                      <button className="py-2 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
                         RECRUIT COMPLIANCE
                       </button>
-                      <button aria-label="Interactive Button" 
+                      <button 
                         className="py-2 px-1 border border-slate-800 text-slate-500 rounded-xl text-[9px] font-bold uppercase hover:border-slate-700 hover:text-slate-300 transition-all duration-300 cursor-pointer"
                         onClick={() => triggerSystemToast("SYSTEM NOTIFICATION: S-Rank Grind forces intense Penalty sequences upon daily quest neglect!")}
                       >
@@ -6302,7 +6389,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {/* OPTION 5: Reset account data safeguards (Suggested Feature 3) */}
                   <div className="space-y-2 border-t border-slate-900 pt-3">
                     <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">5. Erase registry save data</span>
-                    <button aria-label="Interactive Button" 
+                    <button 
                       className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer"
                       onClick={() => {
                         setShowProfileDrawer(false);
@@ -6318,7 +6405,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
               {/* OPTION 6: Real Sign Out Action Button */}
               <div className="border-t border-slate-900 pt-6">
-                <button aria-label="Interactive Button" 
+                <button 
                   className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
                   onClick={() => {
                     setShowProfileDrawer(false);
@@ -6425,7 +6512,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           if (item.idx === 2) {
             return (
               <div key={item.idx} className="relative z-10 -mt-10 flex flex-col items-center justify-center">
-                <motion.button aria-label="Interactive Button"
+                <motion.button
                   animate={{ y: [0, -5, 0], rotate: [0, 1.5, -1.5, 0] }}
                   transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                   className="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer bg-sky-400 text-white shadow-[0_5px_18px_rgba(56,189,248,0.45)] hover:bg-sky-300 active:scale-95 transition-all outline-none"
@@ -6445,7 +6532,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           }
 
           return (
-            <button aria-label="Interactive Button"
+            <button
               key={item.idx}
               className="p-3 relative flex flex-col items-center justify-center transition-all cursor-pointer rounded-xl bg-transparent outline-none"
               onClick={() => handleMobileSectionClick(item.idx)}
@@ -6499,7 +6586,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* Exit control */}
             <div className="mt-16 flex flex-col sm:flex-row items-center gap-4">
-              <button aria-label="Interactive Button"
+              <button
                 onClick={() => {
                   try { playSelectSound(); } catch (e) {}
                   setFocusIsActive(!focusIsActive);
@@ -6513,7 +6600,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 {focusIsActive ? "PAUSE GRIND" : "RESUME GRIND"}
               </button>
               
-              <button aria-label="Interactive Button"
+              <button
                 onClick={() => {
                   try { playSelectSound(); } catch (e) {}
                   setPomodoroFullscreen(false);
@@ -6527,9 +6614,304 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         )}
       </AnimatePresence>
 
+      {/* 🔍 ULTRA DETAILED INSPECT MODAL */}
+      <AnimatePresence>
+        {inspectMarketItem && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[99999] bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 md:p-8 select-none font-mono"
+            onClick={() => setInspectMarketItem(null)}
+          >
+            <div 
+              className="w-full max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700/50 rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(245,158,11,0.15)] flex flex-col md:flex-row relative cursor-default"
+              onClick={e => e.stopPropagation()}
+            >
+               {/* Image Section */}
+               <div className="w-full md:w-1/2 relative bg-black min-h-[300px] md:min-h-full flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10 md:hidden" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-slate-900 z-10 hidden md:block" />
+                  
+                  {inspectMarketItem.imageUrl ? (
+                     <img src={inspectMarketItem.imageUrl} alt={inspectMarketItem.name} className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
+                  ) : (
+                     <div className="text-slate-700 flex flex-col items-center justify-center space-y-4">
+                        <ShoppingBag className="w-16 h-16 opacity-50" />
+                        <span className="text-xs uppercase tracking-widest font-black">No Visual Data</span>
+                     </div>
+                  )}
+
+                  <div className="absolute top-4 left-4 z-20">
+                     <div className={`px-3 py-1 rounded shadow-lg text-[10px] font-black uppercase tracking-widest ${
+                       inspectMarketItem.rank === 'S-Rank' ? 'bg-purple-500 text-white border border-purple-400' :
+                       inspectMarketItem.rank === 'A-Rank' ? 'bg-amber-500 text-white border border-amber-400' :
+                       inspectMarketItem.rank === 'B-Rank' ? 'bg-blue-500 text-white border border-blue-400' :
+                       inspectMarketItem.rank === 'C-Rank' ? 'bg-emerald-500 text-white border border-emerald-400' :
+                       'bg-slate-700 text-white'
+                     }`}>
+                       {inspectMarketItem.rank} ARTIFACT
+                     </div>
+                  </div>
+               </div>
+
+               {/* Details Section */}
+               <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto relative z-20 bg-slate-900">
+                  <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest mb-2 block">System Identification</span>
+                  <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider leading-tight mb-4 drop-shadow-md">
+                     {inspectMarketItem.name}
+                  </h2>
+                  
+                  <div className="flex gap-4 mb-8">
+                     <div className="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex flex-col items-center justify-center flex-1">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Classification</span>
+                        <span className="text-sm font-black text-slate-300 uppercase">{inspectMarketItem.type}</span>
+                     </div>
+                     <div className="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex flex-col items-center justify-center flex-1">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Market Stock</span>
+                        <span className={`text-sm font-black uppercase ${inspectMarketItem.stock === 0 ? "text-rose-500" : "text-emerald-400"}`}>
+                           {inspectMarketItem.stock < 0 ? "INFINITE" : inspectMarketItem.stock === 0 ? "DEPLETED" : `${inspectMarketItem.stock} UNITS`}
+                        </span>
+                     </div>
+                  </div>
+
+                  <div className="space-y-2 mb-8 flex-1">
+                     <h3 className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Lore / Specifications</h3>
+                     <p className="text-sm md:text-base text-slate-400 font-mono leading-relaxed bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50 shadow-inner">
+                        {inspectMarketItem.description || "No further information is available for this materialization."}
+                     </p>
+                  </div>
+
+                  <div className="mt-auto pt-6 border-t border-slate-800 flex items-center justify-between gap-4">
+                     <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Procurement Cost</span>
+                        <span className="text-2xl font-black text-amber-400 flex items-center gap-2">
+                           {inspectMarketItem.adCodeSnippet ? "SYNDICATOR AD" : `${inspectMarketItem.price.toLocaleString()} GO`}
+                        </span>
+                     </div>
+
+                     <div className="flex gap-2">
+                        <button aria-label="Close"
+                          className="px-6 py-3 border border-slate-700 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
+                          onClick={() => setInspectMarketItem(null)}
+                        >
+                           CLOSE
+                        </button>
+                        
+                        {inspectMarketItem.adCodeSnippet ? (
+                           <button aria-label="Watch Ad"
+                             disabled={inspectMarketItem.stock === 0}
+                             className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                               inspectMarketItem.stock === 0
+                                 ? "bg-slate-800 text-slate-600 cursor-not-allowed"
+                                 : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                             }`}
+                             onClick={() => {
+                               setInspectMarketItem(null);
+                               handleBuyAdminMarketItem(inspectMarketItem);
+                             }}
+                           >
+                              {inspectMarketItem.stock === 0 ? "SOLD OUT" : "WATCH AD"}
+                           </button>
+                        ) : (
+                           <button aria-label="Purchase"
+                             disabled={gameState.gold < inspectMarketItem.price || inspectMarketItem.stock === 0}
+                             className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                               gameState.gold < inspectMarketItem.price || inspectMarketItem.stock === 0
+                                 ? "bg-slate-800 text-slate-600 cursor-not-allowed"
+                                 : "bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                             }`}
+                             onClick={() => {
+                               setInspectMarketItem(null);
+                               handleBuyAdminMarketItem(inspectMarketItem);
+                             }}
+                           >
+                              {inspectMarketItem.stock === 0 ? "SOLD OUT" : gameState.gold < inspectMarketItem.price ? "NO FUNDS" : "PROCURE"}
+                           </button>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 📺 SYNDICATOR AD MODAL (FULLSCREEN) */}
+      <AnimatePresence>
+        {adModalItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[99999] bg-black flex flex-col items-center justify-center select-none font-mono"
+          >
+            {/* The Ad Embed Container (Full Screen) */}
+            <div 
+              className="absolute inset-0 z-0 bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer"
+              onClick={(e) => {
+                setAdTouched(true);
+                // Try to detect if adCodeSnippet is just a URL and open it
+                if (adModalItem.adCodeSnippet.trim().startsWith('http')) {
+                   window.open(adModalItem.adCodeSnippet.trim(), '_blank', 'noopener,noreferrer');
+                }
+              }}
+              onTouchStart={() => setAdTouched(true)}
+            >
+              {adModalItem.adCodeSnippet.trim().startsWith('http') ? (
+                 <iframe 
+                   src={adModalItem.adCodeSnippet.trim()} 
+                   className="w-full h-full border-none pointer-events-none" 
+                   title="Sponsor Ad"
+                 />
+              ) : (
+                 <div 
+                   className="w-full h-full flex flex-col items-center justify-center relative pointer-events-auto"
+                   dangerouslySetInnerHTML={{ __html: adModalItem.adCodeSnippet }} 
+                 />
+              )}
+            </div>
+            
+            {/* Overlay UI elements on top of the ad */}
+            <div className="absolute top-0 left-0 right-0 p-4 pb-12 bg-gradient-to-b from-black/90 to-transparent z-10 flex justify-between items-start pointer-events-none">
+                <div className="flex flex-col">
+                  <span className="text-emerald-400 text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    <Radio className="w-4 h-4 animate-pulse" /> SYSTEM SPONSOR
+                  </span>
+                  <span className="text-white text-[10px] mt-1 shadow-black drop-shadow-md font-bold uppercase tracking-wider">
+                    {adModalItem.name}
+                  </span>
+                </div>
+                <div className="flex gap-2 pointer-events-auto">
+                    <div className="bg-black/80 backdrop-blur border border-slate-700 px-4 py-2 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className={`text-xs font-black ${adTimeRemaining === 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                        {adTimeRemaining > 0 ? `${adTimeRemaining}s REQUIRED` : "SYNC COMPLETE"}
+                      </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 pt-24 bg-gradient-to-t from-black/90 via-black/60 to-transparent z-10 pointer-events-none mt-auto flex flex-col items-center">
+                <div className="flex flex-col items-center gap-4 pointer-events-auto w-full max-w-sm mx-auto">
+                    {!adTouched && adTimeRemaining === 0 && (
+                       <div className="text-rose-400 text-[10px] font-black uppercase tracking-widest animate-bounce drop-shadow-md bg-black/80 border border-rose-500/30 px-4 py-2 rounded-lg">
+                         TAP SCREEN TO VERIFY INTERACTION
+                       </div>
+                    )}
+                    
+                    <div className="flex gap-3 w-full">
+                      <button aria-label="Cancel Ad"
+                        className="flex-1 py-3.5 bg-black/80 backdrop-blur hover:bg-slate-900 border border-slate-700 rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-300 transition-colors pointer-events-auto shadow-lg"
+                        onClick={() => setAdModalItem(null)}
+                      >
+                        CLOSE LISTING
+                      </button>
+                      <button aria-label="Claim Reward"
+                        disabled={adTimeRemaining > 0 || !adTouched}
+                        className={`flex-1 py-3.5 border rounded-xl font-black uppercase text-[10px] tracking-widest transition-all pointer-events-auto shadow-lg ${
+                          adTimeRemaining === 0 && adTouched
+                            ? "bg-emerald-600 hover:bg-emerald-500 border-emerald-500/50 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer"
+                            : "bg-black/60 border-slate-800 text-slate-600 cursor-not-allowed"
+                        }`}
+                        onClick={handleClaimAdItem}
+                      >
+                        ACQUIRE ARTIFACT
+                      </button>
+                    </div>
+                </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 📅 DAILY TASK & ADMIN MESSAGES BRIEFING MODAL */}
+      <AnimatePresence>
+        {showDailyBriefingModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[99990] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 select-none font-mono"
+          >
+            <div className="bg-slate-900 border-2 border-indigo-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-[0_0_60px_rgba(99,102,241,0.15)]">
+               
+               <div className="p-6 md:p-8 space-y-8">
+                 {/* Header */}
+                 <div className="text-center">
+                   <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase">System Awakening Sequence</span>
+                   <h2 className="text-2xl font-black text-white uppercase tracking-wider mt-1">Daily Briefing Log</h2>
+                   <div className="w-16 h-1 mx-auto bg-indigo-500/30 rounded-full mt-4" />
+                 </div>
+
+                 {/* Admin Messages */}
+                 {adminAnnouncements.length > 0 && (
+                   <div className="space-y-3">
+                     <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                        <Radio className="w-3.5 h-3.5 text-amber-500" />
+                        Active Monarch Directives
+                     </h3>
+                     <div className="space-y-2">
+                       {adminAnnouncements.map((ann) => (
+                         <div key={ann.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-inner">
+                           <div className="hidden">{ann.severity}</div> 
+                           <div className="text-[12px] font-bold text-white mb-1.5">{ann.title}</div>
+                           <p className="text-[11px] text-slate-400 font-sans leading-relaxed">{ann.message}</p>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Daily Tasks */}
+                 <div className="space-y-3">
+                   <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-rose-500" />
+                      Required Daily Routines
+                   </h3>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {gameState.quests.map((q: any) => {
+                         const isCleared = q.current >= q.target;
+                         return (
+                           <div key={q.id} className={`border rounded-2xl p-4 flex flex-col justify-between ${
+                             isCleared ? "bg-emerald-950/20 border-emerald-500/30" : "bg-slate-950 border-slate-800"
+                           }`}>
+                              <span className="text-xs font-bold text-slate-200">{q.name}</span>
+                              <div className="mt-3 flex items-center justify-between">
+                                <span className="text-[10px] text-slate-500 font-mono">Progress:</span>
+                                <span className={`text-[10px] font-black tracking-widest ${isCleared ? "text-emerald-400" : "text-amber-500"}`}>
+                                  {isCleared ? "✓ VERIFIED" : `${q.current} / ${q.target}`}
+                                </span>
+                              </div>
+                           </div>
+                         );
+                      })}
+                   </div>
+                 </div>
+
+               </div>
+
+               {/* Footer Control */}
+               <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-center">
+                 <button aria-label="Close Briefing"
+                   onClick={() => {
+                     playSelectSound();
+                     localStorage.setItem(`monarch_daily_briefing_${playerName}`, new Date().toDateString());
+                     setShowDailyBriefingModal(false);
+                   }}
+                   className="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/50 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] cursor-pointer"
+                 >
+                   Acknowledge & Proceed
+                 </button>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <footer className="hidden lg:block p-4 border-t border-slate-950 bg-slate-950/80 text-center text-xs font-mono text-slate-600 mt-10">
         <div>&copy; MONARCH SELF-DEVELOPMENT SYSTEM &middot; SECURE SYSTEM EMULATOR v2.4</div>
       </footer>
-    </div>
+    </main>
   );
 }

@@ -67,6 +67,10 @@ import {
 } from "lucide-react";
 import { db, handleFirestoreError, OperationType } from "../utils/firebase";
 import DpsChart from "../components/DpsChart";
+import studyBossImg from "../assets/images/study_phantom_boss_1780939764383.png";
+import barukaBossImg from "../assets/images/baruka_boss_1780939780398.png";
+import kargalganBossImg from "../assets/images/kargalgan_boss_1780939794429.png";
+import igrisBossImg from "../assets/images/igris_boss_1780939807314.png";
 
 interface PartyPageProps {
   playerName: string;
@@ -202,7 +206,7 @@ function AudioVoiceMemoPlayer({ audioUrl }: { audioUrl: string }) {
   };
 
   return (
-    <button aria-label="Interactive Button" 
+    <button 
       type="button"
       onClick={togglePlayback}
       className={`px-3 py-1.5 rounded-xl border font-mono text-[9px] uppercase tracking-widest cursor-pointer flex items-center gap-2 transition-all shrink-0 ${
@@ -249,6 +253,46 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
     const isIgris = bossName?.toLowerCase().includes("igris");
     const isBaruka = bossName?.toLowerCase().includes("baruka");
     const isKargalgan = bossName?.toLowerCase().includes("kargalgan") || bossName?.toLowerCase().includes("shaman");
+    const isStudySession = currentBossState?.isStudySession;
+
+    if (isStudySession) {
+      return {
+        title: bossName || "Study Session Target",
+        subtitle: "A High-Focus Temporal Entity",
+        threatTier: "Focus-Rank Mental Anomaly",
+        classSpec: "Information Weaver / Focus Manifestation",
+        manaDensity: "10,000 Mental Resonance units",
+        physMultiplier: "x0.0 (Immune to Distractions)",
+        description: "An incredibly detailed and lifelike manifestation of deep focus requirements. This boss can only be defeated by consistent, unbroken study intervals and blocking external distractions. High-definition neural synchronization required.",
+        attribute: "Continuous Neuro-Synchronization",
+        stats: {
+          threat: 50,
+          speed: 10,
+          defense: 100,
+          magic: 80,
+          vulnerabilities: "Deep Work (200%), Phone Isolation (150%)",
+        },
+        phases: [
+          { phase: "Phase 1 (100% - 66% Focus)", title: "Initial Resistance", desc: "The mind wanders easily. The entity attempts to inject thoughts of social media. Needs constant Focus Bursts." },
+          { phase: "Phase 2 (66% - 33% Focus)", title: "Deep Trance State", desc: "The entity summons heavy sleepiness fields. Use Energy Boost actions to maintain group vitality." },
+          { phase: "Phase 3 (< 33% Focus)", title: "The Flow State / 30 Minute Alarm", desc: "The entity becomes completely synchronized. Completing the timer sets off an alarm and grants completion attendance." },
+        ],
+        abilities: [
+          { name: "Procrastination Pulse", type: "Mental Decay", cooldown: "30s", effect: "Drains study energy from the group. Must be countered by Distraction Blocker." },
+          { name: "Social Notification", type: "Sudden Distraction", cooldown: "60s", effect: "Applies a heavy debuff to focus unless silenced by a Shadow Extraction (Module Complete)." },
+          { name: "Total Engagement", type: "System Event", cooldown: "Timer End", effect: "The timer ends, an alarm plays, and mana is successfully integrated based on attendance." },
+        ],
+        vulnerabilitiesList: [
+          { type: "Pomodoro Rhythms", rating: "HIGH VULNERABILITY (+100%)", detail: "Applying structured time intervals melts the entity's defenses completely." },
+          { type: "Group Accountability", rating: "VULNERABILITY (+50%)", detail: "Having party members actively using Focus Bursts increases overall damage taken." },
+        ],
+        loot: [
+          { name: "Crystalized Focus Memory", quantity: "1x Unit", rarity: "S-Rank Mental Artifact", chance: "100%", color: "text-emerald-400 border-emerald-500/30" },
+          { name: "Sovereign Gold / EXP", quantity: "Var", rarity: "Based on Contribution", chance: "100%", color: "text-amber-400 border-amber-500/30" },
+        ],
+        bossImage: studyBossImg
+      };
+    }
 
     if (isBaruka) {
       return {
@@ -286,7 +330,8 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
           { name: "Baruka's Frost Dual Dagger", quantity: "1x Unit", rarity: "S-Rank Sovereign Weapon", chance: "1.8%", color: "text-cyan-400 border-cyan-500/30" },
           { name: "Frostwind Vanguard Iron Jerkin", quantity: "1x Unit", rarity: "S-Rank Agility Plate", chance: "4.0%", color: "text-blue-400 border-blue-500/30" },
           { name: "S-Rank Eternal Glacial Core", quantity: "2x Units", rarity: "S-Rank Crafting Catalyst", chance: "100%", color: "text-fuchsia-400 border-fuchsia-500/30" },
-        ]
+        ],
+        bossImage: barukaBossImg
       };
     }
 
@@ -326,7 +371,8 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
           { name: "Orc Warlord's Sovereign Staff", quantity: "1x Unit", rarity: "S-Rank Sorcerer Artifact", chance: "1.2%", color: "text-amber-400 border-amber-500/30" },
           { name: "Ring of Spacetime Distortion", quantity: "1x Unit", rarity: "S-Rank Accessory", chance: "3.0%", color: "text-fuchsia-400 border-fuchsia-500/30" },
           { name: "Mage Core Divine Extract", quantity: "3x Units", rarity: "S-Rank Core Catalyst", chance: "100%", color: "text-cyan-400 border-cyan-500/30" },
-        ]
+        ],
+        bossImage: kargalganBossImg
       };
     }
 
@@ -366,7 +412,8 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
         { name: "Crimson Great Greatsword", quantity: "1x Unit", rarity: "S-Rank Vanguard Weapon", chance: "1.5%", color: "text-rose-400 border-rose-500/30" },
         { name: "Sovereign Commander's Red Helm", quantity: "1x Unit", rarity: "S-Rank Heavy Helm", chance: "5.0%", color: "text-indigo-400 border-indigo-500/30" },
         { name: "High-Grade Knight Mana Core", quantity: "1x Unit", rarity: "S-Rank Core Catalyst", chance: "100%", color: "text-cyan-400 border-cyan-500/30" },
-      ]
+      ],
+      bossImage: igrisBossImg
     };
   };
 
@@ -459,7 +506,7 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
       {/* Sub Tabs Selector */}
       <div className="grid grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-850/80 relative z-10">
         {(["physiology", "abilities", "vulnerabilities", "loot"] as const).map((tab) => (
-          <button aria-label="Interactive Button"
+          <button
             key={tab}
             onClick={() => setActiveSubTab(tab)}
             className={`py-2 px-1 rounded-xl text-[8px] sm:text-[9.5px] font-mono font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
@@ -486,10 +533,26 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
           {/* TAB 1: PHYSIOLOGY */}
           {activeSubTab === "physiology" && (
             <div className="space-y-6">
-              {/* Lore Description */}
-              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 font-mono text-[10px] leading-relaxed text-slate-300">
-                <span className="text-indigo-400 font-black block mb-1.5 uppercase text-[9px] tracking-widest">&bull; HISTORIC BEAST COMPENDIUM LORE</span>
-                {details.description}
+              {/* Lore & Image Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-850 font-mono text-[10px] leading-relaxed text-slate-300">
+                  <span className="text-indigo-400 font-black block mb-1.5 uppercase text-[9px] tracking-widest">&bull; HISTORIC BEAST COMPENDIUM LORE</span>
+                  {details.description}
+                </div>
+                {details.bossImage && (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-850 h-32 md:h-full group">
+                    <div className="absolute top-2 left-2 z-20 bg-black/60 backdrop-blur-md border border-slate-800 px-2 py-0.5 rounded text-[8px] font-mono text-cyan-400 tracking-widest uppercase">
+                      Tactical Visual Feed // Live
+                    </div>
+                    <img 
+                      src={details.bossImage} 
+                      alt={details.title} 
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+                  </div>
+                )}
               </div>
 
               {/* Statistical Meters */}
@@ -696,7 +759,7 @@ function BossTacticalCompendium({ bossName, currentBossState }: BossTacticalComp
                   )}
                 </div>
 
-                <button aria-label="Interactive Button"
+                <button
                   type="button"
                   onClick={simulateLootRoll}
                   disabled={isSimulating}
@@ -1169,17 +1232,29 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
           bossState.actionLogs = currentLogs.slice(-12);
         }
 
-        // Timeout Failure condition
+        // Timeout Failure / Study Success condition
         if (bossState.timeRemaining <= 0) {
-          await updateDoc(lobbyRef, {
-            status: "Defeated",
-            "boss.actionLogs": arrayUnion(`[OVERTIME TERMINATION] Dimensional gate collapsed. Chrono buffer fully exhausted!`),
-            messages: arrayUnion({
-              sender: "System",
-              text: `☠️ RAID EXPIRED: Chrono-stabilizers collapsed. Severe failure penalties active!`,
-              timestamp: Date.now()
-            })
-          });
+          if (bossState.isStudySession) {
+            await updateDoc(lobbyRef, {
+              status: "Raid Cleared",
+              "boss.actionLogs": arrayUnion(...bossState.actionLogs, `[⏰ ALARM] Timed study session completed! Focus verified.`),
+              messages: arrayUnion({
+                sender: "System",
+                text: `🏆 STUDY SESSION CONQUERED: Timer completed successfully! Sign-off materialized! XP and Mana distributed based on focus.`,
+                timestamp: Date.now()
+              })
+            });
+          } else {
+            await updateDoc(lobbyRef, {
+              status: "Defeated",
+              "boss.actionLogs": arrayUnion(...bossState.actionLogs, `[OVERTIME TERMINATION] Dimensional gate collapsed. Chrono buffer fully exhausted!`),
+              messages: arrayUnion({
+                sender: "System",
+                text: `☠️ RAID EXPIRED: Chrono-stabilizers collapsed. Severe failure penalties active!`,
+                timestamp: Date.now()
+              })
+            });
+          }
           clearInterval(gameClock);
           return;
         }
@@ -1222,14 +1297,75 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
           })
           .catch(e => console.warn("Failed to apply failure penalty:", e));
       } else if (isCleared) {
-        const rewardedGold = userGold + 15;
-        const rewardedExp = userExp + 80;
+        // Evaluate dynamic contributions across normal or study boss battles
+        const myContribs = currentLobby.contributions?.[playerName] || { damage: 0, heals: 0, interrupts: 0 };
+        const engagementScore = myContribs.damage + myContribs.heals + myContribs.interrupts;
+
+        // Base caps
+        const maxGold = 30;
+        const maxExp = 100;
+
+        let addedGold = currentLobby?.boss?.isStudySession ? Math.min(maxGold, 5 + Math.floor(engagementScore / 300)) : maxGold;
+        let addedExp = currentLobby?.boss?.isStudySession ? Math.min(maxExp, 40 + Math.floor(engagementScore / 40)) : maxExp;
+
+        let alertMsg = "";
+
+        if (currentLobby?.boss?.isStudySession) {
+          try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            const playTone = (freq: number, start: number, duration: number, type: OscillatorType) => {
+              const osc = audioCtx.createOscillator();
+              const gainNode = audioCtx.createGain();
+              osc.type = type;
+              osc.frequency.setValueAtTime(freq, start);
+              gainNode.gain.setValueAtTime(0.1, start);
+              gainNode.gain.exponentialRampToValueAtTime(0.005, start + duration);
+              osc.connect(gainNode);
+              gainNode.connect(audioCtx.destination);
+              osc.start(start);
+              osc.stop(start + duration);
+            };
+            // 30 minute alarm! (Simulated by 3 ringing notes)
+            playTone(880, now, 0.4, "sine"); // A5
+            playTone(880, now + 0.5, 0.4, "sine");
+            playTone(1046.5, now + 1.0, 1.0, "triangle"); // C6
+          } catch (e) {
+            console.warn("Audio Context blocked:", e);
+          }
+
+          if (engagementScore === 0) {
+            triggerLocalAlert("⚠️ STUDY CHECK-IN MISSED: You were inactive during the session. Minimal rewards distributed.", "error");
+            addedGold = 1;
+            addedExp = 5;
+            alertMsg = "";
+          } else {
+            alertMsg = `🏆 ATTENDANCE VERIFIED: +${addedGold} Mana Offering, +${addedExp} EXP distributed based on your focus engagement!`;
+          }
+        } else {
+            // Apply engagement scaling for normal bosses too, up to max
+            if (engagementScore === 0) {
+              addedGold = 1;
+              addedExp = 5;
+              alertMsg = `🏆 RAID SURVIVED: Minimal contribution detected. +${addedGold} Gold, +${addedExp} EXP.`;
+            } else {
+              addedGold = Math.min(maxGold, 10 + Math.floor(engagementScore / 500));
+              addedExp = Math.min(maxExp, 30 + Math.floor(engagementScore / 100));
+              alertMsg = `🏆 RAID CLEARED: S-Rank Loot distributed! +${addedGold} Sovereign Gold, +${addedExp} EXP!`;
+            }
+        }
+
+        const rewardedGold = userGold + addedGold;
+        const rewardedExp = userExp + addedExp;
+
         updateDoc(leaderRef, { 
           gold: rewardedGold,
           exp: rewardedExp
         })
           .then(() => {
-            triggerLocalAlert("🏆 VICTORY GRANTED: Materialized S-Rank prize box! +15 Sovereign Gold, +80 EXP!", "success");
+            if (alertMsg) {
+              triggerLocalAlert(alertMsg, "success");
+            }
           })
           .catch(e => console.warn("Failed to apply victory reward:", e));
       }
@@ -1429,7 +1565,46 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
         }
       ];
 
-      const selectedBoss = bosses[Math.floor(Math.random() * bosses.length)];
+      let selectedBoss = bosses[Math.floor(Math.random() * bosses.length)];
+      let isStudySession = false;
+      let sessionTime = 90;
+
+      if (currentLobby.targetNode?.includes("Timed Study")) {
+        isStudySession = true;
+        let timeMins = 30;
+        let bName = "Study Session Phantom";
+        let color = "border-indigo-500/50 from-indigo-950/45 to-slate-900/90";
+        let shadow = "shadow-indigo-500/10";
+        if (currentLobby.targetNode.includes("30 min")) {
+          timeMins = 30;
+          bName = "Ancient Scholar's Ghost";
+          color = "border-emerald-500/50 from-emerald-950/45 to-slate-900/90";
+          shadow = "shadow-emerald-500/10";
+        } else if (currentLobby.targetNode.includes("60 min")) {
+          timeMins = 60;
+          bName = "Archmage's Spectral Library";
+          color = "border-purple-500/50 from-purple-950/45 to-slate-900/90";
+          shadow = "shadow-purple-500/10";
+        } else if (currentLobby.targetNode.includes("120 min")) {
+          timeMins = 120;
+          bName = "Oracle of the Infinite Void";
+          color = "border-amber-500/50 from-amber-950/45 to-slate-900/90";
+          shadow = "shadow-amber-500/10";
+        }
+        sessionTime = timeMins * 60;
+
+        selectedBoss = {
+          name: bName,
+          hp: timeMins * 2000, 
+          maxHp: timeMins * 2000,
+          shield: timeMins * 500,
+          maxShield: timeMins * 500,
+          level: "Study Domain Manifestation",
+          color,
+          glow: shadow,
+          accentColor: color.split("-")[1] ? `text-${color.split("-")[1]}-400` : "text-white"
+        };
+      }
       
       const playerHps: { [key: string]: number } = {};
       const initialContributions: { [key: string]: { damage: number, heals: number, interrupts: number } } = {};
@@ -1449,11 +1624,12 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
           maxShield: selectedBoss.maxShield,
           level: selectedBoss.level,
           teamShield: 600, // Shared protection field
-          timeRemaining: 90, // 90 seconds survival clearance window
+          timeRemaining: sessionTime, 
+          isStudySession,
           actionLogs: [
-            `[GATE OPENED] Assault group has passed the gate threshold!`,
-            `🎯 DECREE: Defeat [${selectedBoss.name}] before health reserves or chrono buffers expire.`,
-            `⚠️ ALERT: Mutual support is critical - a single teammate's critical demise collapses the layout!`
+            isStudySession ? `[STUDY CUBE ACTIVATED] Focus synchronization started for ${sessionTime/60} minutes.` : `[GATE OPENED] Assault group has passed the gate threshold!`,
+            isStudySession ? `🎯 OBJECTIVE: Maintain focus, repel distractions, and defeat [${selectedBoss.name}].` : `🎯 DECREE: Defeat [${selectedBoss.name}] before health reserves or chrono buffers expire.`,
+            isStudySession ? `⚠️ NOTE: Alarm will sound upon completion. All members must sign off!` : `⚠️ ALERT: Mutual support is critical - a single teammate's critical demise collapses the layout!`
           ],
           playerHps
         },
@@ -1664,7 +1840,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               <div className="flex-1 text-xs font-mono font-black uppercase leading-tight tracking-wider">
                 {systemAlert.message}
               </div>
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={() => setSystemAlert(null)}
                 className="text-[10px] bg-slate-850 px-2 py-1 rounded hover:bg-slate-800 uppercase font-black font-mono tracking-widest cursor-pointer"
               >
@@ -1678,7 +1854,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
       {/* Primary HUD Header */}
       <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-xl border-b border-indigo-500/15 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button aria-label="Interactive Button" 
+          <button 
             onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); onBack(); }}
             className="p-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all active:scale-95 cursor-pointer hover:border-indigo-500/30"
           >
@@ -1702,7 +1878,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
             <span className="text-xs font-black text-indigo-400">{playerName}</span>
           </div>
           
-          <button aria-label="Interactive Button" 
+          <button 
             onClick={toggleCameraSetup}
             title="Calibrate Biometric Avatar"
             className="w-10 h-10 rounded-2xl bg-slate-900 border border-indigo-500/25 hover:border-indigo-500/60 overflow-hidden flex items-center justify-center text-indigo-400 font-bold font-mono group relative cursor-pointer transition-all hover:scale-105 shrink-0"
@@ -1748,7 +1924,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               const Icon = tab.icon;
               const isSel = activeTab === tab.id;
               return (
-                <button aria-label="Interactive Button" 
+                <button 
                   key={tab.id}
                   onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); setActiveTab(tab.id as any); }}
                   className={`flex-1 md:flex-none px-4 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
@@ -1776,7 +1952,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               {/* Manual Expedition Boot Interface */}
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={() => { if (typeof playSelectSound === "function") playSelectSound(); setShowCreateModal(true); }}
                 className="group relative flex flex-col items-center justify-center p-8 bg-slate-900/35 border-2 border-dashed border-slate-800 rounded-[2.2rem] hover:border-indigo-500/40 transition-all cursor-pointer overflow-hidden min-h-[280px]"
               >
@@ -1866,14 +2042,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                         </div>
 
                         {currentLobbyId === lobby.id ? (
-                          <button aria-label="Interactive Button" 
+                          <button 
                             onClick={() => setActiveTab("active")}
                             className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-500 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-105 cursor-pointer shadow-lg shadow-indigo-500/20"
                           >
                             OPEN PORTAL
                           </button>
                         ) : (
-                          <button aria-label="Interactive Button" 
+                          <button 
                             onClick={() => handleJoinLobby(lobby.id)}
                             disabled={joiningLobbyId !== null || (lobby.members?.length >= lobby.maxMembers) || currentLobbyId !== null}
                             className={`px-5 py-2.5 ${
@@ -1914,7 +2090,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                     <h3 className="text-xs sm:text-base font-black text-white uppercase tracking-[0.2em]">Solo Status Confirmed</h3>
                     <p className="text-slate-500 text-[10px] uppercase font-mono tracking-widest">No active party linkage spotted in your quantum registers.</p>
                   </div>
-                  <button aria-label="Interactive Button" 
+                  <button 
                     onClick={() => setActiveTab("explorer")}
                     className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/10 cursor-pointer"
                   >
@@ -2057,7 +2233,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                               
                               {/* Option ⚔️ ASSAULT CLEAVE */}
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleRaidInteractiveAction("strike")}
                                 disabled={cooldowns.strike > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2072,12 +2248,12 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                   </div>
                                 )}
                                 <Swords className="w-5 h-5 text-indigo-400" />
-                                <span className="text-[9px] font-black uppercase tracking-wider">Assault Slash</span>
-                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">High Physical Damage</span>
+                                <span className="text-[9px] font-black uppercase tracking-wider">{currentLobby.boss?.isStudySession ? "Focus Burst" : "Assault Slash"}</span>
+                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">{currentLobby.boss?.isStudySession ? "Deep Study Impact" : "High Physical Damage"}</span>
                               </button>
 
                               {/* Option 🛡️ AEGIS COVENANT */}
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleRaidInteractiveAction("shield")}
                                 disabled={cooldowns.shield > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2092,12 +2268,12 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                   </div>
                                 )}
                                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                                <span className="text-[9px] font-black uppercase tracking-wider">Aegis Ward</span>
-                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">Adds shared shield strength</span>
+                                <span className="text-[9px] font-black uppercase tracking-wider">{currentLobby.boss?.isStudySession ? "Distraction Blocker" : "Aegis Ward"}</span>
+                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">{currentLobby.boss?.isStudySession ? "Blocks incoming distractions" : "Adds shared shield strength"}</span>
                               </button>
 
                               {/* Option 🧪 POTION MATRIX */}
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleRaidInteractiveAction("heal")}
                                 disabled={cooldowns.heal > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2112,12 +2288,12 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                   </div>
                                 )}
                                 <Activity className="w-5 h-5 text-amber-400" />
-                                <span className="text-[9px] font-black uppercase tracking-wider">Heal Infusion</span>
-                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">Recovers Team HP +15%</span>
+                                <span className="text-[9px] font-black uppercase tracking-wider">{currentLobby.boss?.isStudySession ? "Energy Boost" : "Heal Infusion"}</span>
+                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">{currentLobby.boss?.isStudySession ? "Restores squad motivation" : "Recovers Team HP +15%"}</span>
                               </button>
 
                               {/* Option 💀 SHADOW ARMY EXTRACTION */}
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleRaidInteractiveAction("shadows")}
                                 disabled={cooldowns.shadows > 0}
                                 className={`p-3 rounded-2xl border text-center relative overflow-hidden transition-all group flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 ${
@@ -2132,15 +2308,15 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                   </div>
                                 )}
                                 <Flame className="w-5 h-5 text-fuchsia-450" />
-                                <span className="text-[9px] font-black uppercase tracking-wider">Extract Shadow</span>
-                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">Damage & Interrupt Ultimate</span>
+                                <span className="text-[9px] font-black uppercase tracking-wider">{currentLobby.boss?.isStudySession ? "Complete Module" : "Extract Shadow"}</span>
+                                <span className="text-[6.5px] text-slate-500 uppercase mt-0.5">{currentLobby.boss?.isStudySession ? "Breaks boss concentration" : "Damage & Interrupt Ultimate"}</span>
                               </button>
 
                            </div>
 
                            {/* Forbidden Bypass Safeguards (Cheat Option to trigger Anti-Cheat fail conditions) */}
                            <div className="pt-2">
-                             <button aria-label="Interactive Button"
+                             <button
                                onClick={() => handleRaidInteractiveAction("cheat")}
                                className="w-full py-2 bg-gradient-to-r from-rose-950/30 to-slate-950 border border-rose-900/30 hover:border-rose-700/60 rounded-xl text-[8.5px] font-mono font-black text-rose-500/80 hover:text-rose-450 uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
                              >
@@ -2283,7 +2459,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                          {/* Portal Calibration Reboot Actions */}
                          <div className="pt-6 border-t border-slate-850/80 flex flex-col items-center gap-4 relative z-10">
                            {currentLobby.hostName === playerName ? (
-                             <button aria-label="Interactive Button" 
+                             <button 
                                onClick={handleResetLobby}
                                className="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-103"
                              >
@@ -2314,7 +2490,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                              </h2>
                              <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">Raid Commander: {currentLobby.hostName} &middot; PHASE: <span className="text-amber-400">{currentLobby.status}</span></p>
                            </div>
-                           <button aria-label="Interactive Button" 
+                           <button 
                              onClick={handleLeaveParty}
                              className="px-4 py-2 bg-red-950/20 text-red-400 hover:bg-red-900/30 hover:text-red-300 border border-red-900/40 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shrink-0"
                            >
@@ -2370,7 +2546,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                                <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest">Divergence Gate Command</h3>
                                <p className="text-[9px] text-indigo-400/70 font-mono mt-0.5 uppercase">Authorize transition mapping when the assault squad completes setup.</p>
                              </div>
-                             <button aria-label="Interactive Button" 
+                             <button 
                                onClick={handleCommenceRaid}
                                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-900/40 cursor-pointer flex items-center justify-center gap-2 transition-all hover:scale-103"
                              >
@@ -2437,7 +2613,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            <span className="text-slate-400">({recordingSeconds}s)</span>
                          </div>
                          <div className="flex gap-2">
-                           <button aria-label="Interactive Button"
+                           <button
                              type="button"
                              onClick={() => {
                                if (mediaRecorderRef.current) {
@@ -2454,7 +2630,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                            >
                              Abort
                            </button>
-                           <button aria-label="Interactive Button"
+                           <button
                              type="button"
                              onClick={stopVoiceRecording}
                              className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-[9px] uppercase tracking-wider font-extrabold rounded-lg shadow-lg cursor-pointer transition-all font-mono"
@@ -2465,7 +2641,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                        </div>
                      ) : (
                        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/80 shrink-0 flex gap-2">
-                          <button aria-label="Interactive Button" 
+                          <button 
                              type="button" 
                              onClick={startVoiceRecording} 
                              className="px-3 bg-slate-900 border border-slate-850 hover:bg-slate-800 hover:border-slate-705 text-indigo-400 hover:text-indigo-350 rounded-xl flex items-center justify-center cursor-pointer transition-all"
@@ -2480,7 +2656,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                              placeholder="Transmit to party..."
                              className="flex-1 bg-slate-900 border border-slate-850 rounded-xl px-3 py-2.5 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500/50 font-mono"
                           />
-                          <button aria-label="Interactive Button" type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
+                          <button type="submit" disabled={!chatInput.trim()} className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 font-mono">
                              <Send className="w-3.5 h-3.5" />
                           </button>
                        </form>
@@ -2556,7 +2732,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                        />
                     </div>
 
-                    <button aria-label="Interactive Button" 
+                    <button 
                       type="submit"
                       disabled={!forumInput.trim()}
                       className="w-full py-3 bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer disabled:opacity-40"
@@ -2655,7 +2831,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                         playerName.substring(0, 2).toUpperCase()
                       )}
                     </div>
-                    <button aria-label="Interactive Button"
+                    <button
                       onClick={toggleCameraSetup}
                       className="absolute -bottom-1 -right-1 p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl border border-indigo-550 text-white cursor-pointer transition-transform hover:scale-110 shadow-lg"
                       title="Capture custom avatar"
@@ -2671,7 +2847,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                     </p>
                   </div>
                 </div>
-                <button aria-label="Interactive Button"
+                <button
                   onClick={toggleCameraSetup}
                   className="w-full sm:w-auto px-6 py-3.5 bg-slate-950 border border-indigo-500/20 hover:border-indigo-505/50 text-indigo-400 font-bold rounded-xl text-[10px] font-mono tracking-widest uppercase cursor-pointer flex items-center justify-center gap-2 transition-all hover:bg-indigo-950/10 active:scale-98"
                 >
@@ -2770,6 +2946,11 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                     <option value="Abyssal Subzero Frost Gate">Abyssal Subzero Frost Gate</option>
                     <option value="A-Rank High Orc Fortress">A-Rank High Orc Fortress</option>
                     <option value="B-Rank Demon Castle Maze">B-Rank Demon Castle Maze</option>
+                    <optgroup label="⏱ Timed Study Sessions">
+                      <option value="Timed Study: Ancient Scholar's Ghost (30 min)">Study: Ancient Scholar's Ghost (30m)</option>
+                      <option value="Timed Study: Archmage's Library (60 min)">Study: Archmage's Library (60m)</option>
+                      <option value="Timed Study: Infinite Void Oracle (120 min)">Study: Infinite Void Oracle (120m)</option>
+                    </optgroup>
                   </select>
                 </div>
                 
@@ -2797,14 +2978,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                 </div>
 
                 <div className="flex gap-3 pt-4 font-mono text-xs">
-                  <button aria-label="Interactive Button" 
+                  <button 
                     type="button"
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
                   >
                     ABORT
                   </button>
-                  <button aria-label="Interactive Button" 
+                  <button 
                     type="submit"
                     className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 cursor-pointer"
                   >
@@ -2839,7 +3020,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                   <Camera className="w-5 h-5 text-indigo-400 animate-pulse" />
                   <span className="text-xs font-[1000] text-white uppercase tracking-wider">OPTICAL BIOMETRIC CALIBRATION</span>
                 </div>
-                <button aria-label="Interactive Button" 
+                <button 
                   onClick={deactivateCamera}
                   className="text-[10px] bg-slate-800 hover:bg-slate-755 border border-slate-700 text-slate-400 hover:text-white px-2 py-1 rounded transition-colors cursor-pointer uppercase font-black"
                 >
@@ -2865,14 +3046,14 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
               </p>
 
               <div className="flex gap-3 pt-2 font-mono text-xs">
-                <button aria-label="Interactive Button" 
+                <button 
                   type="button"
                   onClick={deactivateCamera}
                   className="flex-1 px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
                 >
                   ABORT
                 </button>
-                <button aria-label="Interactive Button" 
+                <button 
                   type="button"
                   onClick={capturePhotoFrame}
                   className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 cursor-pointer flex items-center justify-center gap-1.5"

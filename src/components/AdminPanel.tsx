@@ -110,6 +110,8 @@ interface AdminMarketItem {
   stock: number;
   isActive: boolean;
   createdAt?: any;
+  imageUrl?: string;
+  adCodeSnippet?: string;
 }
 
 export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
@@ -181,7 +183,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     type: "Weapon",
     rank: "A-Rank",
     stock: 10,
-    isActive: true
+    isActive: true,
+    imageUrl: "",
+    adCodeSnippet: ""
   });
 
   // Notification banners
@@ -652,6 +656,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         rank: marketItemForm.rank,
         stock: Number(marketItemForm.stock),
         isActive: marketItemForm.isActive,
+        imageUrl: marketItemForm.imageUrl,
+        adCodeSnippet: marketItemForm.adCodeSnippet,
         createdAt: serverTimestamp()
       }, { merge: true });
       showNotification(editingMarketItemId ? "SUCCESS: Market listing stabilized!" : "SUCCESS: Equipment materialized into market cache!");
@@ -662,7 +668,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         type: "Weapon",
         rank: "A-Rank",
         stock: 10,
-        isActive: true
+        isActive: true,
+        imageUrl: "",
+        adCodeSnippet: ""
       });
       setEditingMarketItemId(null);
     } catch (err) {
@@ -679,7 +687,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       type: item.type,
       rank: item.rank,
       stock: item.stock,
-      isActive: item.isActive
+      isActive: item.isActive,
+      imageUrl: item.imageUrl || "",
+      adCodeSnippet: item.adCodeSnippet || ""
     });
     addSystemLog(`Loaded Market Item '${item.name}' into system editor buffers.`, "info");
   };
@@ -911,7 +921,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   };
 
   return (
-    <div id="admin_main_layout" className="min-h-screen bg-slate-950 text-slate-100 font-mono relative overflow-y-auto pb-20 selection:bg-purple-500/30 selection:text-purple-300">
+    <div id="admin_main_layout" className="min-h-screen bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300">
       
       {/* Absolute Header with back button */}
       <div className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
@@ -926,7 +936,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
           </div>
         </div>
         
-        <button aria-label="Interactive Button" 
+        <button 
           onClick={onBackToApp} 
           className="px-4 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 text-slate-300 transition-colors uppercase cursor-pointer"
         >
@@ -990,7 +1000,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 </div>
               )}
 
-              <button aria-label="Interactive Button" 
+              <button 
                 type="submit" 
                 className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-purple-950/50 cursor-pointer transform hover:scale-[1.02] transition-all"
               >
@@ -1000,7 +1010,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
             <div className="mt-6 border-t border-slate-900 pt-4 text-center">
               <span className="text-[9px] text-slate-600 block mb-2">Want to skip login input for evaluations?</span>
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={() => {
                   setPasscode("SystemAdmin77");
                   setIsAdminAuthorized(true);
@@ -1034,7 +1044,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 const Icon = tab.icon;
                 const isSel = activeTab === tab.id;
                 return (
-                  <button aria-label="Interactive Button"
+                  <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
@@ -1061,14 +1071,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 <span className="text-[9px] text-purple-400 font-bold uppercase tracking-widest block">SYSTEM SYNTHESIS</span>
                 <p className="text-[8px] text-slate-500 mt-1 leading-normal">Load default pre-configured gates, quests & broadcasts.</p>
               </div>
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={handleSeedMockData}
                 className="w-full py-2 bg-purple-950/40 hover:bg-purple-950/70 border border-purple-500/30 text-purple-300 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
               >
                 📥 Seed System Presets
               </button>
 
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={handleGlobalReset}
                 className="w-full py-2 bg-red-950/40 hover:bg-red-950/70 border border-red-500/30 text-red-300 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors"
                 title="Wipes player progression across Firestore."
@@ -1076,7 +1086,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 ⚠️ Reset All Progress
               </button>
 
-              <button aria-label="Interactive Button" 
+              <button 
                 onClick={handleDeauthorize}
                 className="w-full py-1.5 bg-slate-950 hover:bg-red-950/20 border border-slate-900 hover:border-red-900/30 text-slate-650 hover:text-red-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
               >
@@ -1267,7 +1277,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
                     <div className="col-span-12 flex justify-end gap-2 pt-2 border-t border-slate-950">
                       {editingPlayerId && (
-                        <button aria-label="Interactive Button" 
+                        <button 
                           type="button" 
                           onClick={() => {
                             setEditingPlayerId(null);
@@ -1279,7 +1289,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         </button>
                       )}
                       
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit" 
                         className="px-6 py-2 bg-blue-650 hover:bg-blue-600 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-blue-950 flex items-center gap-1.5"
                       >
@@ -1351,14 +1361,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               </td>
                               <td className="p-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
-                                  <button aria-label="Interactive Button" 
+                                  <button 
                                     onClick={() => handleEditPlayerClick(item)} 
                                     className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 hover:text-blue-400 transition-colors cursor-pointer"
                                     title="Edit Stats"
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
                                   </button>
-                                  <button aria-label="Interactive Button" 
+                                  <button 
                                     onClick={() => handleDeletePlayer(item.id)} 
                                     className="p-1.5 bg-slate-900 hover:bg-red-950/30 border border-slate-800 hover:border-red-900/30 rounded-lg text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                                     title="Exile Sovereign"
@@ -1427,7 +1437,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
                     <div className="flex justify-end gap-2 pt-2">
                       {editingAnnouncementId && (
-                        <button aria-label="Interactive Button" 
+                        <button 
                           type="button" 
                           onClick={() => {
                             setEditingAnnouncementId(null);
@@ -1438,7 +1448,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           Cancel
                         </button>
                       )}
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit" 
                         className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-amber-950 flex items-center gap-1.5"
                       >
@@ -1483,13 +1493,13 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           </div>
                           
                           <div className="flex gap-1.5 shrink-0 self-start">
-                            <button aria-label="Interactive Button" 
+                            <button 
                               onClick={() => handleEditAnnouncementClick(ann)}
                               className="p-1 px-2.5 bg-slate-950 hover:bg-amber-950 hover:text-amber-400 border border-slate-900 transition-colors uppercase text-[9px] font-black text-slate-500 rounded-lg cursor-pointer"
                             >
                               Edit
                             </button>
-                            <button aria-label="Interactive Button" 
+                            <button 
                               onClick={() => handleDeleteAnnouncement(ann.id)}
                               className="p-1 px-2.5 bg-slate-950 hover:bg-red-950 hover:text-red-400 border border-slate-900 transition-colors uppercase text-[9px] font-black text-slate-500 rounded-lg cursor-pointer"
                             >
@@ -1589,7 +1599,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
                     <div className="col-span-12 flex justify-end gap-2 pt-2">
                       {editingQuestId && (
-                        <button aria-label="Interactive Button" 
+                        <button 
                           type="button" 
                           onClick={() => {
                             setEditingQuestId(null);
@@ -1607,7 +1617,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           Cancel
                         </button>
                       )}
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit" 
                         className="px-6 py-2 bg-rose-650 hover:bg-rose-600 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-rose-950 flex items-center gap-1.5"
                       >
@@ -1632,13 +1642,13 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             <div className="flex justify-between items-center">
                               <span className="text-[8px] px-1.5 py-0.5 rounded border border-rose-500/30 text-rose-400 uppercase tracking-wider font-extrabold">{q.type} ARCS</span>
                               <div className="flex items-center gap-2">
-                                <button aria-label="Interactive Button" 
+                                <button 
                                   onClick={() => handleEditQuestClick(q)}
                                   className="text-[9px] font-bold text-amber-500 hover:text-amber-400"
                                 >
                                   Edit
                                 </button>
-                                <button aria-label="Interactive Button" 
+                                <button 
                                   onClick={() => handleDeleteQuest(q.id)}
                                   className="text-[9px] font-bold text-red-500 hover:text-red-400 hover:scale-105 transition-transform"
                                 >
@@ -1759,7 +1769,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
                     <div className="col-span-12 flex justify-end gap-2 pt-2">
                       {editingGateId && (
-                        <button aria-label="Interactive Button" 
+                        <button 
                           type="button" 
                           onClick={() => {
                             setEditingGateId(null);
@@ -1778,7 +1788,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           Cancel
                         </button>
                       )}
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit" 
                         className="px-6 py-2 bg-emerald-650 hover:bg-emerald-600 text-white font-black uppercase text-xs rounded-xl tracking-widest cursor-pointer shadow-lg shadow-emerald-950 flex items-center gap-1.5"
                       >
@@ -1827,14 +1837,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             </div>
 
                             <div className="flex gap-1.5">
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleEditGateClick(gate)}
                                 className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-900 hover:border-slate-750 text-slate-400 hover:text-amber-400 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Gate Spacetime Parameters"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleDeleteGate(gate.id)}
                                 className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                                 title="Collapse Rift"
@@ -1951,9 +1961,40 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       </select>
                     </div>
 
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Preview Image URL (Ultra Detailed)</label>
+                      <input 
+                        type="url" 
+                        value={marketItemForm.imageUrl}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, imageUrl: e.target.value})}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Ad Code Snippet (Watch to Earn)</label>
+                      <input 
+                        type="text" 
+                        value={marketItemForm.adCodeSnippet}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, adCodeSnippet: e.target.value})}
+                        placeholder="<script src='...'> or URL"
+                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors font-mono"
+                      />
+                    </div>
+
+                    {marketItemForm.imageUrl && (
+                      <div className="md:col-span-2 mt-2 border border-slate-800 rounded-xl overflow-hidden bg-slate-950/50 p-2">
+                        <label className="text-[10px] font-black text-amber-500 uppercase block mb-2 tracking-widest leading-none">High-Def Asset Preview</label>
+                        <div className="w-full h-48 rounded-lg overflow-hidden border border-slate-900 relative">
+                           <img src={marketItemForm.imageUrl} alt="Asset Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      </div>
+                    )}
+
                     <div className="md:col-span-2 pt-2 flex gap-3">
                       {editingMarketItemId && (
-                        <button aria-label="Interactive Button" 
+                        <button 
                           type="button"
                           onClick={() => {
                             setEditingMarketItemId(null);
@@ -1964,7 +2005,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               type: "Weapon",
                               rank: "A-Rank",
                               stock: 10,
-                              isActive: true
+                              isActive: true,
+                              imageUrl: "",
+                              adCodeSnippet: ""
                             });
                           }}
                           className="flex-1 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
@@ -1972,7 +2015,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           Cancel Modify
                         </button>
                       )}
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit" 
                         className={`flex-1 px-4 py-2 ${editingMarketItemId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-green-600 hover:bg-green-500'} text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg transition-colors cursor-pointer`}
                       >
@@ -2024,14 +2067,14 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             </div>
 
                             <div className="flex gap-1.5">
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleEditMarketItemClick(item)}
                                 className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-900 hover:border-slate-750 text-slate-400 hover:text-amber-400 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Item Parameters"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleDeleteMarketItem(item.id)}
                                 className="p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 hover:border-red-900/30 text-slate-500 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
                                 title="Liquidate Item"
@@ -2058,7 +2101,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                        <MessageSquare className="w-4 h-4" />
                        <span>Global Transmission Frequency</span>
                      </h3>
-                     <button aria-label="Interactive Button" 
+                     <button 
                        onClick={handleClearChat}
                        className="px-4 py-2 bg-red-950/20 hover:bg-red-950/40 border border-red-500/20 text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all flex items-center gap-1.5"
                      >
@@ -2075,7 +2118,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         placeholder="SEND ADMINISTRATIVE BROADCAST..."
                         className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-[10px] text-indigo-300 focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
                       />
-                      <button aria-label="Interactive Button" 
+                      <button 
                         type="submit"
                         className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-indigo-900/40"
                       >
@@ -2097,7 +2140,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               </div>
                               <p className="text-[11px] text-slate-300 font-sans leading-relaxed">{msg.text}</p>
                             </div>
-                            <button aria-label="Interactive Button" 
+                            <button 
                               onClick={() => handleDeleteMessage(msg.id)}
                               className="opacity-0 group-hover:opacity-100 p-1.5 bg-slate-950 hover:bg-red-950 border border-slate-900 text-slate-600 hover:text-red-400 rounded-lg transition-all cursor-pointer"
                             >
@@ -2134,7 +2177,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                                   </div>
                                </div>
                              </div>
-                             <button aria-label="Interactive Button" 
+                             <button 
                                onClick={() => handleDeleteLobby(lobby.id)}
                                className="p-2 bg-slate-900 hover:bg-red-950 border border-slate-800 text-slate-500 hover:text-red-400 rounded-xl transition-all cursor-pointer"
                              >

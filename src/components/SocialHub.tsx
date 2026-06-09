@@ -60,7 +60,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
              </div>
           )}
           {friendship.status === 'accepted' && (
-            <button aria-label="Interactive Button" 
+            <button 
               onClick={() => { try { playSelectSound(); } catch(e){} onOpenDm(friendName); }}
               className="p-2 bg-slate-900 text-cyan-400 border border-slate-800 rounded-xl hover:bg-cyan-500 hover:text-white transition-all shadow-lg"
             >
@@ -72,7 +72,7 @@ const FriendCard: React.FC<FriendCardProps> = ({ friendship, playerName, onAccep
        
        <AnimatePresence>
          {showChatOption && friendship.status === 'accepted' && (
-           <motion.button aria-label="Interactive Button"
+           <motion.button
              initial={{ height: 0, opacity: 0 }}
              animate={{ height: "auto", opacity: 1 }}
              exit={{ height: 0, opacity: 0 }}
@@ -187,7 +187,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
           </h2>
           <p className="text-[10px] text-slate-500 font-mono tracking-tighter">CROSS-DIMENSIONAL HUNTER NETWORK</p>
         </div>
-        <button aria-label="Interactive Button" 
+        <button 
           onClick={() => { 
             try { playSelectSound(); } catch(e){} 
             window.history.pushState({}, "", "/party");
@@ -206,7 +206,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
       {/* Social Navigation Tabs */}
       <div className="flex bg-slate-950 border border-slate-900 rounded-xl p-1 gap-1">
         {(["chat", "leaderboard", "friends"] as const).map(tab => (
-          <button aria-label="Interactive Button"
+          <button
             key={tab}
             onClick={() => { 
                try { playSelectSound(); } catch(e){} 
@@ -234,7 +234,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
                         <span className="text-xs font-black text-white uppercase tracking-widest">TRANSMISSION: {activeDmFriend}</span>
                     </div>
-                    <button aria-label="Interactive Button" 
+                    <button 
                       onClick={() => { setActiveDmFriend(null); setSocialTab("friends"); }} 
                       className="text-[10px] text-slate-500 hover:text-cyan-400 font-bold uppercase transition-colors flex items-center gap-1"
                     >
@@ -265,7 +265,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                      placeholder="Private frequency..."
                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50"
                    />
-                   <button aria-label="Interactive Button" type="submit" className="bg-indigo-500 text-white p-3 rounded-xl hover:bg-indigo-400 transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                   <button type="submit" className="bg-indigo-500 text-white p-3 rounded-xl hover:bg-indigo-400 transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)]">
                      <Send className="w-5 h-5" />
                    </button>
                  </form>
@@ -283,7 +283,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                          <div className="flex items-center gap-2 mb-1 px-1">
                             <span className="text-[10px] font-bold text-slate-500 font-mono">{m.senderName}</span>
                             {m.senderId !== playerName && (
-                              <button aria-label="Interactive Button" 
+                              <button 
                                 onClick={() => handleAddFriend(m.senderId)}
                                 className="text-[9px] text-cyan-500/60 hover:text-cyan-400 font-bold uppercase tracking-tighter"
                               >
@@ -307,7 +307,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                      placeholder="Broadcast frequency..."
                      className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500/50"
                    />
-                   <button aria-label="Interactive Button" type="submit" className="bg-cyan-500 text-white p-3 rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                   <button type="submit" className="bg-cyan-500 text-white p-3 rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)]">
                      <Send className="w-5 h-5" />
                    </button>
                  </form>
@@ -341,7 +341,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
                        <td className="py-4 px-2 font-bold text-white flex items-center gap-2 flex-wrap">
                          <span className={hunter.playerName === playerName ? "text-cyan-400" : ""}>{hunter.playerName}</span>
                          {hunter.playerName !== playerName && (
-                           <button aria-label="Interactive Button" 
+                           <button 
                              onClick={() => handleAddFriend(hunter.playerName)} 
                              className="p-1.5 bg-slate-900 border border-slate-800 text-cyan-500/60 hover:text-cyan-400 hover:border-cyan-500/30 rounded-lg transition-all"
                            >

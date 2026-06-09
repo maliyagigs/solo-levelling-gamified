@@ -157,29 +157,39 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+    <main role="main" className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="bg-slate-900/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-md">
-        <h2 className="text-2xl sm:text-4xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500 tracking-tighter text-center">
+        <h1 className="text-2xl sm:text-4xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500 tracking-tighter text-center">
           {isSignUp ? "INITIALIZE" : "AUTHENTICATE"}
-        </h2>
-        {error && <p className="text-red-400 text-sm mb-4 text-center bg-red-950/40 p-3 rounded-lg border border-red-900/50">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email Address" aria-label="Email Address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={authLoading}
-          className="w-full p-4 mb-4 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
-        />
-        <input
-          type="password"
-          placeholder="Password" aria-label="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={authLoading}
-          className="w-full p-4 mb-6 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
-        />
-        <button aria-label="Interactive Button"
+        </h1>
+        {error && <p role="alert" aria-live="assertive" className="text-red-400 text-sm mb-4 text-center bg-red-950/40 p-3 rounded-lg border border-red-900/50">{error}</p>}
+        <div>
+          <label htmlFor="email" className="sr-only">Email Address</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Email Address" 
+            aria-label="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={authLoading}
+            className="w-full p-4 mb-4 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="sr-only">Password</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Password" 
+            aria-label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={authLoading}
+            className="w-full p-4 mb-6 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
+          />
+        </div>
+        <button aria-label={isSignUp ? "Create Account" : "Sign In"}
           onClick={handleEmailAuth}
           disabled={authLoading}
           className="w-full p-4 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 mb-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -189,7 +199,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           ) : null}
           {isSignUp ? "Create Account" : "Access Console"}
         </button>
-        <button aria-label="Interactive Button"
+        <button aria-label={isSignUp ? "Switch to Sign In" : "Switch to Sign Up"}
           onClick={() => setIsSignUp(!isSignUp)}
           disabled={authLoading}
           className="w-full text-sm text-slate-400 hover:text-white transition-colors mb-6 text-center underline underline-offset-4 disabled:opacity-40"
@@ -206,7 +216,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           </div>
         </div>
 
-        <button aria-label="Interactive Button"
+        <button aria-label="Sign in with Google"
           onClick={handleGoogleAuth}
           disabled={authLoading}
           className="w-full p-3 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-lg transition-all flex items-center justify-center gap-2 border border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -236,6 +246,6 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           {authLoading ? "Synchronizing..." : "Sign in with Google"}
         </button>
       </div>
-    </div>
+    </main>
   );
 }

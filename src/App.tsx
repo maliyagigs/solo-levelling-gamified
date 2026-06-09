@@ -247,9 +247,10 @@ export default function App() {
   };
 
   const suspenseFallback = (
-    <div className="flex flex-col items-center justify-center min-h-screen relative z-10 font-mono text-cyan-400">
+    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-screen relative z-10 font-mono text-cyan-400">
       <div className="w-12 h-12 border-2 border-dashed border-cyan-500 rounded-full animate-spin mb-4" />
       <span className="text-xs uppercase tracking-widest animate-pulse">Syncing with System Database...</span>
+      <span className="sr-only">Loading</span>
     </div>
   );
 
@@ -301,7 +302,7 @@ export default function App() {
     <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-x-hidden">
       <CosmicBackground />
 
-      <div className="relative z-10 w-full h-full">
+      <main role="main" className="relative z-10 w-full h-full">
         <Suspense fallback={suspenseFallback}>
           {phase === "onboarding" && (
             <Onboarding 
@@ -330,7 +331,7 @@ export default function App() {
             />
           )}
         </Suspense>
-      </div>
+      </main>
     </div>
   );
 }
