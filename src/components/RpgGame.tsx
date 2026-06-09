@@ -1101,7 +1101,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (allowedGold <= 0) {
         return prev;
       }
-      const actualGold = Math.min(amt, allowedGold, 5);
+      const actualGold = amt; // Removed 5 MP cap and allowedGold hard cap on activities to exactly sync with backend
       return {
         ...prev,
         gold: prev.gold + actualGold,
@@ -4101,8 +4101,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         addExp(quest.rewardExp);
                         setGameState(prev => {
                           const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-                          const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-                          const actualGold = Math.min(quest.rewardGold, allowedGold, 5);
+                          const actualGold = quest.rewardGold; // Respect backend setting exactly
                           return {
                             ...prev,
                             gold: prev.gold + actualGold,

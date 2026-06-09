@@ -50,7 +50,7 @@ export default function App() {
     const savedName = localStorage.getItem("monarch_active_player");
     const savedProfile = localStorage.getItem("monarch_onboard_profile");
     if (savedName && savedProfile) return "rpg_dashboard";
-    return "onboarding";
+    return "authentication";
   });
 
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
@@ -224,7 +224,7 @@ export default function App() {
         setPhase((currentPhase) => {
           if (currentPhase === "rpg_dashboard") {
             setProfile(null);
-            return "onboarding";
+            return "authentication";
           }
           return currentPhase;
         });
@@ -350,8 +350,7 @@ export default function App() {
 
           {phase === "authentication" && (
             <AuthScreen onSuccess={() => {
-                setPhase("onboarding");
-                setOnboardingStep(1);
+                // Routing is fully handled by the onAuthStateChanged listener
             }} />
           )}
 
