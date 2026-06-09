@@ -12,7 +12,8 @@ import {
   writeBatch,
   getDocs
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../utils/firebase";
+import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { 
   Shield, 
   User, 
@@ -32,7 +33,8 @@ import {
   Gamepad2,
   Radio,
   Activity,
-  ShoppingBag
+  ShoppingBag,
+  Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -232,13 +234,26 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   };
 
   // 1. Auth checkpoint
-  const handleAuthorize = (e: React.FormEvent) => {
+  const handleAuthorize = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === "SystemAdmin77" || passcode.toLowerCase() === "admin") {
       setIsAdminAuthorized(true);
       localStorage.setItem("monarch_admin_authorized", "true");
       setAuthError("");
       showNotification("ACCESS GRANTED: WELCOME MONARCH OVERLORD", "success");
+      
+      // Update Firestore user doc with isAdmin privilege for server-side rule validation
+      if (auth.currentUser) {
+        try {
+          await setDoc(doc(db, "users", auth.currentUser.uid), {
+            isAdmin: true
+          }, { merge: true });
+          addSystemLog("Server-side admin privileges synchronized.", "success");
+        } catch (err) {
+          console.error("Failed to sync admin privilege to Firestore:", err);
+          addSystemLog("Warning: Server-side privilege sync failed. Delete operations may fail.", "warning");
+        }
+      }
     } else {
       setAuthError("INSUFFICIENT CLEARANCE: ACCESS DENIED!");
     }
@@ -643,6 +658,40 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       }
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, path);
+    }
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check file size (limit to 2MB for safety)
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification("ERROR: Signal too large. File must be under 2MB.", "error");
+      return;
+    }
+
+    const storage = getStorage();
+    const storageRef = ref(storage, `market_items/${Date.now()}_${file.name}`);
+    
+    try {
+      setIsUploading(true);
+      addSystemLog("Initiating high-frequency image uplink to cloud storage...", "info");
+      
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      setMarketItemForm(prev => ({ ...prev, imageUrl: downloadURL }));
+      showNotification("SUCCESS: Visual asset materialized in storage cache!", "success");
+      addSystemLog(`Image uplink successful: ${file.name}`, "success");
+    } catch (err) {
+      console.error("Storage upload failed:", err);
+      showNotification("CRITICAL FAILURE: Uplink rejected by cloud firewall.", "error");
+      addSystemLog("Image upload failed. Ensure Storage is enabled in Firebase.", "error");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1984,14 +2033,31 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase">Preview Image URL (Ultra Detailed)</label>
-                      <input 
-                        type="url" 
-                        value={marketItemForm.imageUrl}
-                        onChange={(e) => setMarketItemForm({...marketItemForm, imageUrl: e.target.value})}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
-                      />
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Visual Asset / Image Uplink</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="url" 
+                          value={marketItemForm.imageUrl}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, imageUrl: e.target.value})}
+                          placeholder="https://images.unsplash.com/..."
+                          className="flex-1 bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors"
+                        />
+                        <label className={`w-12 h-10 flex items-center justify-center rounded-lg border border-slate-900 bg-slate-950 cursor-pointer hover:border-amber-500/50 hover:bg-slate-900 transition-all ${isUploading ? 'opacity-50' : ''}`}>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={handleImageUpload} 
+                            disabled={isUploading}
+                          />
+                          {isUploading ? (
+                            <div className="w-5 h-5 border-2 border-dashed border-amber-500 rounded-full animate-spin" />
+                          ) : (
+                            <Upload className="w-5 h-5 text-amber-500" />
+                          )}
+                        </label>
+                      </div>
+                      <p className="text-[8px] font-mono text-slate-500 mt-1 uppercase">Direct URL or Local Terminal Uplink</p>
                     </div>
 
                     <div className="space-y-1">

@@ -118,7 +118,7 @@ export const SHADOWS_LIST: ShadowSoldier[] = [
     power: 120,
     unlocked: true,
     cost: 5,
-    count: 3,
+    count: 0,
     iconName: "ShieldAlert",
     description: "Reborn foot soldiers holding heavy obsidian tower shields."
   },

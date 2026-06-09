@@ -391,6 +391,16 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               >
                 Enter the Gate
               </motion.button>
+
+              <button
+                id="btn_direct_signin"
+                className="block mt-6 text-xs text-slate-500 hover:text-cyan-400 font-mono tracking-wider uppercase transition-colors underline underline-offset-4 cursor-pointer"
+                onClick={() => {
+                  if (onStartGate) onStartGate();
+                }}
+              >
+                Already have a Hunter License? Access Auth Console
+              </button>
             </motion.div>
           )}
 
