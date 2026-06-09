@@ -48,7 +48,7 @@ import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generate
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
 import { AvatarWithFrame } from "./AvatarWithFrame";
-import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users } from "lucide-react";
+import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users, Map } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, auth, handleFirestoreError, OperationType } from "../utils/firebase";
 import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
 import { 

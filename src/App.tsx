@@ -340,13 +340,13 @@ export default function App() {
 
       <main role="main" className="relative z-10 w-full h-full">
         <Suspense fallback={suspenseFallback}>
-          {phase === "onboarding" && (
+          {phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview")) ? (
             <Onboarding 
               initialStep={onboardingStep} 
               onStartGate={() => setPhase("authentication")} 
               onComplete={handleOnboardingComplete} 
             />
-          )}
+          ) : null}
 
           {phase === "authentication" && (
             <AuthScreen onSuccess={() => {
