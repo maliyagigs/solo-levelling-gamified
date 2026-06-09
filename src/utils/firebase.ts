@@ -4,8 +4,7 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
-  doc, 
-  getDocFromServer, 
+  doc,
   setDoc, 
   getDocs, 
   collection, 
@@ -83,17 +82,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   }
 }
 
-// Dry-run connection validation
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error: any) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firestore running in offline mode. Sync will resume when connection is restored.");
-    }
-  }
-}
-testConnection();
+// Removed testConnection script for production purity
 
 // Direct Leaderboard Functions
 export interface LeaderboardUser {

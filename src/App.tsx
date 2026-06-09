@@ -20,6 +20,18 @@ const AuthScreen = lazy(() => import("./components/AuthScreen"));
 type AppPhase = "authentication" | "onboarding" | "plan_preview" | "rpg_dashboard";
 
 export default function App() {
+  // Ensure synchronous legacy data wipe before any state initializers render!
+  const resetKey = "monarch_v3_balanced_reset_enforced";
+  if (!localStorage.getItem(resetKey)) {
+    // Clear all legacy progress
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith("monarch_")) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.setItem(resetKey, "true");
+  }
+
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     return (
       window.location.pathname === "/admin" ||
@@ -90,6 +102,26 @@ export default function App() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             
+            // Force reset balance v3 on the cloud database
+            if (!data.v3_reset) {
+              await setDoc(userDocRef, {
+                v3_reset: true,
+                updatedAt: new Date().toISOString()
+              });
+              
+              Object.keys(localStorage).forEach(key => {
+                if (key.startsWith("monarch_") && key !== "monarch_v3_balanced_reset_enforced") {
+                  localStorage.removeItem(key);
+                }
+              });
+              
+              setProfile(null);
+              setOnboardingStep(0);
+              setPhase("onboarding");
+              setIsSyncing(false);
+              return;
+            }
+            
             // Restore name and profile
             const pName = data.playerName || "Hunter";
             const oProfile = data.onboardProfile || null;
@@ -100,7 +132,7 @@ export default function App() {
               localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
             }
             if (data.gameState) {
-              localStorage.setItem(`monarch_save_v2_${pName}`, JSON.stringify(data.gameState));
+              localStorage.setItem(`monarch_save_v3_balanced_${pName}`, JSON.stringify(data.gameState));
             }
             
             // Restore secondary stats
@@ -129,10 +161,11 @@ export default function App() {
                 const initialSave: any = {
                   playerName: savedName,
                   onboardProfile: parsedProfile,
+                  v3_reset: true,
                   updatedAt: new Date().toISOString()
                 };
                 
-                const existingGameStateStr = localStorage.getItem(`monarch_save_v2_${savedName}`);
+                const existingGameStateStr = localStorage.getItem(`monarch_save_v4_reset_${savedName}`);
                 if (existingGameStateStr) {
                   initialSave.gameState = JSON.parse(existingGameStateStr);
                 }

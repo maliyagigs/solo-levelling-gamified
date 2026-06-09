@@ -71,7 +71,7 @@ interface RpgGameProps {
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
-  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "android_cloner" | "home" | "profile" | "social">("home");
+  const [activeTab, setActiveTab] = useState<"quests" | "status" | "dungeons" | "shadows" | "skills" | "backpack" | "life_forge" | "home" | "profile" | "social">("home");
   const [economyState, setEconomyState] = useState<{
     totalShares: number;
     circulatingMana: number;
@@ -411,7 +411,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Game States
   const [gameState, setGameState] = useState<GameState>(() => {
     // Attempt local storage load
-    const key = `monarch_save_v2_${playerName}`;
+    const key = `monarch_save_v4_reset_${playerName}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -465,7 +465,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     return {
       level: 1,
       exp: 0,
-      maxExp: 150,
+      maxExp: 100,
       gold: 0, // Starts at zero as requested
       statPoints: 5, // Exactly 5 starting points to allocate as requested
       baseStats: {
@@ -702,9 +702,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      { id: "job_1", company: "Aegis Guild Corp", role: "Junior Software Engineer", status: "Applied", notes: "Initial screening recruiter outreach completed" }
-    ];
+    return [];
   });
 
   // 5. Pomodoro Focus Timer States
@@ -719,7 +717,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return ["Initialized focus terminal in Chamber of Scholar Wisdom."];
+    return [];
   });
 
   // System Enforcement Compliance Switch & Penalty Protocol configurations
@@ -1006,6 +1004,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     // Grant rewards
     addExp(expAward);
     setGameState(prev => {
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      const actualGold = Math.min(goldAward, allowedGold);
+
       const offeringItem = {
         id: `offering_${Date.now()}`,
         name: "Sovereign Cognitive Offering",
@@ -1018,7 +1020,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       };
       return {
         ...prev,
-        gold: prev.gold + goldAward,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold,
         dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins,
         inventory: [...prev.inventory, offeringItem]
       };
@@ -1092,10 +1095,19 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   };
 
   const awardGold = (amt: number) => {
-    setGameState(prev => ({
-      ...prev,
-      gold: prev.gold + amt
-    }));
+    setGameState(prev => {
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      if (allowedGold <= 0) {
+        return prev;
+      }
+      const actualGold = Math.min(amt, allowedGold);
+      return {
+        ...prev,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold
+      };
+    });
   };
 
   // 1. Academics Handlers
@@ -1335,7 +1347,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Auto-save both locally and to Cloud Firestore (with debounce) whenever progress stats change
   const lastCloudSavedRef = useRef<string>("");
   useEffect(() => {
-    localStorage.setItem(`monarch_save_v2_${playerName}`, JSON.stringify(gameState));
+    localStorage.setItem(`monarch_save_v3_balanced_${playerName}`, JSON.stringify(gameState));
   }, [gameState, playerName]);
 
   useEffect(() => {
@@ -1398,7 +1410,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       
       setGameState(prev => ({
         ...prev,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + diff
+        weeklyManaAccumulated: Math.min(30, (prev.weeklyManaAccumulated ?? 0) + diff)
       }));
     } else {
       prevGoldRef.current = gameState.gold;
@@ -1412,7 +1424,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     
     // Evaluate realistic scaling bounds based on restructured XP paths
     const targetExp = gameState.level * 300 + 1500; 
-    const targetMp  = gameState.level * 20 + 80;
+    const targetMp  = 30;
 
     if (curExp > 0 && curMp > 0 && curExp >= targetExp && curMp >= targetMp) {
       
@@ -1622,18 +1634,25 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     let finalNewLevel = 1;
 
     setGameState(prev => {
+      const currentWeekly = prev.weeklyExpAccumulated ?? 0;
+      const allowedAmt = Math.max(0, 3000 - currentWeekly);
+      if (allowedAmt <= 0) {
+        // Already hit the 3000 weekly XP cap!
+        return prev;
+      }
+      const actualAmt = Math.min(amt, allowedAmt);
       oldLevel = prev.level;
-      let newExp = prev.exp + amt;
+      let newExp = prev.exp + actualAmt;
       let newLevel = prev.level;
       let max = prev.maxExp;
       let statPoints = prev.statPoints;
-      let newWeeklyExp = (prev.weeklyExpAccumulated ?? 0) + amt;
+      const newWeeklyExp = currentWeekly + actualAmt;
 
       while (newExp >= max) {
         newExp -= max;
         newLevel += 1;
         statPoints += 5; // Exactly 5 more stat points to allocate per level as requested
-        max = newLevel * 250 + 150;
+        max = Math.round(100 + Math.pow(newLevel, 1.9) * 15 + Math.pow(newLevel, 2.8) * 0.15);
         leveledUp = true;
       }
       finalNewLevel = newLevel;
@@ -1701,9 +1720,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         }
         return q;
       });
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      const actualGold = Math.min(finalGoldAward, allowedGold);
       return {
         ...prev,
-        gold: prev.gold + finalGoldAward,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold,
         quests: list
       };
     });
@@ -1733,10 +1756,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     const finalDailyGold = Math.round(5 * prestigeHaloMultiplier);
 
     addExp(50);
-    setGameState(prev => ({
-      ...prev,
-      gold: prev.gold + finalDailyGold
-    }));
+    setGameState(prev => {
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      const actualGold = Math.min(finalDailyGold, allowedGold);
+      return {
+        ...prev,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold
+      };
+    });
 
     // Trigger premium full screen cinematic milestone overlay
     setMilestoneOverlay({
@@ -1835,10 +1864,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (stakedYield <= 0) return;
     playLootSound();
     
-    setGameState(prev => ({
-      ...prev,
-      gold: prev.gold + stakedYield
-    }));
+    setGameState(prev => {
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      const actualGold = Math.min(stakedYield, allowedGold);
+      return {
+        ...prev,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold
+      };
+    });
     triggerSystemToast(`🌾 HARVEST SECURED: Formally claimed +${stakedYield} MP of accumulated compound spatial interest into liquid reserves!`);
     setStakedYield(0);
   };
@@ -3024,9 +3059,13 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (lootDropped && !inv.some(item => item.id === lootDropped?.id)) {
         inv.push(lootDropped);
       }
+      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+      const actualGold = Math.min(gold, allowedGold);
       return {
         ...prev,
-        gold: prev.gold + gold,
+        gold: prev.gold + actualGold,
+        weeklyManaAccumulated: currentWeeklyMp + actualGold,
         inventory: inv,
         dailyGatesCleared: (prev.dailyGatesCleared ?? 0) + 1
       };
@@ -3249,12 +3288,12 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             )}
             {renderCircularProgress(
               gameState.weeklyManaAccumulated ?? 0,
-              gameState.level * 20 + 80,
+              30,
               "#eab308",
               "#d97706",
               "rgba(234, 179, 8, 0.4)",
               "WEEKLY MP",
-              `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 20 + 80}`,
+              `${gameState.weeklyManaAccumulated ?? 0}/30`,
               <Zap className="w-3 h-3 text-yellow-400" />,
               "wk-desktop"
             )}
@@ -3366,8 +3405,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         {/* TAB CONTROLLERS & DETAILED TAB CONTENT (RIGHT PANEL - EXPANDED GRIDS) */}
         <div className="lg:col-span-9 xl:col-span-10 space-y-5">
           
-          {/* Top horizontal sub-tabs for each section - visible on all screens */}
-          <div className="sticky top-[64px] z-20 py-3 bg-slate-950/98 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4" id="section_sub_navigation">
+          {/* Top horizontal sub-tabs for each section - visible on mobile screens */}
+          <div className="sticky top-[64px] z-20 py-3 bg-slate-950/98 backdrop-blur-xl border-b border-slate-900 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-4 lg:hidden" id="section_sub_navigation">
             <div className="grid grid-cols-3 gap-2 w-full max-w-2xl mx-auto px-1 sm:px-4">
               {(() => {
                 const tabs = getMobileSubtabs();
@@ -3438,15 +3477,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           {/* Render Active Tab Screen details */}
           <div className="bg-slate-900/20 rounded-3xl min-h-[400px]">
             
-            {/* A0_1. HOME TAB (Mobile only view representing character overview) */}
+            {/* A0_1. HOME TAB (Now visible on all sizes for a unified dashboard experience) */}
             {activeTab === "home" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:hidden space-y-4">
+              <motion.div key="home-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 block">
                 
-                {/* Level Up details / player indicator */}
-                <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md relative overflow-hidden">
-                  <div className="flex items-center gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Level Up details / player indicator - Main Profile Card */}
+                  <div className="md:col-span-2 lg:col-span-1 bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden flex flex-col justify-center items-center text-center">
                     <AvatarWithFrame 
-                      size="md" 
+                      size="xl" 
                       playerName={playerName} 
                       level={gameState.level} 
                       profileImage={profileImage} 
@@ -3455,127 +3494,145 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         setActiveTab("profile");
                       }}
                     />
-                    <div>
-                      <h4 className="text-xl font-bold font-mono text-cyan-400">{playerName}</h4>
-                      <p className="text-xs text-slate-300">{gameState.rank} &middot; {gameState.job}</p>
+                    <div className="mt-4">
+                      <h4 className="text-2xl font-black font-mono text-cyan-400 tracking-tight">{playerName}</h4>
+                      <p className="text-sm font-mono text-slate-400 uppercase tracking-widest mt-1">{gameState.rank} &middot; {gameState.job}</p>
+                    </div>
+                    
+                    <div className="mt-6 w-full pt-6 border-t border-slate-900/50 grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <span className="text-[10px] text-slate-500 uppercase block font-mono">Mana</span>
+                        <span className="text-lg font-bold text-cyan-300 font-mono">{gameState.gold}</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-[10px] text-slate-500 uppercase block font-mono">Level</span>
+                        <span className="text-lg font-bold text-purple-400 font-mono">{gameState.level}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Middle Column: Growth Stats & Performance (Only if not already in sidebar or as a complement) */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Level Exp & Mana Circular Progress Section */}
+                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-slate-900/50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="w-4 h-4 text-cyan-400" />
+                        <h5 className="text-xs font-mono font-black text-slate-400 uppercase tracking-widest">Growth Analytics</h5>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        {renderCircularProgress(
+                          gameState.exp,
+                          gameState.maxExp,
+                          "#22d3ee",
+                          "#4f46e5",
+                          "rgba(34, 211, 238, 0.4)",
+                          "LEVEL XP",
+                          `${gameState.exp}/${gameState.maxExp}`,
+                          <Activity className="w-4 h-4 text-cyan-400" />,
+                          "xp-home-detail"
+                        )}
+                        {renderCircularProgress(
+                          gameState.weeklyManaAccumulated ?? 0,
+                          30,
+                          "#eab308",
+                          "#d97706",
+                          "rgba(234, 179, 8, 0.4)",
+                          "WEEKLY MP",
+                          `${gameState.weeklyManaAccumulated ?? 0}/30`,
+                          <Zap className="w-4 h-4 text-yellow-400" />,
+                          "wk-home-detail"
+                        )}
+                        {renderCircularProgress(
+                          gameState.weeklyExpAccumulated ?? 0,
+                          gameState.level * 300 + 1500,
+                          "#a855f7",
+                          "#6366f1",
+                          "rgba(168, 85, 247, 0.4)",
+                          "WEEKLY XP",
+                          `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
+                          <TrendingUp className="w-4 h-4 text-purple-400" />,
+                          "wexp-home-detail"
+                        )}
+                      </div>
+                    </div>
+
+                    {/* DAILY PERFORMANCE BARS */}
+                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-slate-900/50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Activity className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest">Daily Performance Grid</span>
+                      </div>
+                      <div className="flex justify-around items-end h-36">
+                        {renderVerticalBar(
+                          gameState.quests.filter(q => q.completed).length,
+                          gameState.quests.length || 5,
+                          "QUESTS",
+                          "#f43f5e",
+                          <Target className="w-4 h-4 text-white" />
+                        )}
+                        {renderVerticalBar(
+                          gameState.dailyGatesCleared ?? 0,
+                          5,
+                          "GATES",
+                          "#22d3ee",
+                          <Sword className="w-4 h-4 text-white" />
+                        )}
+                        {renderVerticalBar(
+                          gameState.dailyFocusMinutes ?? 0,
+                          onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
+                          "WORK",
+                          "#6366f1",
+                          <BookOpen className="w-4 h-4 text-white" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Level Exp & Mana Circular Progress Section */}
-                <div className="bg-slate-950/75 p-3 rounded-2xl backdrop-blur-md grid grid-cols-3 gap-2">
-                  {renderCircularProgress(
-                    gameState.exp,
-                    gameState.maxExp,
-                    "#22d3ee",
-                    "#4f46e5",
-                    "rgba(34, 211, 238, 0.4)",
-                    "LEVEL XP",
-                    `${gameState.exp}/${gameState.maxExp}`,
-                    <Activity className="w-4 h-4 text-cyan-400" />,
-                    "xp-mobile"
-                  )}
-                  {renderCircularProgress(
-                    gameState.weeklyManaAccumulated ?? 0,
-                    gameState.level * 20 + 80,
-                    "#eab308",
-                    "#d97706",
-                    "rgba(234, 179, 8, 0.4)",
-                    "WEEKLY MP",
-                    `${gameState.weeklyManaAccumulated ?? 0}/${gameState.level * 20 + 80}`,
-                    <Zap className="w-4 h-4 text-yellow-400" />,
-                    "wk-mobile"
-                  )}
-                  {renderCircularProgress(
-                    gameState.weeklyExpAccumulated ?? 0,
-                    gameState.level * 300 + 1500,
-                    "#a855f7",
-                    "#6366f1",
-                    "rgba(168, 85, 247, 0.4)",
-                    "WEEKLY XP",
-                    `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
-                    <TrendingUp className="w-4 h-4 text-purple-400" />,
-                    "wexp-mobile"
-                  )}
-
-                  <div className="col-span-1" />
-
-                  <div className="col-span-2 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-900/40 pt-2 mt-1 px-1 font-mono">
-                    <span>REGISTRY TIER:</span>
-                    <span className="text-yellow-400 font-bold uppercase">{powerScaling.label}</span>
-                  </div>
-                </div>
-
-                {/* DAILY PERFORMANCE BARS (VERTICAL - MOBILE) */}
-                <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md border border-indigo-500/10">
-                  <div className="flex items-center gap-2 mb-3 px-1">
-                    <Activity className="w-3 h-3 text-cyan-400" />
-                    <span className="text-[9px] font-mono font-black text-cyan-400 uppercase tracking-widest">Daily Performance Metrics</span>
-                  </div>
-                  <div className="flex justify-around items-end h-32">
-                    {renderVerticalBar(
-                      gameState.quests.filter(q => q.completed).length,
-                      gameState.quests.length || 5,
-                      "QUESTS",
-                      "#f43f5e",
-                      <Target className="w-3.5 h-3.5 text-white" />
-                    )}
-                    {renderVerticalBar(
-                      gameState.dailyGatesCleared ?? 0,
-                      5,
-                      "GATES",
-                      "#22d3ee",
-                      <Sword className="w-3.5 h-3.5 text-white" />
-                    )}
-                    {renderVerticalBar(
-                      gameState.dailyFocusMinutes ?? 0,
-                      onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
-                      "WORK",
-                      "#6366f1",
-                      <BookOpen className="w-3.5 h-3.5 text-white" />
-                    )}
-                  </div>
-                </div>
-
-              {/* Story Campaigns Indicator */}
-                <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3">
-                  <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
-                  <div className="space-y-2 text-[11px]">
-                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
-                      <span className={gameState.level >= 1 ? "text-cyan-400 font-medium" : "text-slate-600"}>1. Double Dungeon Rescue</span>
-                      <span className="text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase">CLEARED</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Story Campaigns Indicator */}
+                  <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4">
+                    <div className="flex items-center gap-2 border-b border-slate-900 pb-3">
+                      <Map className="w-4 h-4 text-slate-400" />
+                      <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
                     </div>
+                    <div className="space-y-2.5 text-[11px]">
+                      <div className="flex justify-between items-center p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                        <span className={gameState.level >= 1 ? "text-cyan-400 font-bold" : "text-slate-600"}>1. Double Dungeon Rescue</span>
+                        <span className="text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase">CLEARED</span>
+                      </div>
 
-                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
-                      <span className={gameState.level >= 25 ? "text-cyan-400 font-medium" : "text-slate-600"}>2. Red Gate Assault [Rank B]</span>
-                      <span className={gameState.level >= 25 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
-                        {gameState.level >= 25 ? "AWAKENED" : `Unlocks at Level 25`}
-                      </span>
-                    </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                        <span className={gameState.level >= 25 ? "text-cyan-400 font-bold" : "text-slate-600"}>2. Red Gate Assault [Rank B]</span>
+                        <span className={gameState.level >= 25 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
+                          {gameState.level >= 25 ? "AWAKENED" : `Level 25 Required`}
+                        </span>
+                      </div>
 
-                    <div className="flex justify-between items-center p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
-                      <span className={gameState.level >= 70 ? "text-cyan-400 font-medium" : "text-slate-600"}>3. Monarch Battle - Jeju Island</span>
-                      <span className={gameState.level >= 70 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
-                        {gameState.level >= 70 ? "SOVEREIGN OWNER" : `Unlocks at Level 70`}
-                      </span>
+                      <div className="flex justify-between items-center p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                        <span className={gameState.level >= 70 ? "text-cyan-400 font-bold" : "text-slate-600"}>3. Monarch Battle - Jeju Island</span>
+                        <span className={gameState.level >= 70 ? "text-cyan-400 font-bold text-[9px] bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/30 uppercase" : "text-slate-500 text-[10px]"}>
+                          {gameState.level >= 70 ? "SOVEREIGN" : `Level 70 Required`}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* System Messages */}
-                <div className="bg-slate-950/75 border border-amber-900/30 p-4 rounded-2xl backdrop-blur-md font-mono text-xs space-y-3 relative overflow-hidden">
-                  <div className="flex items-center gap-1.5 pb-2 border-b border-amber-900/40">
-                    <span className="text-amber-400">🔔</span>
-                    <span className="text-amber-400 font-extrabold uppercase tracking-widest text-[10px]">Command Directives</span>
-                  </div>
-                  <div className="space-y-3 text-[11px] leading-relaxed text-slate-300">
-                    <div className="bg-slate-900/60 p-2.5 rounded-xl border border-red-950/30">
-                      <p className="text-red-400 font-bold uppercase mb-0.5 text-[9px]">Penalty Protocol Active</p>
-                      <p className="text-slate-400">All Daily Quests must be finalized before midnight. Incomplete logs trigger severe MP and XP drain sanctioning.</p>
+                  {/* System Messages */}
+                  <div className="bg-slate-950/75 border border-amber-900/30 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 relative overflow-hidden">
+                    <div className="flex items-center gap-2 pb-3 border-b border-amber-900/40">
+                      <Bell className="w-4 h-4 text-amber-400" />
+                      <span className="text-amber-400 font-extrabold uppercase tracking-widest text-[10px]">Command Directives</span>
                     </div>
-                    <div className="bg-slate-900/60 p-2.5 rounded-xl border border-cyan-950/30">
-                      <p className="text-cyan-400 font-bold uppercase mb-0.5 text-[9px]">Alchemical Evolution</p>
-                      <p className="text-slate-400">Use Life Forge to execute focused learning runs. Gaining intellect is key to casting powerful runes.</p>
+                    <div className="space-y-4 text-[11px] leading-relaxed text-slate-300">
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-red-950/30">
+                        <p className="text-red-400 font-bold uppercase mb-1 text-[9px]">Penalty Protocol Active</p>
+                        <p className="text-slate-400 leading-relaxed">All Daily Quests must be finalized before midnight. Incomplete logs trigger severe MP and XP drain sanctioning via the system core.</p>
+                      </div>
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-cyan-950/30">
+                        <p className="text-cyan-400 font-bold uppercase mb-1 text-[9px]">Alchemical Evolution</p>
+                        <p className="text-slate-400 leading-relaxed">Use Life Forge to execute focused learning runs. Gaining intellect is key to casting powerful runes and summons.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3584,7 +3641,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* A0_2. PROFILE TAB (Representing profile details) */}
             {activeTab === "profile" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-xl mx-auto w-full">
+              <motion.div key="profile-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-xl mx-auto w-full">
                 {/* Profile Identification Grid */}
                 <div className="p-5 bg-slate-950/75 rounded-2xl border border-slate-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative overflow-hidden group/profile shadow-xl">
                   <AvatarWithFrame 
@@ -3732,7 +3789,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             
             {/* A. STATUS TAB: Stat allocator and character profiles */}
             {activeTab === "status" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="status-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                   <div className="flex justify-between items-center">
@@ -3927,6 +3984,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             {/* L. LEADERBOARD TAB: Global real-time Firebase Sync */}
             {activeTab === "social" && (
               <SocialHub 
+                 key="social-hub"
                  playerName={playerName} 
                  playSelectSound={playSelectSound} 
                  onOpenPartyMode={() => {}}
@@ -3936,7 +3994,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* B. QUESTS TAB: Gamified Workout checklists */}
             {activeTab === "quests" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="quests-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
                 <div id="quests_checklists" className="space-y-4">
                   {gameState.quests.map((quest) => {
@@ -4041,10 +4099,16 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         
                         // Add actual real game parameters!
                         addExp(quest.rewardExp);
-                        setGameState(prev => ({
-                          ...prev,
-                          gold: prev.gold + quest.rewardGold
-                        }));
+                        setGameState(prev => {
+                          const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
+                          const allowedGold = Math.max(0, 30 - currentWeeklyMp);
+                          const actualGold = Math.min(quest.rewardGold, allowedGold);
+                          return {
+                            ...prev,
+                            gold: prev.gold + actualGold,
+                            weeklyManaAccumulated: currentWeeklyMp + actualGold
+                          };
+                        });
 
                         setAdminQuestProgress(prev => ({
                           ...prev,
@@ -4182,7 +4246,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* C. DUNGEONS TAB: Real-time interactive Dungeon battles */}
             {activeTab === "dungeons" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="dungeons-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 {forceSystemEnforcement && gameState.quests.some((q: any) => q.current < q.target) ? (
                   <div className="bg-slate-950/80 border-2 border-red-500/30 p-5 sm:p-8 rounded-3xl text-center font-mono space-y-6 shadow-[0_0_30px_rgba(239,68,68,0.15)] backdrop-blur-md">
@@ -4463,7 +4527,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* D. SHADOWS LEGION TAB: Raise dead entities */}
             {activeTab === "shadows" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="shadows-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <div className="flex flex-wrap justify-between items-center gap-3">
@@ -4523,7 +4587,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* E. SKILL-TREE TAB: Special fighting actions */}
             {activeTab === "skills" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="skills-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md">
                   <span className="text-[10px] font-mono text-slate-500 uppercase block font-bold">SPELLS & CONSCIOUSNESS MATRIX</span>
@@ -4575,7 +4639,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* F. BACKPACK TAB: Armour weapon repository */}
             {activeTab === "backpack" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="backpack-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                   
                   <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.05)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
@@ -4754,7 +4818,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* C_2. THE MARKET SYSTEM PORTAL */}
             {activeTab === "market" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="market-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 {/* Visual Header */}
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
@@ -4855,7 +4919,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* D. THE LIFE FORGE SYSTEM PORTAL */}
             {activeTab === "life_forge" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <motion.div key="life-forge-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 
                 {/* Visual Header */}
                 <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden">
@@ -6225,11 +6289,28 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 </button>
                 <button 
                   className="py-2.5 bg-red-900/80 hover:bg-red-950 border border-red-500 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
-                  onClick={() => {
+                  onClick={async () => {
+                    // Wipe everything from LocalStorage
+                    localStorage.removeItem(`monarch_save_v3_balanced_${playerName}`);
                     localStorage.removeItem(`monarch_save_v2_${playerName}`);
                     localStorage.removeItem(`monarch_daily_claim_${playerName}`);
                     localStorage.removeItem("monarch_active_player");
                     localStorage.removeItem("monarch_onboard_profile");
+                    
+                    // Force clean reset in Firestore if logged in
+                    const uid = auth.currentUser?.uid;
+                    if (uid) {
+                      try {
+                        const userDocRef = doc(db, "users", uid);
+                        await setDoc(userDocRef, {
+                          v3_reset: true,
+                          updatedAt: new Date().toISOString()
+                        });
+                      } catch (err) {
+                        console.error("Failed to reset firestore doc on purge:", err);
+                      }
+                    }
+                    
                     window.location.reload();
                   }}
                 >
