@@ -1819,7 +1819,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 overflow-y-auto overflow-x-hidden">
       
       {/* Dynamic Floating Notification alert - Auto Clears in 4s */}
       <AnimatePresence>

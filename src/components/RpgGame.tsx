@@ -3103,7 +3103,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   };
 
   return (
-    <main role="main" id="rpg_game_container" className="min-h-screen bg-transparent text-white flex flex-col font-sans relative">
+    <main role="main" id="rpg_game_container" className="min-h-[100dvh] bg-transparent text-white flex flex-col font-sans relative overflow-y-auto overflow-x-hidden">
       
       {/* 🚨 SOVEREIGN PENALTY INTERCEPT PROTOCOL OVERLAY */}
       {false && (
@@ -3253,7 +3253,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </nav>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-32 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start min-h-screen">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-32 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start min-h-[100dvh]">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">

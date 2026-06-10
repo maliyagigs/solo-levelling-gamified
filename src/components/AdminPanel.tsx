@@ -993,7 +993,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   };
 
   return (
-    <main role="main" id="admin_main_layout" className="min-h-screen bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300">
+    <main role="main" id="admin_main_layout" className="min-h-[100dvh] bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300 overflow-y-auto">
       
       {/* Absolute Header with back button */}
       <nav aria-label="Admin Navigation" className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">

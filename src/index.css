@@ -27,7 +27,7 @@
 #rpg_game_container {
   background-color: transparent !important;
   background-image: none !important;
-  min-height: 100vh !important;
+  min-height: 100dvh !important;
 }
 
 /* Style the dashboard top header bar to have an elegant translucent cyber glaze */
@@ -76,6 +76,20 @@ nav[aria-label="System Status"] {
 html, body {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Allow selection in inputs and specific areas */
+input, textarea, [contenteditable="true"], .selectable-text {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Optimize touch interactions for mobile links and buttons */

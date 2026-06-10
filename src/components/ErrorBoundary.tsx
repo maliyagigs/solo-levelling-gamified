@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center justify-center p-6 text-center">
+        <div className="min-h-[100dvh] bg-slate-950 text-white font-sans flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
           <div className="bg-slate-900/80 p-8 rounded-2xl border border-red-500/30 max-w-lg shadow-2xl backdrop-blur-md">
             <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6 opacity-80" />
             <h1 className="text-2xl font-bold text-red-400 tracking-tight uppercase mb-2">SYSTEM FAILURE DETECTED</h1>
