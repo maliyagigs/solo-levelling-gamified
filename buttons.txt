@@ -1,0 +1,160 @@
+src/components/AdminPanel.tsx:1006:        <button 
+src/components/AdminPanel.tsx:1072:              <button 
+src/components/AdminPanel.tsx:1082:              <button 
+src/components/AdminPanel.tsx:1116:                  <button
+src/components/AdminPanel.tsx:1145:              <button 
+src/components/AdminPanel.tsx:1152:              <button 
+src/components/AdminPanel.tsx:1160:              <button 
+src/components/AdminPanel.tsx:1351:                        <button 
+src/components/AdminPanel.tsx:1363:                      <button 
+src/components/AdminPanel.tsx:1435:                                  <button 
+src/components/AdminPanel.tsx:1442:                                  <button 
+src/components/AdminPanel.tsx:1511:                        <button 
+src/components/AdminPanel.tsx:1522:                      <button 
+src/components/AdminPanel.tsx:1567:                            <button 
+src/components/AdminPanel.tsx:1573:                            <button 
+src/components/AdminPanel.tsx:1673:                        <button 
+src/components/AdminPanel.tsx:1691:                      <button 
+src/components/AdminPanel.tsx:1716:                                <button 
+src/components/AdminPanel.tsx:1722:                                <button 
+src/components/AdminPanel.tsx:1843:                        <button 
+src/components/AdminPanel.tsx:1862:                      <button 
+src/components/AdminPanel.tsx:1911:                              <button 
+src/components/AdminPanel.tsx:1918:                              <button 
+src/components/AdminPanel.tsx:2115:                        <button 
+src/components/AdminPanel.tsx:2139:                      <button 
+src/components/AdminPanel.tsx:2191:                              <button 
+src/components/AdminPanel.tsx:2198:                              <button 
+src/components/AdminPanel.tsx:2225:                     <button 
+src/components/AdminPanel.tsx:2242:                      <button 
+src/components/AdminPanel.tsx:2264:                            <button 
+src/components/AdminPanel.tsx:2301:                             <button 
+src/components/AuthScreen.tsx:133:          <button
+src/components/AuthScreen.tsx:148:          <button
+src/components/AuthScreen.tsx:241:          <button
+src/components/AuthScreen.tsx:263:                <button
+src/components/AuthScreen.tsx:274:                <button
+src/components/AuthScreen.tsx:288:          <button
+src/components/ErrorBoundary.tsx:55:              <button 
+src/components/ErrorBoundary.tsx:62:              <button 
+src/components/Onboarding.tsx:312:              <button
+src/components/Onboarding.tsx:343:                        <button
+src/components/Onboarding.tsx:362:                      <button 
+src/components/Onboarding.tsx:368:                      <button 
+src/components/Onboarding.tsx:382:                      <button
+src/components/Onboarding.tsx:396:                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightFeet(prev => Math.max(3, prev - 1))}>-</button>
+src/components/Onboarding.tsx:398:                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightFeet(prev => Math.min(9, prev + 1))}>+</button>
+src/components/Onboarding.tsx:404:                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightInches(prev => Math.max(0, prev - 1))}>-</button>
+src/components/Onboarding.tsx:406:                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightInches(prev => Math.min(11, prev + 1))}>+</button>
+src/components/Onboarding.tsx:412:                        <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightCm(prev => Math.max(90, prev - 1))}>-</button>
+src/components/Onboarding.tsx:414:                        <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightCm(prev => Math.min(270, prev + 1))}>+</button>
+src/components/Onboarding.tsx:422:                      <button
+src/components/Onboarding.tsx:435:                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+src/components/Onboarding.tsx:442:                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+src/components/Onboarding.tsx:452:                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+src/components/Onboarding.tsx:459:                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+src/components/Onboarding.tsx:470:              <button
+src/components/Onboarding.tsx:536:                        <button
+src/components/Onboarding.tsx:578:                          <button
+src/components/Onboarding.tsx:599:              <button
+src/components/Onboarding.tsx:671:                        <button
+src/components/Onboarding.tsx:698:                        <button
+src/components/Onboarding.tsx:717:              <button
+src/components/Onboarding.tsx:764:                          <button
+src/components/Onboarding.tsx:810:                      <button 
+src/components/Onboarding.tsx:822:                          <button
+src/components/Onboarding.tsx:857:                <button
+src/components/Onboarding.tsx:865:                <button
+src/components/Onboarding.tsx:883:          <button
+src/components/Onboarding.tsx:902:          <button
+src/components/Onboarding.tsx:952:                <button
+src/components/Onboarding.tsx:959:                <button
+src/components/PartyMode.tsx:25:          <button aria-label="Go Back" onClick={() => { try { playSelectSound(); } catch(e){} onBack(); }} className="p-2.5 bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all hover:scale-105 active:scale-95">
+src/components/PartyMode.tsx:68:            <button 
+src/components/PlanPreview.tsx:291:                <button
+src/components/PlanPreview.tsx:409:                <button
+src/components/PlanPreview.tsx:613:                <button
+src/components/PlanPreview.tsx:675:                <button
+src/components/RpgGame.tsx:2615:          <button 
+src/components/RpgGame.tsx:3229:          <button 
+src/components/RpgGame.tsx:3246:          <button 
+src/components/RpgGame.tsx:3266:          <button 
+src/components/RpgGame.tsx:3423:                      <button
+src/components/RpgGame.tsx:3460:              <button
+src/components/RpgGame.tsx:3672:                    <button 
+src/components/RpgGame.tsx:3680:                      <button 
+src/components/RpgGame.tsx:3726:                      <button className="py-2.5 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+src/components/RpgGame.tsx:3729:                      <button 
+src/components/RpgGame.tsx:3760:                    <button 
+src/components/RpgGame.tsx:3772:                    <button 
+src/components/RpgGame.tsx:4023:                                <button
+src/components/RpgGame.tsx:4029:                                <button
+src/components/RpgGame.tsx:4152:                                  <button
+src/components/RpgGame.tsx:4158:                                  <button
+src/components/RpgGame.tsx:4195:                    <button 
+src/components/RpgGame.tsx:4203:                    <button 
+src/components/RpgGame.tsx:4272:                      <button 
+src/components/RpgGame.tsx:4356:                                <button className="w-full py-2.5 bg-slate-900 border border-slate-900 rounded-xl text-[10px] text-slate-500 uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1">
+src/components/RpgGame.tsx:4361:                                <button
+src/components/RpgGame.tsx:4368:                                <button className="w-full py-2.5 bg-indigo-950/60 text-indigo-400 border border-indigo-500/20 rounded-xl text-[10px] uppercase tracking-widest cursor-wait flex items-center justify-center gap-2">
+src/components/RpgGame.tsx:4373:                                <button
+src/components/RpgGame.tsx:4393:                      <button 
+src/components/RpgGame.tsx:4482:                          <button
+src/components/RpgGame.tsx:4494:                            <button
+src/components/RpgGame.tsx:4501:                            <button
+src/components/RpgGame.tsx:4508:                            <button
+src/components/RpgGame.tsx:4572:                        <button
+src/components/RpgGame.tsx:4623:                          <button
+src/components/RpgGame.tsx:4885:                               <button
+src/components/RpgGame.tsx:4897:                               <button
+src/components/RpgGame.tsx:4941:                    <button 
+src/components/RpgGame.tsx:4968:                      <button
+src/components/RpgGame.tsx:5037:                        <button 
+src/components/RpgGame.tsx:5067:                                    <button 
+src/components/RpgGame.tsx:5091:                                      <button 
+src/components/RpgGame.tsx:5140:                            <button
+src/components/RpgGame.tsx:5157:                            <button
+src/components/RpgGame.tsx:5166:                            <button
+src/components/RpgGame.tsx:5191:                                  <button
+src/components/RpgGame.tsx:5289:                        <button 
+src/components/RpgGame.tsx:5319:                                    <button 
+src/components/RpgGame.tsx:5339:                                    <button 
+src/components/RpgGame.tsx:5385:                              <button
+src/components/RpgGame.tsx:5418:                              <button
+src/components/RpgGame.tsx:5465:                              <button 
+src/components/RpgGame.tsx:5492:                              <button 
+src/components/RpgGame.tsx:5519:                              <button 
+src/components/RpgGame.tsx:5546:                              <button 
+src/components/RpgGame.tsx:5620:                          <button 
+src/components/RpgGame.tsx:5663:                                <button
+src/components/RpgGame.tsx:6133:              <button 
+src/components/RpgGame.tsx:6201:              <button 
+src/components/RpgGame.tsx:6237:                <button 
+src/components/RpgGame.tsx:6243:                <button 
+src/components/RpgGame.tsx:6283:                <button 
+src/components/RpgGame.tsx:6289:                <button 
+src/components/RpgGame.tsx:6350:                  <button 
+src/components/RpgGame.tsx:6428:                      <button className="py-2 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
+src/components/RpgGame.tsx:6431:                      <button 
+src/components/RpgGame.tsx:6445:                      <button 
+src/components/RpgGame.tsx:6466:                    <button 
+src/components/RpgGame.tsx:6482:                <button 
+src/components/RpgGame.tsx:6611:            <button
+src/components/RpgGame.tsx:6670:              <button
+src/components/RpgGame.tsx:6684:              <button
+src/components/RpgGame.tsx:6791:                        <button aria-label="Close"
+src/components/RpgGame.tsx:6799:                           <button aria-label="Watch Ad"
+src/components/RpgGame.tsx:6814:                           <button aria-label="Purchase"
+src/components/RpgGame.tsx:6901:                      <button aria-label="Cancel Ad"
+src/components/RpgGame.tsx:6907:                      <button aria-label="Claim Reward"
+src/components/RpgGame.tsx:6993:                 <button aria-label="Close Briefing"
+src/components/SocialHub.tsx:70:                <button aria-label="Accept Request" onClick={() => onAccept(friendship.id)} className="bg-green-500/10 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-all"><CheckCircle className="w-5 h-5" /></button>
+src/components/SocialHub.tsx:71:                <button aria-label="Decline Request" onClick={() => onDecline(friendship.id)} className="bg-red-500/10 text-red-400 p-2 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all"><XCircle className="w-5 h-5" /></button>
+src/components/SocialHub.tsx:75:            <button 
+src/components/SocialHub.tsx:204:        <button 
+src/components/SocialHub.tsx:223:          <button
+src/components/SocialHub.tsx:254:                    <button 
+src/components/SocialHub.tsx:285:                   <button type="submit" className="bg-indigo-500 text-white p-3 rounded-xl hover:bg-indigo-400 transition-colors shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+src/components/SocialHub.tsx:303:                              <button 
+src/components/SocialHub.tsx:327:                   <button type="submit" className="bg-cyan-500 text-white p-3 rounded-xl hover:bg-cyan-400 transition-colors shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+src/components/SocialHub.tsx:361:                           <button 

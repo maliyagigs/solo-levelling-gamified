@@ -1,0 +1,16 @@
+{
+  "name": "Monarch RPG",
+  "short_name": "Monarch",
+  "description": "Gamified self-development progression tracker.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192 512x512",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -153,6 +153,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   }, [activeDmFriend, playerName]);
 
   useEffect(() => {
+    if (!playerName) return;
     const unsub = listenToFriendships(playerName, (list) => {
       setFriendships(list);
     });

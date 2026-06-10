@@ -1064,6 +1064,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
 
   // 1. Live Sync Party Lobbies
   useEffect(() => {
+    if (!playerName) return;
     const q = query(collection(db, "party_lobbies"), orderBy("createdAt", "desc"), limit(30));
     const unsub = onSnapshot(q, (snapshot) => {
       const list: any[] = [];
@@ -1095,6 +1096,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
 
   // 2. Live Sync Hunter Forums (Intel Communal Network)
   useEffect(() => {
+    if (!playerName) return;
     const q = query(collection(db, "hunter_forum"), orderBy("timestamp", "desc"), limit(40));
     const unsub = onSnapshot(q, (snapshot) => {
       const list: ForumPost[] = [];
@@ -1106,7 +1108,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
       handleFirestoreError(error, OperationType.GET, "hunter_forum");
     });
     return () => unsub();
-  }, []);
+  }, [playerName]);
 
   // Cooldown tick generator
   useEffect(() => {

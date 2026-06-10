@@ -1,45 +1,15 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  Dumbbell, 
-  Sword, 
-  Sparkles, 
   ChevronRight, 
   ChevronLeft, 
   ShieldAlert, 
-  Music, 
-  Instagram, 
-  Facebook, 
-  Youtube, 
-  Search, 
-  User, 
-  MoreHorizontal, 
-  Layers, 
-  Flame, 
-  Compass, 
-  Heart, 
-  Activity, 
-  Brain, 
-  GraduationCap, 
-  UserCheck, 
-  Calendar,
   Bell,
   Check,
-  Volume2,
-  VolumeX
+  ShieldCheck
 } from "lucide-react";
 import { OnboardingData } from "../types";
 import { 
-  FITNESS_GOALS, 
-  REFERRAL_SOURCES, 
-  FITNESS_MOTIVATIONS, 
-  FOCUS_AREAS, 
-  ARCHETYPES, 
   EQUIPMENTS_LIST,
   SOVEREIGN_ASCENSION_GOALS,
   ACADEMIC_DISCIPLINE_LIST,
@@ -70,45 +40,46 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
     setStep(initialStep);
   }, [initialStep]);
 
-  // Form states
-  const [gender, setGender] = useState<string>("");
-  const [focusGoal, setFocusGoal] = useState<string>("");
-  const [referredBy, setReferredBy] = useState<string>("");
-  const [motivation, setMotivation] = useState<string>("");
-  const [focusArea, setFocusArea] = useState<string>("");
-  const [archetype, setArchetype] = useState<string>("");
-  const [fitnessLevel, setFitnessLevel] = useState<string>("");
-  const [activityLevel, setActivityLevel] = useState<string>("");
+  // Form states matching original properties
+  const [gender, setGender] = useState<string>("Male");
+  const [focusGoal, setFocusGoal] = useState<string>("bodybuilding");
+  const [referredBy, setReferredBy] = useState<string>("system_portal");
+  const [motivation, setMotivation] = useState<string>("limitless_growth");
+  const [focusArea, setFocusArea] = useState<string>("overall_conditioning");
+  const [archetype, setArchetype] = useState<string>("sovereign_leader");
+  
+  const [fitnessLevel, setFitnessLevel] = useState<string>("beginner");
+  const [activityLevel, setActivityLevel] = useState<string>("light active");
 
-  // New features form states
+  // Custom scrolling/incremement selectors
+  const [age, setAge] = useState<number>(24);
+  const [heightFeet, setHeightFeet] = useState<number>(5);
+  const [heightInches, setHeightInches] = useState<number>(10);
+  const [isMetricHeight, setIsMetricHeight] = useState<boolean>(false);
+  const [heightCm, setHeightCm] = useState<number>(178);
+
+  const [weight, setWeight] = useState<number>(160); // Standard imperial
+  const [isMetricWeight, setIsMetricWeight] = useState<boolean>(false);
+  const [weightKg, setWeightKg] = useState<number>(72);
+
+  const [targetWeight, setTargetWeight] = useState<number>(175);
+  const [targetWeightKg, setTargetWeightKg] = useState<number>(80);
+
+  const [healthIssues, setHealthIssues] = useState<string>("");
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>(["barbell", "dumbbells"]);
+  const [workoutFrequency, setWorkoutFrequency] = useState<number>(4);
+  const [workoutDays, setWorkoutDays] = useState<string[]>(["Mon", "Wed", "Fri", "Sat"]);
+  const [workoutReminder, setWorkoutReminder] = useState<boolean>(true);
+
+  // Advanced customized profile fields
   const [academicSubject, setAcademicSubject] = useState<string>("comp_sci");
   const [academicSessionsGoal, setAcademicSessionsGoal] = useState<number>(4);
   const [careerTargetRole, setCareerTargetRole] = useState<string>("software_eng");
   const [careerPrepActivity, setCareerPrepActivity] = useState<string>("leetcode");
   const [bodybuildingSplit, setBodybuildingSplit] = useState<string>("push_pull_legs");
   const [fitnessDietGoal, setFitnessDietGoal] = useState<string>("recomp");
-  
-  // Custom scrolling selectors
-  const [age, setAge] = useState<number>(18);
-  const [heightFeet, setHeightFeet] = useState<number>(5);
-  const [heightInches, setHeightInches] = useState<number>(10);
-  const [isMetricHeight, setIsMetricHeight] = useState<boolean>(false);
-  const [heightCm, setHeightCm] = useState<number>(178);
 
-  const [weight, setWeight] = useState<number>(150); // standard imperial
-  const [isMetricWeight, setIsMetricWeight] = useState<boolean>(false);
-  const [weightKg, setWeightKg] = useState<number>(68);
-
-  const [targetWeight, setTargetWeight] = useState<number>(160);
-  const [targetWeightKg, setTargetWeightKg] = useState<number>(72);
-
-  const [healthIssues, setHealthIssues] = useState<string>("");
-  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
-  const [workoutFrequency, setWorkoutFrequency] = useState<number>(4);
-  const [workoutDays, setWorkoutDays] = useState<string[]>(["Mon", "Wed", "Fri", "Sat"]);
-  const [workoutReminder, setWorkoutReminder] = useState<boolean>(true);
-
-  // Update CM when feet/inches change
+  // Conversions height ft/in to cm
   useEffect(() => {
     if (!isMetricHeight) {
       const cm = Math.round((heightFeet * 12 + heightInches) * 2.54);
@@ -116,7 +87,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
     }
   }, [heightFeet, heightInches, isMetricHeight]);
 
-  // Update feet/inches when CM changes
+  // CM changes height to ft/in
   useEffect(() => {
     if (isMetricHeight) {
       const totalInches = heightCm / 2.54;
@@ -127,19 +98,13 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
     }
   }, [heightCm, isMetricHeight]);
 
-  // Handle unit conversions for weight
+  // Conversions LBS to KG and back
   useEffect(() => {
     if (isMetricWeight) {
       setWeightKg(Math.round(weight / 2.20462));
-    } else {
-      setWeight(Math.round(weightKg * 2.20462));
-    }
-  }, [isMetricWeight]);
-
-  useEffect(() => {
-    if (isMetricWeight) {
       setTargetWeightKg(Math.round(targetWeight / 2.20462));
     } else {
+      setWeight(Math.round(weightKg * 2.20462));
       setTargetWeight(Math.round(targetWeightKg * 2.20462));
     }
   }, [isMetricWeight]);
@@ -185,25 +150,6 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
     );
   };
 
-  const renderSocialIcon = (source: string) => {
-    switch (source) {
-      case "tiktok":
-        return <Music className="w-4 h-4 ml-2 text-pink-500 inline-block" />;
-      case "instagram":
-        return <Instagram className="w-4 h-4 ml-2 text-purple-400 inline-block" />;
-      case "facebook":
-        return <Facebook className="w-4 h-4 ml-2 text-blue-500 inline-block" />;
-      case "youtube":
-        return <Youtube className="w-4 h-4 ml-2 text-red-600 inline-block" />;
-      case "google":
-        return <Search className="w-4 h-4 ml-2 text-blue-300 inline-block" />;
-      case "friend":
-        return <User className="w-4 h-4 ml-2 text-emerald-400 inline-block" />;
-      default:
-        return <MoreHorizontal className="w-4 h-4 ml-2 text-gray-400 inline-block" />;
-    }
-  };
-
   const finishJourney = () => {
     const finalData: OnboardingData = {
       gender,
@@ -221,13 +167,12 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
       weight: isMetricWeight ? weightKg : weight,
       isMetricWeight,
       targetWeight: isMetricWeight ? targetWeightKg : targetWeight,
-      healthIssues,
+      healthIssues: healthIssues.trim(),
       equipment: selectedEquipment,
       workoutFrequency,
       workoutDays,
       workoutReminder,
       
-      // New fields
       academicSubject,
       academicSessionsGoal,
       careerTargetRole,
@@ -260,7 +205,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
       {showAdvancedParticles && (
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {/* Layer 1: Tiny ambient dust */}
-        {[...Array(40)].map((_, i) => (
+        {[...Array(25)].map((_, i) => (
           <motion.div
             key={`dust-${i}`}
             className="absolute rounded-full bg-cyan-100"
@@ -285,14 +230,14 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
             }}
           />
         ))}
-        {/* Layer 2: Glowing cyan/purple cores */}
-        {[...Array(15)].map((_, i) => (
+        {/* Layer 2: Glowing cores */}
+        {[...Array(10)].map((_, i) => (
           <motion.div
             key={`core-${i}`}
             className={`absolute rounded-full ${i % 2 === 0 ? "bg-cyan-400" : "bg-purple-500"}`}
             style={{
-              width: Math.random() * 4 + 2 + "px",
-              height: Math.random() * 4 + 2 + "px",
+              width: Math.random() * 3 + 2 + "px",
+              height: Math.random() * 3 + 2 + "px",
               left: Math.random() * 100 + "%",
               top: Math.random() * 100 + "%",
               boxShadow: `0 0 10px ${i % 2 === 0 ? "rgba(34, 211, 238, 0.8)" : "rgba(168, 85, 247, 0.8)"}`,
@@ -311,41 +256,13 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
             }}
           />
         ))}
-        {/* Layer 3: Large rising energy flares */}
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={`flare-${i}`}
-            className="absolute rounded-full bg-blue-500"
-            style={{
-              width: Math.random() * 10 + 5 + "px",
-              height: Math.random() * 30 + 10 + "px",
-              left: Math.random() * 100 + "%",
-              top: "100%",
-              boxShadow: "0 0 20px rgba(59, 130, 246, 0.6)",
-              filter: "blur(4px)",
-              transformOrigin: "bottom center"
-            }}
-            animate={{
-              y: [0, -1000],
-              opacity: [0, 0.5, 0],
-              scaleY: [1, 2, 1]
-            }}
-            transition={{
-              duration: Math.random() * 4 + 4,
-              repeat: Infinity,
-              ease: "easeOut",
-              delay: Math.random() * 5,
-            }}
-          />
-        ))}
       </div>
       )}
+      
       {/* Absolute Dark Cyber Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,rgba(9,9,11,0.6)_80%)] pointer-events-none z-0" />
       <div className="absolute top-10 left-10 w-96 h-96 bg-purple-900/10 rounded-full filter blur-[120px] pointer-events-none animate-pulse z-0" />
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none z-0" />
-
-
 
       {/* MAIN CONTENT AREA */}
       <main role="main" className="flex-1 flex items-center justify-center py-6 w-full max-w-2xl mx-auto z-10">
@@ -404,837 +321,551 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
             </motion.div>
           )}
 
-          {/* STEP 1: Gender */}
+          {/* STEP 1: CONSOLIDATED ANATOMICAL SCAN */}
           {step === 1 && (
             <motion.div
-              key="gender_step"
-              role="region"
-              aria-labelledby="gender-step-title"
+              key="anatomy_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 id="gender-step-title" className="text-2xl font-bold tracking-tight mb-2">CHOOSE YOUR AVATAR PROFILE</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">The System calibrates metabolic constants based on your anatomy.</p>
-              
-              <div id="gender_options" role="radiogroup" aria-labelledby="gender-step-title" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-                {["Male", "Female", "Other"].map((gen) => (
-                  <motion.button
-                    key={gen}
-                    role="radio"
-                    aria-checked={gender === gen}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-5 rounded-xl border font-bold text-lg cursor-pointer text-left flex justify-between items-center transition-colors ${
-                      gender === gen 
-                        ? "bg-slate-900 border-cyan-400 text-cyan-300 shadow-md shadow-cyan-900/20" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setGender(gen);
-                      setTimeout(handleNext, 200);
-                    }}
-                  >
-                    <span>{gen}</span>
-                    <ChevronRight className="w-5 h-5 text-slate-500" aria-hidden="true" />
-                  </motion.button>
-                ))}
+              <h2 className="text-2xl font-bold tracking-tight mb-2 uppercase">ANATOMICAL SCAN & CHRONO REGISTRY</h2>
+              <p className="text-slate-400 text-sm mb-6 font-mono">The System constructs metabolic curves based on your anatomy parameters.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto text-left mb-6">
+                {/* Gender & Age Card */}
+                <div className="bg-slate-900/95 border border-slate-800 p-5 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">CHARACTER AVATAR</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Male", "Female", "Other"].map((gen) => (
+                        <button
+                          key={gen}
+                          type="button"
+                          className={`py-2 text-xs font-bold font-mono uppercase rounded-lg border transition cursor-pointer text-center ${
+                            gender === gen 
+                              ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
+                              : "bg-slate-950 border-slate-900 text-slate-400 hover:border-slate-800"
+                          }`}
+                          onClick={() => setGender(gen)}
+                        >
+                          {gen}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">CHRONO INDEX (AGE)</h3>
+                    <div className="flex items-center justify-between bg-slate-950 px-3 py-2 border border-slate-900 rounded-lg">
+                      <button 
+                        type="button"
+                        className="text-cyan-400 font-extrabold text-lg px-2 hover:text-white"
+                        onClick={() => setAge(prev => Math.max(12, prev - 1))}
+                      >-</button>
+                      <span className="font-mono text-cyan-300 font-extrabold text-lg">{age} <span className="text-[10px] text-slate-500">YRS</span></span>
+                      <button 
+                        type="button"
+                        className="text-cyan-400 font-extrabold text-lg px-2 hover:text-white"
+                        onClick={() => setAge(prev => Math.min(99, prev + 1))}
+                      >+</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Height & Weight Card */}
+                <div className="bg-slate-900/95 border border-slate-800 p-5 rounded-xl flex flex-col gap-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider">HEIGHT REACH</h3>
+                      <button
+                        type="button"
+                        className="text-[10px] font-mono text-slate-500 hover:text-cyan-300 uppercase underline"
+                        onClick={() => setIsMetricHeight(!isMetricHeight)}
+                      >
+                        {isMetricHeight ? "Metric (cm)" : "Imperial (ft/in)"}
+                      </button>
+                    </div>
+                    
+                    {!isMetricHeight ? (
+                      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-2 border border-slate-900 rounded-lg">
+                        <div className="flex items-center justify-between px-2">
+                          <span className="text-[10px] font-mono text-slate-500">FT:</span>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightFeet(prev => Math.max(3, prev - 1))}>-</button>
+                            <span className="font-mono text-cyan-300 font-bold">{heightFeet}</span>
+                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightFeet(prev => Math.min(9, prev + 1))}>+</button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between px-2 border-l border-slate-800">
+                          <span className="text-[10px] font-mono text-slate-500">IN:</span>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightInches(prev => Math.max(0, prev - 1))}>-</button>
+                            <span className="font-mono text-cyan-300 font-bold">{heightInches}</span>
+                            <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightInches(prev => Math.min(11, prev + 1))}>+</button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-slate-950 px-3 py-2 border border-slate-900 rounded-lg">
+                        <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightCm(prev => Math.max(90, prev - 1))}>-</button>
+                        <span className="font-mono text-cyan-300 font-bold">{heightCm} cm</span>
+                        <button type="button" className="text-slate-400 hover:text-white" onClick={() => setHeightCm(prev => Math.min(270, prev + 1))}>+</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider">GRAVITATIONAL MASS</h3>
+                      <button
+                        type="button"
+                        className="text-[10px] font-mono text-slate-500 hover:text-indigo-400 uppercase underline"
+                        onClick={() => setIsMetricWeight(!isMetricWeight)}
+                      >
+                        {isMetricWeight ? "METRIC (KG)" : "IMPERIAL (LBS)"}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-950 p-2 border border-slate-900 rounded-lg flex flex-col items-center">
+                        <span className="text-[9px] font-mono text-slate-500 uppercase">CURRENT</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+                            if (isMetricWeight) setWeightKg(prev => Math.max(30, prev - 1));
+                            else setWeight(prev => Math.max(60, prev - 2));
+                          }}>-</button>
+                          <span className="font-mono text-indigo-300 font-bold text-sm">
+                            {isMetricWeight ? weightKg : weight}
+                          </span>
+                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+                            if (isMetricWeight) setWeightKg(prev => Math.min(250, prev + 1));
+                            else setWeight(prev => Math.min(500, prev + 2));
+                          }}>+</button>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950 p-2 border border-slate-900 rounded-lg flex flex-col items-center">
+                        <span className="text-[9px] font-mono text-slate-500 uppercase">TARGET</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+                            if (isMetricWeight) setTargetWeightKg(prev => Math.max(30, prev - 1));
+                            else setTargetWeight(prev => Math.max(60, prev - 2));
+                          }}>-</button>
+                          <span className="font-mono text-cyan-300 font-bold text-sm">
+                            {isMetricWeight ? targetWeightKg : targetWeight}
+                          </span>
+                          <button type="button" className="text-slate-500 hover:text-white text-xs font-extrabold" onClick={() => {
+                            if (isMetricWeight) setTargetWeightKg(prev => Math.min(250, prev + 1));
+                            else setTargetWeight(prev => Math.min(500, prev + 2));
+                          }}>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              <button
+                type="button"
+                id="btn_anatomy_lock"
+                className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-12 py-3.5 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
+                onClick={handleNext}
+              >
+                LOCK METRICS & START SCAN
+              </button>
             </motion.div>
           )}
 
-          {/* STEP 2: Ultimate Quest (Sovereign Ascension Goals) */}
+          {/* STEP 2: CONSOLIDATED OBJECTIVE & CAREER PATH */}
           {step === 2 && (
             <motion.div
-              key="goal_step"
-              role="region"
-              aria-labelledby="goal-step-title"
+              key="path_calibration_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 id="goal-step-title" className="text-2xl font-bold tracking-tight mb-2 font-sans">DEFINE YOUR SOVEREIGN QUEST</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Select the primary awakening objective of your physical and mental form.</p>
-              
-              <div id="goal_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-                {SOVEREIGN_ASCENSION_GOALS.map((goal) => (
-                  <motion.button
-                    key={goal.id}
-                    aria-pressed={focusGoal === goal.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-5 rounded-xl border text-left cursor-pointer transition-all ${
-                      focusGoal === goal.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300 shadow-md shadow-indigo-950/20" 
-                        : "bg-slate-950/80 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setFocusGoal(goal.id);
-                      setTimeout(handleNext, 200);
-                    }}
-                  >
-                    <div className="font-bold text-lg">{goal.label}</div>
-                    <div className="text-slate-400 text-xs font-mono mt-1 leading-relaxed">{goal.desc}</div>
-                  </motion.button>
-                ))}
+              <h2 className="text-2xl font-bold tracking-tight mb-1 uppercase">OBJECTIVES & COGNITIVE PATHS</h2>
+              <p className="text-slate-400 text-xs mb-5 font-mono">Calibrate your primary ascension quest and professional specializations.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto text-left mb-6">
+                
+                {/* Column 1: Sovereign Ascension & Study */}
+                <div className="space-y-4">
+                  {/* Focus Goal Selection */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">PRIMARY QUEST</h3>
+                    <select
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 focus:border-cyan-400/50 rounded-lg text-xs font-mono text-cyan-300 outline-none cursor-pointer"
+                      value={focusGoal}
+                      onChange={(e) => setFocusGoal(e.target.value)}
+                    >
+                      {SOVEREIGN_ASCENSION_GOALS.map((goal) => (
+                        <option key={goal.id} value={goal.id}>{goal.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 leading-tight">
+                      {SOVEREIGN_ASCENSION_GOALS.find(g => g.id === focusGoal)?.desc || "Sovereign quest focus alignment."}
+                    </p>
+                  </div>
+
+                  {/* Cognitive Domain Selection */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">INTELLECTUAL FIELD</h3>
+                    <select
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 focus:border-cyan-400/50 rounded-lg text-xs font-mono text-cyan-300 outline-none cursor-pointer"
+                      value={academicSubject}
+                      onChange={(e) => setAcademicSubject(e.target.value)}
+                    >
+                      {ACADEMIC_DISCIPLINE_LIST.map((subj) => (
+                        <option key={subj.id} value={subj.id}>{subj.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 leading-tight">
+                      {ACADEMIC_DISCIPLINE_LIST.find(s => s.id === academicSubject)?.desc || "Cognitive focus area."}
+                    </p>
+                  </div>
+
+                  {/* Pomodoro Sessions Goal */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">DAILY POMODORO STUDY TARGET</h3>
+                    <div className="grid grid-cols-4 gap-1.5 font-mono">
+                      {[2, 4, 6, 8].map((sessionsCount) => (
+                        <button
+                          key={sessionsCount}
+                          type="button"
+                          className={`py-1.5 text-[10px] font-bold rounded-lg border transition cursor-pointer text-center ${
+                            academicSessionsGoal === sessionsCount 
+                              ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
+                              : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-750"
+                          }`}
+                          onClick={() => setAcademicSessionsGoal(sessionsCount)}
+                        >
+                          {sessionsCount} SESS.
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 2: Career Guild Specializations */}
+                <div className="space-y-4 flex flex-col justify-between">
+                  {/* Target Career Roles */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-indigo-400 tracking-wider mb-2">TARGET ROLE GUILD</h3>
+                    <select
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-400/50 rounded-lg text-xs font-mono text-indigo-300 outline-none cursor-pointer"
+                      value={careerTargetRole}
+                      onChange={(e) => setCareerTargetRole(e.target.value)}
+                    >
+                      {CAREER_TARGET_ROLES.map((role) => (
+                        <option key={role.id} value={role.id}>{role.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 leading-tight">
+                      {CAREER_TARGET_ROLES.find(r => r.id === careerTargetRole)?.desc || "Professional path selection."}
+                    </p>
+                  </div>
+
+                  {/* Daily Prep Directive */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xs font-mono uppercase text-indigo-400 tracking-wider mb-2">DAILY PREP DIRECTIVE</h3>
+                      <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                        {CAREER_PREPARATION_ACTIVITIES.map((act) => (
+                          <button
+                            key={act.id}
+                            type="button"
+                            className={`w-full p-2 rounded-lg border text-left transition cursor-pointer ${
+                              careerPrepActivity === act.id 
+                                ? "bg-indigo-500/10 border-indigo-400 text-indigo-300" 
+                                : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-750"
+                            }`}
+                            onClick={() => setCareerPrepActivity(act.id)}
+                          >
+                            <div className="text-[10px] font-bold leading-none">{act.label}</div>
+                            <div className="text-[8px] text-slate-500 font-mono mt-0.5 leading-none">{act.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
+
+              <button
+                type="button"
+                className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-12 py-3.5 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
+                onClick={handleNext}
+              >
+                LOCK ATTRIBUTES & CAREERS
+              </button>
             </motion.div>
           )}
 
-          {/* STEP 3: Academic/Scholar Discipline */}
+          {/* STEP 3: CONSOLIDATED PERFORMANCE PROFILE */}
           {step === 3 && (
             <motion.div
-              key="academic_subject_step"
+              key="performance_calibration_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">SELECT YOUR COGNITIVE DOMAIN</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Which intellectual discipline or syllabus grid will you cultivate?</p>
-              
-              <div id="academic_subject_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {ACADEMIC_DISCIPLINE_LIST.map((subj) => (
-                  <motion.button
-                    key={subj.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      academicSubject === subj.id 
-                        ? "bg-slate-900 border-cyan-400 text-cyan-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setAcademicSubject(subj.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{subj.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{subj.desc}</div>
-                  </motion.button>
-                ))}
+              <h2 className="text-2xl font-bold tracking-tight mb-1 uppercase">PHYSICAL & WARRIOR CAPACITY</h2>
+              <p className="text-slate-400 text-xs mb-5 font-mono">Calibrate muscle regimens, diet template parameters, and power status ratings.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto text-left mb-6">
+                
+                {/* Left Column: Muscle Splits & Calorie templates */}
+                <div className="space-y-4">
+                  {/* Daily Muscle Split */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">DAILY MUSCLE SPLIT</h3>
+                    <select
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 focus:border-cyan-400/50 rounded-lg text-xs font-mono text-cyan-300 outline-none cursor-pointer"
+                      value={bodybuildingSplit}
+                      onChange={(e) => setBodybuildingSplit(e.target.value)}
+                    >
+                      {BODYBUILDING_SPLITS.map((split) => (
+                        <option key={split.id} value={split.id}>{split.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 leading-tight">
+                      {BODYBUILDING_SPLITS.find(b => b.id === bodybuildingSplit)?.desc || "Target bodybuilding split allocation."}
+                    </p>
+                  </div>
+
+                  {/* Metabolic Diet Goal */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-indigo-400 tracking-wider mb-2">METABOLIC DIET TEMPLATE</h3>
+                    <select
+                      className="w-full p-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-400/50 rounded-lg text-xs font-mono text-indigo-300 outline-none cursor-pointer"
+                      value={fitnessDietGoal}
+                      onChange={(e) => setFitnessDietGoal(e.target.value)}
+                    >
+                      {DIET_METABOLIC_GOALS.map((diet) => (
+                        <option key={diet.id} value={diet.id}>{diet.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1.5 leading-tight">
+                      {DIET_METABOLIC_GOALS.find(d => d.id === fitnessDietGoal)?.desc || "Daily nutritional threshold configuration."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Experience Ranks & Activity levels */}
+                <div className="space-y-4">
+                  {/* Experiential Status Rank */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider mb-2">INITIAL WARRIOR RANK</h3>
+                    <div className="grid grid-cols-3 gap-1.5 font-mono">
+                      {[
+                        { id: "beginner", label: "E-RANK", detail: "Beginner" },
+                        { id: "intermediate", label: "C-RANK", detail: "Mid-Tier" },
+                        { id: "advanced", label: "S-RANK", detail: "Leader" }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`py-2 text-[10px] font-bold rounded-lg border transition cursor-pointer text-center ${
+                            fitnessLevel === item.id 
+                              ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
+                              : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-750"
+                          }`}
+                          onClick={() => setFitnessLevel(item.id)}
+                        >
+                          <div>{item.label}</div>
+                          <div className="text-[8px] text-slate-600 font-sans mt-0.5">{item.detail}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Activity Scan Rating */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-indigo-400 tracking-wider mb-2">DAILY METABOLIC ACTIVITY SCAN</h3>
+                    <div className="grid grid-cols-2 gap-1.5 font-mono">
+                      {[
+                        { id: "sedentary", label: "SEDENTARY" },
+                        { id: "light active", label: "LIGHT" },
+                        { id: "moderately active", label: "MODERATE" },
+                        { id: "very active", label: "INTENSE" }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`py-1.5 text-[10px] font-bold rounded-lg border transition cursor-pointer text-center ${
+                            activityLevel === item.id 
+                              ? "bg-indigo-500/10 border-indigo-400 text-indigo-300" 
+                              : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-750"
+                          }`}
+                          onClick={() => setActivityLevel(item.id)}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               </div>
+
+              <button
+                type="button"
+                className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-12 py-3.5 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
+                onClick={handleNext}
+              >
+                LOCK TRAINING & STATUS SCAN
+              </button>
             </motion.div>
           )}
 
-          {/* STEP 4: Academic Study Goal */}
+          {/* STEP 4: CONSOLIDATED ARMAMENTS & SCHEDULE */}
           {step === 4 && (
             <motion.div
-              key="academic_sessions_step"
+              key="armaments_schedule_step"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               className="w-full text-center"
             >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">DAILY POMODORO SCHEDULE</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrate daily intellectual sessions of deep focus.</p>
-              
-              <div id="academic_sessions_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {ACADEMIC_SESSIONS_GOALS.map((ses) => {
-                  const sessionsCount = ses.id === "sessions_2" ? 2 : ses.id === "sessions_4" ? 4 : ses.id === "sessions_6" ? 6 : 8;
-                  return (
-                    <motion.button
-                      key={ses.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                        academicSessionsGoal === sessionsCount 
-                          ? "bg-slate-900 border-cyan-400 text-cyan-300" 
-                          : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                      }`}
-                      onClick={() => {
-                        setAcademicSessionsGoal(sessionsCount);
-                        setTimeout(handleNext, 250);
-                      }}
-                    >
-                      <div className="font-bold text-sm">{ses.label}</div>
-                      <div className="text-slate-400 text-xs mt-1 leading-snug">{ses.desc}</div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
+              <h2 className="text-2xl font-bold tracking-tight mb-1 uppercase">ARMAMENTS & CALENDAR</h2>
+              <p className="text-slate-400 text-xs mb-5 font-mono">Configure training weapons, physical blocks, weekly cycles, and alerts.</p>
 
-          {/* STEP 5: Career Target Role */}
-          {step === 5 && (
-            <motion.div
-              key="career_role_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">TARGET PROFESSIONAL GUILD</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Choose your target professional specialization archetype.</p>
-              
-              <div id="career_role_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {CAREER_TARGET_ROLES.map((role) => (
-                  <motion.button
-                    key={role.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      careerTargetRole === role.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setCareerTargetRole(role.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{role.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{role.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 6: Career Prep Activity */}
-          {step === 6 && (
-            <motion.div
-              key="career_prep_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">DAILY CAREER DIRECTIVE</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">What is your primary method of preparation when grinding through the hiring gates?</p>
-              
-              <div id="career_prep_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {CAREER_PREPARATION_ACTIVITIES.map((act) => (
-                  <motion.button
-                    key={act.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      careerPrepActivity === act.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setCareerPrepActivity(act.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{act.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{act.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 7: Bodybuilding Splits */}
-          {step === 7 && (
-            <motion.div
-              key="bodybuilding_split_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">BODYBUILDING TRAINING SPLIT</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono font-sans">Which muscular conditioning routine governs your training session?</p>
-              
-              <div id="bodybuilding_split_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {BODYBUILDING_SPLITS.map((split) => (
-                  <motion.button
-                    key={split.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      bodybuildingSplit === split.id 
-                        ? "bg-slate-900 border-cyan-400 text-cyan-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setBodybuildingSplit(split.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{split.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{split.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 8: Metabolic Diet Goal */}
-          {step === 8 && (
-            <motion.div
-              key="diet_goal_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">METABOLIC & NUTRITION APPROACH</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrate daily nutritional and target energy thresholds.</p>
-              
-              <div id="diet_goal_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {DIET_METABOLIC_GOALS.map((diet) => (
-                  <motion.button
-                    key={diet.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      fitnessDietGoal === diet.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setFitnessDietGoal(diet.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{diet.label}</div>
-                    <div className="text-slate-400 text-xs mt-1 leading-snug">{diet.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 9: Fitness Level */}
-          {step === 9 && (
-            <motion.div
-              key="fitness_level_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2 font-sans">INITIAL WARRIOR RANK</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Be completely honest with the system scanner. What is your current capacity?</p>
-              
-              <div id="fitness_options" className="grid grid-cols-1 gap-4 max-w-md mx-auto">
-                {[
-                  { id: "beginner", title: "BEGINNER (E-Rank)", desc: "Brand new to combat conditioning. Bandages ready." },
-                  { id: "intermediate", title: "INTERMEDIATE (C-Rank)", desc: "Familiar with lift patterns and gate environments." },
-                  { id: "advanced", title: "ADVANCED (S-Rank equivalent)", desc: "Highly conditioned warrior seeking cosmic evolution." }
-                ].map((item) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-5 rounded-xl border text-left cursor-pointer transition-colors ${
-                      fitnessLevel === item.id 
-                        ? "bg-slate-900 border-cyan-400 text-cyan-300 shadow-md shadow-cyan-950/20" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setFitnessLevel(item.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-extrabold text-lg tracking-wide">{item.title}</div>
-                    <div className="text-slate-400 text-xs font-mono mt-1 leading-relaxed">{item.desc}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 10: Active Level */}
-          {step === 10 && (
-            <motion.div
-              key="activity_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">DAILY ACTIVITY SCAN</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">How frequently do you leave safety and venture out of the shelter?</p>
-              
-              <div id="activity_options" className="grid grid-cols-1 gap-3 max-w-md mx-auto">
-                {[
-                  { id: "sedentary", title: "Sedentary", detail: "Little to no workout. Sheltered life." },
-                  { id: "light active", title: "Light Active", detail: "Active 1-3 days a week. Short raids." },
-                  { id: "moderately active", title: "Moderately Active", detail: "Active 4-6 days a week. Standard guild warrior." },
-                  { id: "very active", title: "Very Active", detail: "Grinding the gym heavy. Supreme legion commander." }
-                ].map((item) => (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
-                      activityLevel === item.id 
-                        ? "bg-slate-900 border-indigo-400 text-indigo-300" 
-                        : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                    }`}
-                    onClick={() => {
-                      setActivityLevel(item.id);
-                      setTimeout(handleNext, 250);
-                    }}
-                  >
-                    <div className="font-bold text-sm">{item.title}</div>
-                    <div className="text-slate-400 text-xs font-mono mt-1">{item.detail}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 11: Age Selector */}
-          {step === 11 && (
-            <motion.div
-              key="age_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">CHRONO ROTATION INDEX (AGE)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrates hormone release potential. Current age index: <span className="text-cyan-400 font-bold">{age}</span></p>
-              
-              {/* Scrolling Horizontal Age Selector */}
-              <div id="age_picker_slider" className="my-10 relative flex justify-center items-center">
-                <div className="absolute w-24 h-24 border-2 border-dashed border-cyan-400/20 rounded-full animate-ping pointer-events-none" />
-                <div className="absolute w-20 h-20 bg-cyan-500/10 rounded-full blur pointer-events-none" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto text-left mb-6 font-mono">
                 
-                <div className="flex items-center gap-6 z-10">
-                  <button 
-                    className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full cursor-pointer text-cyan-400 disabled:opacity-20"
-                    disabled={age <= 12}
-                    onClick={() => setAge((prev) => prev - 1)}
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  
-                  <div className="w-24 text-center">
-                    <motion.div
-                      key={age}
-                      initial={{ scale: 0.8, opacity: 0.5 }}
-                      animate={{ scale: 1.2, opacity: 1 }}
-                      className="text-5xl sm:text-6xl font-extrabold font-mono text-cyan-400"
-                    >
-                      {age}
-                    </motion.div>
-                    <span className="text-[10px] uppercase font-mono text-slate-500 mt-2 block tracking-widest">cycles</span>
-                  </div>
+                {/* Column 1: Workout days & limits */}
+                <div className="space-y-4">
+                  {/* Active Days */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs uppercase text-cyan-400 font-bold tracking-wider">WEEKLY GRINDS</span>
+                      <span className="text-cyan-400 font-bold text-sm">{workoutFrequency} DAYS</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="7"
+                      step="1"
+                      className="w-full accent-cyan-400 bg-slate-950 cursor-pointer h-1.5 rounded-full focus:outline-none mb-3"
+                      value={workoutFrequency}
+                      onChange={(e) => setWorkoutFrequency(parseInt(e.target.value))}
+                    />
 
-                  <button 
-                    className="p-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full cursor-pointer text-cyan-400 disabled:opacity-20"
-                    disabled={age >= 90}
-                    onClick={() => setAge((prev) => prev + 1)}
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Age recommendation disclaimer */}
-              <div className="bg-slate-950/80 max-w-sm mx-auto p-4 border border-slate-900 rounded-xl mb-10 text-xs leading-relaxed text-slate-400">
-                <span className="text-indigo-400 font-bold block mb-1">MONARCH TELEMETRY SCAN</span>
-                System optimizes hyper-trophy metabolic curves specifically tailored for age cycle {age}.
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  id="btn_age_next"
-                  className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Confirm Chrono Info
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 12: Height Selector */}
-          {step === 12 && (
-            <motion.div
-              key="height_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">VERTICAL ANATOMICAL SPAN (HEIGHT)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrates reach, power output, and optimal dynamic joint load ratios.</p>
-              
-              {!isMetricHeight ? (
-                <div id="feet_inch_selector" className="grid grid-cols-2 gap-8 max-w-xs mx-auto mb-10 items-center justify-center">
-                  <div className="bg-slate-950 p-4 border border-slate-900 rounded-2xl relative">
-                    <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Feet</div>
-                    <div className="flex items-center justify-center gap-3">
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.max(3, heightFeet - 1))}>-</button>
-                      <span className="text-4xl font-extrabold font-mono text-cyan-300">{heightFeet}</span>
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightFeet(Math.min(9, heightFeet + 1))}>+</button>
+                    <span className="text-[10px] uppercase text-cyan-500 font-bold tracking-wider block mb-2">ACTIVE SYSTEM DAYS</span>
+                    <div className="flex flex-wrap gap-1 justify-start">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                        const active = workoutDays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            className={`w-7.5 h-7.5 rounded-full border flex items-center justify-center font-mono font-bold text-[9px] cursor-pointer transition ${
+                              active 
+                                ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
+                                : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-750"
+                            }`}
+                            onClick={() => toggleWorkoutDay(day)}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="bg-slate-950 p-4 border border-slate-900 rounded-2xl relative">
-                    <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Inches</div>
-                    <div className="flex items-center justify-center gap-3">
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.max(0, heightInches - 1))}>-</button>
-                      <span className="text-4xl font-extrabold font-mono text-cyan-300">{heightInches}</span>
-                      <button className="text-slate-400 hover:text-white px-2 text-xl" onClick={() => setHeightInches(Math.min(11, heightInches + 1))}>+</button>
+
+                  {/* System Pings */}
+                  <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl">
+                    <div className="flex justify-between items-center bg-slate-950 p-2.5 border border-slate-800 rounded-lg">
+                      <div className="flex gap-2 items-center">
+                        <Bell className="w-3.5 h-3.5 text-indigo-400 animate-bounce text-xs" />
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-200 block">System Pings</span>
+                          <span className="text-[8px] text-slate-500 block leading-tight">Penalize workout day evasion</span>
+                        </div>
+                      </div>
+                      <div className="cursor-pointer" onClick={() => setWorkoutReminder(!workoutReminder)}>
+                        <div className={`w-8 h-4.5 rounded-full relative flex items-center p-0.5 transition-colors ${workoutReminder ? "bg-indigo-600" : "bg-slate-850"}`}>
+                          <motion.div 
+                            className="w-3.5 h-3.5 rounded-full bg-slate-100"
+                            animate={{ x: workoutReminder ? 14 : 0 }}
+                            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div id="cm_height_selector" className="max-w-xs mx-auto mb-10">
-                  <div className="bg-slate-950 p-6 border border-slate-900 rounded-2xl">
-                    <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Centimeters</div>
-                    <div className="flex items-center justify-center gap-4">
-                      <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.max(90, prev - 1))}>-</button>
-                      <span className="text-4xl sm:text-5xl font-extrabold font-mono text-cyan-300">{heightCm}</span>
-                      <button className="p-2 bg-slate-900 border border-slate-800 rounded-lg" onClick={() => setHeightCm((prev) => Math.min(270, prev + 1))}>+</button>
+
+                {/* Column 2: Equipment checklist & health report text */}
+                <div className="space-y-4 flex flex-col justify-between">
+                  {/* Equipment checklist dropdown/multiselect or grid */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-xs font-mono uppercase text-cyan-400 tracking-wider">AVAILABLE EQUIPMENT</h3>
+                      <button 
+                        type="button"
+                        className="text-[9px] font-mono text-slate-500 hover:text-cyan-350 uppercase underline"
+                        onClick={selectNoneEquipment}
+                      >
+                        Bodyweight
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 overflow-y-auto max-h-[110px] pr-1">
+                      {EQUIPMENTS_LIST.map((item) => {
+                        const isSel = selectedEquipment.includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className={`p-1.5 rounded-lg border text-left flex justify-between items-center transition-colors cursor-pointer ${
+                              isSel 
+                                ? "bg-slate-950 border-indigo-500 text-indigo-300" 
+                                : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-755"
+                            }`}
+                            onClick={() => toggleEquipment(item.id)}
+                          >
+                            <span className="text-[9px] leading-tight font-bold">{item.label}</span>
+                            {isSel && <Check className="w-3 h-3 text-indigo-305 shrink-0 ml-1" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Toggle switch with rising opacity concept */}
-              <div className="flex flex-col items-center gap-8">
-                <div id="height_unit_toggle" className="flex items-center gap-3 cursor-pointer" onClick={() => setIsMetricHeight(!isMetricHeight)}>
-                  <span className={`text-xs font-mono transition-opacity ${!isMetricHeight ? "opacity-100 text-cyan-300 font-bold" : "opacity-40 text-slate-500"}`}>IMPERIAL</span>
-                  <div className="w-12 h-6 bg-slate-900 border border-slate-800 rounded-full relative flex items-center p-1">
-                    <motion.div 
-                      className="w-4 h-4 rounded-full bg-cyan-400"
-                      animate={{ x: isMetricHeight ? 22 : 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    />
-                  </div>
-                  <span className={`text-xs font-mono transition-opacity ${isMetricHeight ? "opacity-100 text-cyan-300 font-bold" : "opacity-40 text-slate-500"}`}>METRIC (CM)</span>
-                </div>
-
-                <button
-                  id="btn_height_next"
-                  className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Lock Height Factor
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 13: Current Weight */}
-          {step === 13 && (
-            <motion.div
-              key="weight_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">CURRENT GRAVITATIONAL LOAD (WEIGHT)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrates basic metabolic energy expenditure indices.</p>
-              
-              <div id="current_weight_display" className="max-w-xs mx-auto mb-10">
-                <div className="bg-slate-950 p-6 border border-slate-900 rounded-2xl relative">
-                  <div className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-3">CURRENT MASS</div>
-                  
-                  <div className="flex items-center justify-center gap-4">
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
-                      if (isMetricWeight) setWeightKg(Math.max(30, weightKg - 1));
-                      else setWeight(Math.max(60, weight - 2));
-                    }}>-</button>
-                    
-                    <span className="text-4xl sm:text-5xl font-extrabold font-mono text-indigo-400">
-                      {isMetricWeight ? weightKg : weight}
-                    </span>
-                    
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
-                      if (isMetricWeight) setWeightKg(Math.min(250, weightKg + 1));
-                      else setWeight(Math.min(500, weight + 2));
-                    }}>+</button>
-                  </div>
-                  <span className="text-xs font-mono text-slate-500 mt-2 block uppercase">{isMetricWeight ? "Kilograms (kg)" : "Pounds (lbs)"}</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center gap-8">
-                <div id="weight_unit_toggle" className="flex items-center gap-3 cursor-pointer" onClick={() => setIsMetricWeight(!isMetricWeight)}>
-                  <span className={`text-xs font-mono transition-opacity ${!isMetricWeight ? "opacity-100 text-indigo-300 font-bold" : "opacity-40 text-slate-500"}`}>LBS</span>
-                  <div className="w-12 h-6 bg-slate-900 border border-slate-800 rounded-full relative flex items-center p-1">
-                    <motion.div 
-                      className="w-4 h-4 rounded-full bg-indigo-400"
-                      animate={{ x: isMetricWeight ? 22 : 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    />
-                  </div>
-                  <span className={`text-xs font-mono transition-opacity ${isMetricWeight ? "opacity-100 text-indigo-300 font-bold" : "opacity-40 text-slate-500"}`}>KG</span>
-                </div>
-
-                <button
-                  id="btn_weight_next"
-                  className="bg-slate-950 border border-slate-800 text-indigo-300 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-900 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Write Gravity Metric
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 14: Target Weight */}
-          {step === 14 && (
-            <motion.div
-              key="target_weight_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">TARGET AWAKENING MASS (TARGET WEIGHT)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">Calibrates the target scale energy deficit or surplus.</p>
-              
-              <div id="target_weight_display" className="max-w-xs mx-auto mb-10">
-                <div className="bg-slate-950 p-6 border border-slate-900 rounded-2xl relative">
-                  <div className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-3">TARGET MASS</div>
-                  
-                  <div className="flex items-center justify-center gap-4">
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
-                      if (isMetricWeight) setTargetWeightKg(Math.max(30, targetWeightKg - 1));
-                      else setTargetWeight(Math.max(60, targetWeight - 2));
-                    }}>-</button>
-                    
-                    <span className="text-4xl sm:text-5xl font-extrabold font-mono text-cyan-400">
-                      {isMetricWeight ? targetWeightKg : targetWeight}
-                    </span>
-                    
-                    <button className="p-2 bg-slate-900 border border-slate-800 rounded-xl" onClick={() => {
-                      if (isMetricWeight) setTargetWeightKg(Math.min(250, targetWeightKg + 1));
-                      else setTargetWeight(Math.min(500, targetWeight + 2));
-                    }}>+</button>
-                  </div>
-                  <span className="text-xs font-mono text-slate-500 mt-2 block uppercase">{isMetricWeight ? "Kilograms (kg)" : "Pounds (lbs)"}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  id="btn_target_next"
-                  className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Accept Target Boundary
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 15: Health Issues */}
-          {step === 15 && (
-            <motion.div
-              key="health_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">ANATOMICAL LIMITATION SCANS (HEALTH ISSUES)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">List any injury warnings, heart conditions, or structural limitations (Optional).</p>
-              
-              <div id="health_text_wrapper" className="max-w-md mx-auto mb-10">
-                <textarea
-                  id="input_health_issues"
-                  className="w-full h-32 p-4 bg-slate-950 border border-slate-900 outline-none focus:border-cyan-400/50 rounded-xl text-sm font-mono text-slate-300 resize-none leading-relaxed"
-                  placeholder="E.g., Minor left shoulder impingement, lower back recovery stiffness, none..."
-                  value={healthIssues}
-                  onChange={(e) => setHealthIssues(e.target.value)}
-                />
-                <span className="text-slate-600 text-[10px] font-mono text-left block mt-1 uppercase">Leave blank if no system failures.</span>
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  id="btn_health_next"
-                  className="bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-mono tracking-wider text-xs uppercase px-12 py-3 rounded-full hover:from-cyan-500 hover:to-indigo-500 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Write Scan Reports
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 16: Equipment Access */}
-          {step === 16 && (
-            <motion.div
-              key="equipment_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">ARMAMENT DEPOSITARY (EQUIPMENT ACCESS)</h2>
-              <p className="text-slate-400 text-sm mb-6 font-mono">Select which tools are available at your training gate.</p>
-              
-              <div id="equipment_extra_buttons" className="flex justify-center gap-4 mb-6">
-                <button 
-                  className={`px-4 py-2 border rounded-full text-xs font-mono cursor-pointer transition text-center ${
-                    selectedEquipment.length === 0 
-                      ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
-                      : "bg-slate-950 border-slate-900 text-slate-400 hover:border-slate-800"
-                  }`}
-                  onClick={selectNoneEquipment}
-                >
-                  Bodyweight Only (None)
-                </button>
-              </div>
-
-              <div id="equipment_selection_grid" className="grid grid-cols-2 gap-3 max-w-lg mx-auto mb-10">
-                {EQUIPMENTS_LIST.map((item) => {
-                  const isSel = selectedEquipment.includes(item.id);
-                  return (
-                    <motion.button
-                      key={item.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`p-4 rounded-xl border flex justify-between items-center text-left cursor-pointer transition-colors ${
-                        isSel 
-                          ? "bg-slate-900 border-indigo-400 text-indigo-300" 
-                          : "bg-slate-950 border-slate-900 text-slate-300 hover:border-slate-800"
-                      }`}
-                      onClick={() => toggleEquipment(item.id)}
-                    >
-                      <span className="text-xs font-mono font-bold">{item.label}</span>
-                      {isSel && <Check className="w-4 h-4 text-indigo-300 ml-2" />}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  id="btn_equipment_next"
-                  className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-12 py-3 rounded-full hover:bg-slate-805 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Verify Armaments
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 17: Workout Frequency */}
-          {step === 17 && (
-            <motion.div
-              key="frequency_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">WEEKLY GATE CLOSURES (FREQUENCY)</h2>
-              <p className="text-slate-400 text-sm mb-8 font-mono">How many training session gates will you battle through each week?</p>
-              
-              <div id="frequency_slider_card" className="max-w-md mx-auto bg-slate-950 border border-slate-900 p-8 rounded-3xl mb-10">
-                <div className="text-center mb-6">
-                  <span className="text-[10px] tracking-widest uppercase text-slate-500 font-mono block">Optimal Target</span>
-                  <div className="text-5xl sm:text-6xl font-extrabold text-cyan-400 font-mono mt-2">{workoutFrequency}</div>
-                  <span className="text-xs font-mono text-slate-400">Workouts / Week</span>
-                </div>
-
-                {/* Custom draggable timeline/slider layout */}
-                <div id="workout_frequency_range" className="px-4 relative flex items-center h-12">
-                  <input
-                    type="range"
-                    min="1"
-                    max="7"
-                    step="1"
-                    className="w-full accent-cyan-400 bg-slate-900 cursor-pointer h-2 rounded-full focus:outline-none"
-                    value={workoutFrequency}
-                    onChange={(e) => setWorkoutFrequency(parseInt(e.target.value))}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-slate-500 uppercase px-2">
-                  <span>1 Min</span>
-                  <span>4 Standard</span>
-                  <span>7 Absolute</span>
-                </div>
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  id="btn_frequency_next"
-                  className="bg-slate-900 border border-cyan-400/30 text-cyan-400 font-mono tracking-wider text-xs uppercase px-10 py-3 rounded-full hover:bg-slate-800 font-bold cursor-pointer"
-                  onClick={handleNext}
-                >
-                  Accept Frequency Range
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 18: Workout Days & Reminder */}
-          {step === 18 && (
-            <motion.div
-              key="days_step"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="w-full text-center"
-            >
-              <h2 className="text-2xl font-bold tracking-tight mb-2">CHOOSE ACTIVE SYSTEM DAYS</h2>
-              <p className="text-slate-400 text-sm mb-6 font-mono">Set specific weekly cycles when the dungeon key will drop.</p>
-              
-              {/* Daily selectors */}
-              <div id="workout_days_grid" className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto mb-8">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
-                  const active = workoutDays.includes(day);
-                  return (
-                    <motion.button
-                      key={day}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`w-14 h-14 rounded-full border flex items-center justify-center font-mono font-bold text-sm cursor-pointer transition ${
-                        active 
-                          ? "bg-cyan-500/10 border-cyan-400 text-cyan-300" 
-                          : "bg-slate-950 border-slate-900 text-slate-500 hover:border-slate-800 hover:text-slate-300"
-                      }`}
-                      onClick={() => toggleWorkoutDay(day)}
-                    >
-                      {day}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Reminder toggle */}
-              <div id="reminder_toggle_box" className="max-w-md mx-auto bg-slate-950 border border-slate-900 p-5 rounded-2xl mb-10 flex justify-between items-center text-left">
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-indigo-400" />
-                  <div>
-                    <h4 className="text-sm font-bold">System Reminder Pings</h4>
-                    <p className="text-slate-500 text-xs font-mono">Triggers penalty warning if active step days are avoided.</p>
-                  </div>
-                </div>
-                
-                <div className="cursor-pointer" onClick={() => setWorkoutReminder(!workoutReminder)}>
-                  <div className={`w-12 h-6 rounded-full relative flex items-center p-1 transition-colors ${workoutReminder ? "bg-indigo-600" : "bg-slate-900 border border-slate-800"}`}>
-                    <motion.div 
-                      className="w-4 h-4 rounded-full bg-slate-100"
-                      animate={{ x: workoutReminder ? 22 : 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                  {/* Health Limitation Text area */}
+                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <h3 className="text-xs font-mono uppercase text-indigo-400 tracking-wider mb-2">ANATOMICAL LIMITATION WARNINGS</h3>
+                    <textarea
+                      id="input_health_issues"
+                      className="w-full h-[65px] p-2 bg-slate-950 border border-slate-850 outline-none focus:border-cyan-400/50 rounded-lg text-[10px] font-mono text-slate-300 resize-none leading-normal"
+                      placeholder="E.g., Shoulder, back injuries, none..."
+                      value={healthIssues}
+                      onChange={(e) => setHealthIssues(e.target.value)}
                     />
                   </div>
                 </div>
+
               </div>
 
-              {/* Absolute Action button */}
-              <div className="flex justify-between items-center max-w-md mx-auto px-2">
+              {/* Action buttons */}
+              <div className="flex justify-between items-center max-w-xl mx-auto px-1">
                 <button
+                  type="button"
                   id="btn_days_back"
-                  className="bg-slate-950 border border-slate-900 text-slate-500 font-mono tracking-wider text-xs uppercase px-6 py-3 rounded-full hover:bg-slate-900 cursor-pointer"
+                  className="bg-slate-950 border border-slate-900 text-slate-400 font-mono tracking-wider text-xs uppercase px-6 py-3 rounded-full hover:bg-slate-900 cursor-pointer"
                   onClick={handlePrev}
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   id="btn_days_continue"
-                  className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-mono tracking-wider font-bold text-xs uppercase px-12 py-4 rounded-full shadow-lg shadow-cyan-500/10 cursor-pointer border border-cyan-300/10 animate-pulse"
+                  className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-mono tracking-wider font-bold text-xs uppercase px-10 py-3.5 rounded-full shadow-lg shadow-cyan-500/10 cursor-pointer border border-cyan-300/10 animate-pulse animate-duration-1000"
                   onClick={finishJourney}
                 >
                   Construct Custom Plan
@@ -1246,9 +877,9 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
         </AnimatePresence>
       </main>
 
-      {/* Footer back controls during onboarding */}
-      {step > 0 && step < 18 && (
-        <footer className="py-4 border-t border-slate-900 w-full max-w-4xl mx-auto flex justify-between items-center z-10">
+      {/* Footer steps indicator */}
+      {step > 0 && step < 4 && (
+        <footer className="py-4 border-t border-slate-900 w-full max-w-2xl mx-auto flex justify-between items-center z-10">
           <button
             id="btn_footer_back"
             aria-label="Previous Step"
@@ -1259,11 +890,11 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
             <span>Prev Factor</span>
           </button>
           
-          <div className="flex gap-1.5" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={17}>
-            {[...Array(17)].map((_, i) => (
+          <div className="flex gap-2" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3}>
+            {[...Array(3)].map((_, i) => (
               <div 
                 key={i} 
-                className={`w-1 h-1 rounded-full ${i < step ? "bg-cyan-500" : "bg-slate-800"}`} 
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i < step ? "bg-cyan-500 scale-110 shadow-sm shadow-cyan-500/50" : "bg-slate-800"}`} 
               />
             ))}
           </div>
@@ -1297,12 +928,12 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                   <ShieldAlert className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold tracking-wider font-mono text-cyan-400 uppercase">System Notification</h3>
-                  <p className="text-slate-400 text-xs font-mono mt-1">INCOMING BLUE-SCREEN INTERACTION</p>
+                  <h3 className="text-base font-extrabold tracking-wider font-mono text-cyan-400 uppercase">System Notification</h3>
+                  <p className="text-slate-500 text-[10px] font-mono mt-1">INCOMING BLUE-SCREEN INTERACTION</p>
                 </div>
               </div>
 
-              <div id="system_popup_question" className="bg-slate-900/60 p-4 border border-slate-800 rounded-xl text-sm font-mono text-slate-200 mb-6 leading-relaxed">
+              <div id="system_popup_question" className="bg-slate-900/60 p-4 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 mb-6 leading-relaxed">
                 &ldquo;You have inquired to be a player. Will you accept? We warn you: if you accept, your daily training limits will be monitored by the Monarch system. Extreme penalties govern active workout day evasions.&rdquo;
               </div>
 
@@ -1320,14 +951,14 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               <div id="popup_actions" className="flex justify-end gap-3 font-mono text-xs">
                 <button
                   id="btn_popup_decline"
-                  className="px-5 py-3 border border-slate-800 hover:border-red-900 text-slate-400 hover:text-red-400 rounded-lg cursor-pointer font-bold"
+                  className="px-5 py-2.5 border border-slate-800 hover:border-red-900 text-slate-400 hover:text-red-400 rounded-lg cursor-pointer font-bold transition-all"
                   onClick={declineCall}
                 >
                   DECLINE
                 </button>
                 <button
                   id="btn_popup_accept"
-                  className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg cursor-pointer hover:shadow-md hover:shadow-cyan-500/20"
+                  className="px-8 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg cursor-pointer hover:shadow-md hover:shadow-cyan-500/20 transition-all font-mono"
                   onClick={acceptCall}
                 >
                   ACCEPT

@@ -302,6 +302,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   }, [adminQuestProgress, playerName]);
 
   useEffect(() => {
+    if (!playerName) return;
+
     // 1. Listen live to Admin Announcements
     const unsubAnn = onSnapshot(collection(db, "announcements"), (snapshot) => {
       const list: any[] = [];

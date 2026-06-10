@@ -1,7 +1,8 @@
 import { 
   db, 
   handleFirestoreError, 
-  OperationType 
+  OperationType,
+  auth
 } from "./firebase";
 import { 
   collection, 
@@ -63,6 +64,9 @@ export async function sendChatMessage(senderId: string, senderName: string, text
  * Listens to messages in a specific channel
  */
 export function listenToMessages(channel: string, callback: (msgs: ChatMessage[]) => void) {
+  if (!auth.currentUser) {
+    return () => {};
+  }
   const q = query(
     collection(db, "messages"),
     where("channel", "==", channel),
@@ -126,6 +130,9 @@ export async function deleteFriendship(friendshipId: string) {
  * Listens to a user's friendships (requests and accepted)
  */
 export function listenToFriendships(userId: string, callback: (friends: Friendship[]) => void) {
+  if (!auth.currentUser || !userId) {
+    return () => {};
+  }
   const q = query(
     collection(db, "friendships"),
     where("userUids", "array-contains", userId)
