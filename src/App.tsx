@@ -106,50 +106,23 @@ export default function App() {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       clearTimeout(globalTimeout);
+      
       const clearSync = () => {
         setIsSyncing(false);
       };
 
       if (user) {
-        // If we switch users or just logged in, show the sync indicator
-        if (syncTargetRef.current !== user.uid) {
-          setIsSyncing(true);
-          syncTargetRef.current = user.uid;
-        }
+        // Logged in: show sync status indicator and target client UID
+        setIsSyncing(true);
+        syncTargetRef.current = user.uid;
         setSyncStatus(`Shadow System: Scanning credentials for ${user.email}...`);
-        
-        // Safety timeout for Firestore sync (5 seconds max)
-        const syncTimeout = setTimeout(() => {
-          console.warn("Firestore sync taking too long or silent. Releasing UI lock.");
-          clearSync();
-          // Safety phase transition: if stuck on login during sync, let them continue or do onboarding
-          setPhase((currentPhase) => {
-            if (currentPhase === "authentication") {
-              const savedProfile = localStorage.getItem("monarch_onboard_profile");
-              if (savedProfile) {
-                try {
-                  setProfile(JSON.parse(savedProfile));
-                } catch (e) {}
-                return "rpg_dashboard";
-              }
-              return "onboarding";
-            }
-            return currentPhase;
-          });
-        }, 5000);
 
         try {
           const userDocRef = doc(db, "users", user.uid);
-          setSyncStatus("Retrieving Hunter Profile from Sovereign database...");
+          setSyncStatus("Retrieving Hunter Ledger from Sovereign mainframe...");
           
-          // Fetch document with robust getFromServer fast-fail and standard cache recovery
-          let docSnap;
-          try {
-            docSnap = await getDocFromServer(userDocRef);
-          } catch (errFromServer) {
-            console.warn("Using offline mode fallback due to client/server connection latency:", errFromServer);
-            docSnap = await getDoc(userDocRef);
-          }
+          // Secure standard getDoc
+          const docSnap = await getDoc(userDocRef);
           
           if (docSnap.exists()) {
             setSyncStatus("Rematerializing progress metadata...");
@@ -170,43 +143,52 @@ export default function App() {
               });
               
               setProfile(null);
-              setOnboardingStep(0);
+              setOnboardingStep(1);
               setPhase("onboarding");
-              clearTimeout(syncTimeout);
               clearSync();
               return;
             }
             
-            // Restore name and profile
-            const pName = data.playerName || "Hunter";
+            // Restore name and profile shape
+            const pName = data.playerName || "";
             const oProfile = data.onboardProfile || null;
             
-            // Re-populate localStorage
-            localStorage.setItem("monarch_active_player", pName);
-            if (oProfile) {
+            if (pName && oProfile) {
+              // Re-populate localStorage to keep client offline cache refreshed
+              localStorage.setItem("monarch_active_player", pName);
               localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
+              
+              if (data.gameState) {
+                localStorage.setItem(`monarch_save_v4_reset_${pName}`, JSON.stringify(data.gameState));
+              }
+              
+              // Restore secondary statistics
+              if (data.academicQuests) localStorage.setItem(`monarch_acad_quests_${pName}`, JSON.stringify(data.academicQuests));
+              if (data.bodybuildingExercises) localStorage.setItem(`monarch_body_lifts_${pName}`, JSON.stringify(data.bodybuildingExercises));
+              if (data.intakeCalories !== undefined) localStorage.setItem(`monarch_calories_${pName}`, String(data.intakeCalories));
+              if (data.intakeProtein !== undefined) localStorage.setItem(`monarch_protein_${pName}`, String(data.intakeProtein));
+              if (data.careerMilestones) localStorage.setItem(`monarch_career_stones_${pName}`, JSON.stringify(data.careerMilestones));
+              if (data.jobApplications) localStorage.setItem(`monarch_job_apps_${pName}`, JSON.stringify(data.jobApplications));
+              if (data.focusLogs) localStorage.setItem(`monarch_focus_logs_${pName}`, JSON.stringify(data.focusLogs));
+              if (data.forceSystemEnforcement !== undefined) localStorage.setItem(`monarch_system_enforce_${pName}`, String(data.forceSystemEnforcement));
+              if (data.playerMp !== undefined) localStorage.setItem(`monarch_player_mp_${pName}`, String(data.playerMp));
+              if (data.isInPenaltyZone !== undefined) localStorage.setItem(`monarch_penalty_zone_${pName}`, String(data.isInPenaltyZone));
+              
+              setActivePlayerName(pName);
+              setProfile(oProfile);
+              setPhase("rpg_dashboard");
+            } else if (oProfile) {
+              // Has onboarding data but has not registered a character name yet
+              setProfile(oProfile);
+              setPhase("plan_preview");
+            } else {
+              // No character card at all
+              setOnboardingStep(1);
+              setPhase("onboarding");
             }
-            if (data.gameState) {
-              localStorage.setItem(`monarch_save_v4_reset_${pName}`, JSON.stringify(data.gameState));
-            }
-            
-            // Restore secondary stats
-            if (data.academicQuests) localStorage.setItem(`monarch_acad_quests_${pName}`, JSON.stringify(data.academicQuests));
-            if (data.bodybuildingExercises) localStorage.setItem(`monarch_body_lifts_${pName}`, JSON.stringify(data.bodybuildingExercises));
-            if (data.intakeCalories !== undefined) localStorage.setItem(`monarch_calories_${pName}`, String(data.intakeCalories));
-            if (data.intakeProtein !== undefined) localStorage.setItem(`monarch_protein_${pName}`, String(data.intakeProtein));
-            if (data.careerMilestones) localStorage.setItem(`monarch_career_stones_${pName}`, JSON.stringify(data.careerMilestones));
-            if (data.jobApplications) localStorage.setItem(`monarch_job_apps_${pName}`, JSON.stringify(data.jobApplications));
-            if (data.focusLogs) localStorage.setItem(`monarch_focus_logs_${pName}`, JSON.stringify(data.focusLogs));
-            if (data.forceSystemEnforcement !== undefined) localStorage.setItem(`monarch_system_enforce_${pName}`, String(data.forceSystemEnforcement));
-            if (data.playerMp !== undefined) localStorage.setItem(`monarch_player_mp_${pName}`, String(data.playerMp));
-            if (data.isInPenaltyZone !== undefined) localStorage.setItem(`monarch_penalty_zone_${pName}`, String(data.isInPenaltyZone));
-            
-            setActivePlayerName(pName);
-            setProfile(oProfile);
-            setPhase("rpg_dashboard");
           } else {
-            // New account: check if we have local onboarding to seed Firestore
+            // Document does not exist in Firebase
+            // Check if we already have local progress from previous guest onboarding to seed
             const savedName = localStorage.getItem("monarch_active_player");
             const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
             
@@ -226,25 +208,31 @@ export default function App() {
                 }
                 
                 await setDoc(userDocRef, initialSave);
+                setActivePlayerName(savedName);
+                setProfile(parsedProfile);
+                setPhase("rpg_dashboard");
               } catch (e) {
                 console.error("Failed to seed initial Firestore data:", e);
+                setPhase("onboarding");
               }
-              setPhase("rpg_dashboard");
             } else if (savedProfileStr) {
               try {
-                setProfile(JSON.parse(savedProfileStr));
+                const parsedProfile = JSON.parse(savedProfileStr);
+                setProfile(parsedProfile);
                 setPhase("plan_preview");
               } catch (e) {
+                setOnboardingStep(1);
                 setPhase("onboarding");
               }
             } else {
+              // Raw authenticated user without onboarding sequence completed
               setOnboardingStep(1);
               setPhase("onboarding");
             }
           }
         } catch (err) {
           console.error("Firestore sync error:", err);
-          // Fallback to local storage
+          // Fallback seamlessly to local caching
           const savedName = localStorage.getItem("monarch_active_player");
           const savedProfileStr = localStorage.getItem("monarch_onboard_profile");
           if (savedName && savedProfileStr) {
@@ -262,20 +250,15 @@ export default function App() {
             setPhase("onboarding");
           }
         } finally {
-          clearTimeout(syncTimeout);
+          clearSync();
         }
       } else {
-        // Logged out: clean local variables if they was in active game
+        // Non-authenticated Guest state: send to login/register console
         syncTargetRef.current = null;
-        setPhase((currentPhase) => {
-          if (currentPhase === "rpg_dashboard") {
-            setProfile(null);
-            return "authentication";
-          }
-          return currentPhase;
-        });
+        setProfile(null);
+        setPhase("authentication");
+        clearSync();
       }
-      clearSync();
     });
 
     return () => unsubscribe();

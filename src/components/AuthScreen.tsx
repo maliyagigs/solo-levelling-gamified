@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { auth } from "../utils/firebase";
+import React, { useState } from "react";
+import { auth, db } from "../utils/firebase";
 import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword 
 } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { 
+  Lock, 
+  Mail, 
+  AlertTriangle, 
+  RefreshCw, 
+  UserPlus, 
+  LogIn, 
+  Fingerprint, 
+  ShieldCheck 
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface AuthScreenProps {
   onSuccess: () => void;
@@ -20,258 +28,272 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Monitor returning redirect auth state transitions on mount
-  useEffect(() => {
-    let active = true;
-
-    if (auth.currentUser) {
-      onSuccess();
-      return;
-    }
-
-    const processRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (active && result?.user) {
-          onSuccess();
-        }
-      } catch (err: any) {
-        if (active) {
-          console.error("Google Redirect Auth recovery error:", err);
-          setError(getFriendlyErrorMessage(err));
-        }
-      }
-    };
-    processRedirect();
-    return () => {
-      active = false;
-    };
-  }, [onSuccess]);
-
   const getFriendlyErrorMessage = (err: any) => {
     const code = err?.code || "";
     const msg = err?.message || "";
     
-    if (code.includes("invalid-credential") || msg.includes("invalid-credential")) {
-      return "Invalid email, password, or security token. If you do not have a registered password account yet, click 'Need an account? Sign Up' below, or authenticate using your Google account.";
+    if (code.includes("invalid-credential") || msg.includes("invalid-credential") || code.includes("wrong-password")) {
+      return "Access Denied: The credentials supplied do not match our database registries. Double-check your password. Or, if you are a new candidate user, please select the 'REGISTER' tab above to initialize your account first!";
     }
     if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
-      return "Registration Error: This email coordinate is already bound to an active Shadow Monarch hunter card.";
+      return "Registration Blocked: This email address is already bound to an active Hunter account. Toggle to the 'SIGN IN' tab to access your account.";
     }
     if (code.includes("weak-password") || msg.includes("weak-password")) {
-      return "Security Firewall: The password passcode is too weak. Ensure it is at least 6 characters of mana strength!";
+      return "Security Firewall: Password too weak. Ensure your password is at least 6 characters in length.";
     }
     if (code.includes("invalid-email") || msg.includes("invalid-email")) {
-      return "Format Error: Your email is not a valid coordinate structure.";
+      return "Credential Fail: The entered email structure is invalid.";
     }
     if (code.includes("user-not-found") || msg.includes("user-not-found")) {
-      return "No hunter found on this frequency. Toggle 'Sign Up' first!";
+      return "No active profile found. Toggle the 'REGISTER' tab above to create a new hunter profile first.";
     }
     if (code.includes("too-many-requests") || msg.includes("too-many-requests")) {
-      return "Firewall Alert: System is temporarily locked due to intense signal noise. Please try again in a bit.";
+      return "Gateway Calibrating: Too many failed auth attempts. The system is temporarily cooling down to prevent penetration.";
     }
     return msg.replace("Firebase: ", "");
   };
 
-  const handleEmailAuth = async () => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setError("Credentials missing: Please enter both email and password.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Security Guidelines: Your cipher passcode must be at least 6 characters in length.");
+      return;
+    }
+
     try {
       setError(null);
       setAuthLoading(true);
+
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // Create user
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        
+        // Write initial empty profile metadata to Firestore for the new user
+        if (credential.user) {
+          const userDocRef = doc(db, "users", credential.user.uid);
+          await setDoc(userDocRef, {
+            email: credential.user.email,
+            v3_reset: true,
+            updatedAt: serverTimestamp()
+          });
+        }
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        // Standard Sign In
+        await signInWithEmailAndPassword(auth, email.trim(), password);
       }
       onSuccess();
     } catch (err: any) {
-      console.error("Auth error details:", err);
+      console.error("Auth process failure:", err);
       setError(getFriendlyErrorMessage(err));
     } finally {
-      // Small delay to ensure state doesn't jitter
-      setTimeout(() => setAuthLoading(false), 500);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    let isPending = true;
-    try {
-      setError(null);
-      setAuthLoading(true);
-      const provider = new GoogleAuthProvider();
-      
-      // Select account automatically on trigger
-      provider.setCustomParameters({
-        prompt: "select_account"
-      });
-
-      // Safety timeout for the popup (25 seconds)
-      const popupTimeout = setTimeout(() => {
-        if (isPending) {
-          setError("The authentication window is taking too long to respond. Please ensure popups are allowed and try again.");
-          setAuthLoading(false);
-          isPending = false;
-        }
-      }, 25000);
-
-      try {
-        // Try Popup first for general web browsers (faster, single session)
-        await signInWithPopup(auth, provider);
-        isPending = false;
-        clearTimeout(popupTimeout);
-        onSuccess();
-        setAuthLoading(false);
-      } catch (err: any) {
-        if (!isPending) return;
-        isPending = false;
-        clearTimeout(popupTimeout);
-        console.error("Google Auth error details:", err);
-        
-        // Fallback seamlessly to standard HTTP Auth redirect if popup is blocked or closed manually
-        const isPopupIssue = 
-          err.code === "auth/popup-blocked" || 
-          err.code === "auth/popup-closed-by-user" || 
-          err.code === "auth/cancelled-popup-request" ||
-          err.message?.toLowerCase().includes("closed") ||
-          err.message?.toLowerCase().includes("blocked");
-
-        const isIframe = window.self !== window.top;
-
-        if (isPopupIssue) {
-          if (isIframe) {
-            setError(
-              "Popup Blocked: The authentication window was blocked. " +
-              "Since you are inside the preview iframe, please click the 'Open in New Tab' icon at the top right of this preview panel, allow popups, and sign in there!"
-            );
-            setAuthLoading(false);
-          } else {
-            try {
-              await signInWithRedirect(auth, provider);
-            } catch (redirectErr: any) {
-              setError(`Google Sign-In redirection failed: ${redirectErr.message}`);
-              setAuthLoading(false);
-            }
-          }
-        } else if (err.code === "auth/operation-not-allowed") {
-          setError("Console Setting Error: Google Auth is disabled in the Firebase Console under Sign-in methods.");
-          setAuthLoading(false);
-        } else {
-          setError(getFriendlyErrorMessage(err));
-          setAuthLoading(false);
-        }
-      }
-    } catch (outerErr: any) {
-      console.error("Critical Google Auth Error:", outerErr);
-      setError("System failure during authentication initialization.");
       setAuthLoading(false);
     }
   };
 
   const handlePurge = () => {
-    if (confirm("This will PERMANENTLY wipe all local hunter progress. Are you sure you wish to purge the local spatial matrix?")) {
+    if (confirm("SYSTEM NOTIFICATION\n\nThis will completely flush all cached local hunter cards and session storage slots. Are you ready to clear system memory?")) {
       localStorage.clear();
       window.location.reload();
     }
   };
 
   return (
-    <main role="main" className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="bg-slate-900/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-md">
-        <h1 className="text-2xl sm:text-4xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500 tracking-tighter text-center">
-          {isSignUp ? "INITIALIZE" : "AUTHENTICATE"}
-        </h1>
-        {error && <p role="alert" aria-live="assertive" className="text-red-400 text-sm mb-4 text-center bg-red-950/40 p-3 rounded-lg border border-red-900/50">{error}</p>}
-        <div>
-          <label htmlFor="email" className="sr-only">Email Address</label>
-          <input
-            id="email"
-            type="email"
-            placeholder="Email Address" 
-            aria-label="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={authLoading}
-            className="w-full p-4 mb-4 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="sr-only">Password</label>
-          <input
-            id="password"
-            type="password"
-            placeholder="Password" 
-            aria-label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={authLoading}
-            className="w-full p-4 mb-6 bg-slate-950 rounded-xl border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all disabled:opacity-55"
-          />
-        </div>
-        <button aria-label={isSignUp ? "Create Account" : "Sign In"}
-          onClick={handleEmailAuth}
-          disabled={authLoading}
-          className="w-full p-4 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 mb-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {authLoading ? (
-            <div className="w-5 h-5 border-2 border-dashed border-white rounded-full animate-spin" />
-          ) : null}
-          {isSignUp ? "Create Account" : "Access Console"}
-        </button>
-        <button aria-label={isSignUp ? "Switch to Sign In" : "Switch to Sign Up"}
-          onClick={() => setIsSignUp(!isSignUp)}
-          disabled={authLoading}
-          className="w-full text-sm text-slate-400 hover:text-white transition-colors mb-6 text-center underline underline-offset-4 disabled:opacity-40"
-        >
-          {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
-        </button>
-        
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-700"></div>
+    <main role="main" className="flex flex-col items-center justify-center min-h-[90vh] p-4 text-slate-100 select-none">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-md"
+      >
+        {/* Subtle accent glow lines */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-600 to-indigo-500" />
+        <div className="absolute -top-16 -right-16 w-32 h-32 bg-cyan-500/10 rounded-full filter blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-purple-500/10 rounded-full filter blur-2xl pointer-events-none" />
+
+        {/* Brand System Logo & Identity */}
+        <div className="text-center mb-6 relative">
+          <div className="inline-flex p-3 bg-slate-950 border border-cyan-500/20 rounded-2xl mb-3 text-cyan-400">
+            <Fingerprint className="w-10 h-10 animate-pulse text-cyan-400" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-900 text-slate-500">OR</span>
-          </div>
+          <h1 className="text-2xl font-extrabold tracking-widest text-white font-sans uppercase">
+            Sovereign Portal
+          </h1>
+          <p className="text-[10px] text-cyan-400 font-mono uppercase tracking-widest mt-1">
+            Core Security Gateway &bull; Credentials Registry
+          </p>
         </div>
 
-        <button aria-label="Sign in with Google"
-          onClick={handleGoogleAuth}
-          disabled={authLoading}
-          className="w-full p-3 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-lg transition-all flex items-center justify-center gap-2 border border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {authLoading ? (
-            <div className="w-5 h-5 border-2 border-dashed border-cyan-600 rounded-full animate-spin" />
-          ) : (
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="currentColor"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-          )}
-          {authLoading ? "Synchronizing..." : "Sign in with Google"}
-        </button>
+        {/* Tab System Selector */}
+        <div className="grid grid-cols-2 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
+          <button
+            type="button"
+            disabled={authLoading}
+            onClick={() => {
+              setIsSignUp(false);
+              setError(null);
+            }}
+            className={`py-2 rounded-lg text-xs font-mono font-bold uppercase transition cursor-pointer ${
+              !isSignUp 
+                ? "bg-slate-800 text-cyan-400 shadow" 
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            disabled={authLoading}
+            onClick={() => {
+              setIsSignUp(true);
+              setError(null);
+            }}
+            className={`py-2 rounded-lg text-xs font-mono font-bold uppercase transition cursor-pointer ${
+              isSignUp 
+                ? "bg-slate-800 text-cyan-400 shadow" 
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Register
+          </button>
+        </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-            <button 
-              onClick={handlePurge}
-              className="text-[10px] uppercase tracking-widest text-slate-600 hover:text-red-500 transition-colors"
+        {/* Diagnostic Errors panel */}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6"
             >
-              Emergency Hunter Profile Purge
-            </button>
+              <div 
+                role="alert" 
+                className="bg-red-950/40 border border-red-900 text-red-200 text-xs p-4 rounded-xl flex items-start gap-3 font-mono leading-relaxed"
+              >
+                <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-red-400 block mb-1">SYSTEM ALERT</span>
+                  {error}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Helper Security Tip */}
+        <div 
+          id="security_validation_tip" 
+          className="mb-6 bg-cyan-950/20 border border-cyan-900/30 text-cyan-400 text-[10px] p-3 rounded-xl flex items-start gap-2.5 font-mono leading-relaxed"
+        >
+          <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-extrabold text-cyan-300 block mb-0.5">SECURE ENDPOINT VALIDATION</span>
+            Authentication is processed directly with our secure database enclave. All passkeys are securely salted and hashed.
+          </div>
         </div>
-      </div>
+
+        {/* Input credentials interaction form */}
+        <form onSubmit={handleEmailAuth} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-slate-500 font-mono uppercase tracking-wider block" htmlFor="gateway_email">
+              Gate Coordinate (Email Address)
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                id="gateway_email"
+                type="email"
+                required
+                disabled={authLoading}
+                placeholder="huntername@shadowmonarch.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 p-4 pl-12 rounded-xl text-sm text-slate-200 outline-none transition disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-slate-500 font-mono uppercase tracking-wider block" htmlFor="gateway_passcode">
+              Cipher Code (Password)
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                id="gateway_passcode"
+                type="password"
+                required
+                disabled={authLoading}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/50 p-4 pl-12 rounded-xl text-sm text-slate-200 outline-none transition disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* Action button - Confirm auth */}
+          <button
+            type="submit"
+            disabled={authLoading}
+            className="w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-mono font-bold text-xs uppercase p-4 h-12 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition shadow-md disabled:opacity-50 active:scale-98"
+          >
+            {authLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin text-white" />
+            ) : isSignUp ? (
+              <UserPlus className="w-4 h-4" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+            <span>{isSignUp ? "INITIALIZE VESSEL" : "ACCESS CONSOLE"}</span>
+          </button>
+        </form>
+
+        {/* Switch tab text helpers */}
+        <div className="mt-6 text-center">
+          <p className="text-[11px] text-slate-400 font-mono">
+            {isSignUp ? (
+              <>
+                Already certified?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  className="text-cyan-400 underline hover:text-cyan-300 transition-colors"
+                >
+                  Switch to Sign In
+                </button>
+              </>
+            ) : (
+              <>
+                New candidate?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(true)}
+                  className="text-cyan-400 underline hover:text-cyan-300 transition-colors"
+                >
+                  Register Profile
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+
+        {/* Bottom utility: System Purge */}
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+          <button
+            type="button"
+            onClick={handlePurge}
+            className="text-[9px] uppercase tracking-widest text-slate-600 hover:text-red-400 transition-colors font-mono cursor-pointer"
+          >
+            SYSTEM RESET &bull; FLUSH SESSION MEMORY
+          </button>
+        </div>
+      </motion.div>
     </main>
   );
 }
