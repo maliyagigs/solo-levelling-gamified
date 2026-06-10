@@ -70,7 +70,11 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
                              (error && typeof error === 'object' && ('code' in error) && (error as any).code === 'permission-denied');
 
   if (isPermissionDenied) {
-    throw new Error(JSON.stringify(errInfo));
+    if (operationType === OperationType.GET || operationType === OperationType.LIST) {
+      console.warn("Ignoring permission error on passive Firestore listener: ", errMsg);
+    } else {
+      throw new Error(JSON.stringify(errInfo));
+    }
   } else {
     console.warn("Handling transient/network Firestore event without throwing: ", errMsg);
   }

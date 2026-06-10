@@ -315,7 +315,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<string>("Initializing Spatial Gateway...");
 
   const suspenseFallback = (
-    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-screen relative z-10 font-mono text-cyan-400 p-6 text-center">
+    <div role="status" aria-live="polite" className="flex flex-col items-center justify-start sm:justify-center min-h-[100dvh] relative z-10 font-mono text-cyan-400 p-6 text-center overflow-y-auto">
       <div className="w-12 h-12 border-2 border-dashed border-cyan-500 rounded-full animate-spin mb-4" />
       <span className="text-xs uppercase tracking-widest animate-pulse mb-2">{syncStatus}</span>
       <p className="text-[10px] text-slate-500 max-w-xs mb-6">Communicating with the Shadow Monarch core processor...</p>
@@ -336,18 +336,20 @@ export default function App() {
 
   if (isSyncing) {
     return (
-      <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans relative overflow-x-hidden">
+      <div id="monarch_root" className="min-h-[100dvh] bg-slate-950 text-white font-sans relative overflow-y-auto overflow-x-hidden">
         <CosmicBackground />
-        {suspenseFallback}
+        <div className="relative z-10">
+          {suspenseFallback}
+        </div>
       </div>
     );
   }
 
   if (isAdminMode) {
     return (
-      <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-purple-500/30 selection:text-purple-300 relative overflow-x-hidden">
+      <div id="monarch_root" className="min-h-[100dvh] bg-slate-950 text-white font-sans selection:bg-purple-500/30 selection:text-purple-300 relative overflow-y-auto overflow-x-hidden">
         <CosmicBackground />
-        <div className="relative z-10 w-full h-full">
+        <div className="relative z-10 w-full min-h-full">
           <ErrorBoundary>
             <Suspense fallback={suspenseFallback}>
               <AdminPanel 
@@ -383,10 +385,10 @@ export default function App() {
   }
 
   return (
-    <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-x-hidden">
+    <div id="monarch_root" className="min-h-[100dvh] bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-y-auto overflow-x-hidden">
       <CosmicBackground />
 
-      <main role="main" className="relative z-10 w-full h-full">
+      <main role="main" className="relative z-10 w-full min-h-full flex flex-col">
         <ErrorBoundary>
           <Suspense fallback={suspenseFallback}>
             {phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview")) ? (

@@ -50,7 +50,7 @@ import { AnimeTierBadge } from "./AnimeTierBadge";
 import { AvatarWithFrame } from "./AvatarWithFrame";
 import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users, Map } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, auth, handleFirestoreError, OperationType } from "../utils/firebase";
-import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
+import { onSnapshot, collection, doc, setDoc, query, limit } from "firebase/firestore";
 import { 
   playSelectSound, 
   playDaggerSwipe, 
@@ -305,7 +305,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     if (!playerName) return;
 
     // 1. Listen live to Admin Announcements
-    const unsubAnn = onSnapshot(collection(db, "announcements"), (snapshot) => {
+    const unsubAnn = onSnapshot(query(collection(db, "announcements"), limit(100)), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data());
@@ -317,7 +317,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
 
     // 2. Listen live to Admin Custom Quests
-    const unsubQuests = onSnapshot(collection(db, "admin_quests"), (snapshot) => {
+    const unsubQuests = onSnapshot(query(collection(db, "admin_quests"), limit(100)), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data());
@@ -329,7 +329,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
 
     // 3. Listen live to Admin Custom Gates
-    const unsubGates = onSnapshot(collection(db, "admin_gates"), (snapshot) => {
+    const unsubGates = onSnapshot(query(collection(db, "admin_gates"), limit(100)), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data());
@@ -341,7 +341,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
 
     // 3.5 Listen live to Admin Market Items
-    const unsubMarket = onSnapshot(collection(db, "admin_market_items"), (snapshot) => {
+    const unsubMarket = onSnapshot(query(collection(db, "admin_market_items"), limit(100)), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data());
@@ -1471,29 +1471,29 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
   }, [gameState.weeklyExpAccumulated, gameState.weeklyManaAccumulated, gameState.level]);
 
-  // Firebase Leaderboard Synchronizer Effect
-  useEffect(() => {
-    let active = true;
-    const syncLeaderboard = async () => {
-      try {
-        await saveToLeaderboard(playerName, gameState.level, gameState.gold, gameState.job, gameState.rank);
-      } catch (err) {
-        console.error("Leaderboard synchronization failed", err);
-      }
-    };
-    
-    // Simple debounce/timeout so we don't spam Firestore on rapid changes
-    const t = setTimeout(() => {
-      if (active) {
-        syncLeaderboard();
-      }
-    }, 1500);
-    
-    return () => {
-      active = false;
-      clearTimeout(t);
-    };
-  }, [playerName, gameState.level, gameState.gold, gameState.job, gameState.rank]);
+    // Firebase Leaderboard Synchronizer Effect
+    useEffect(() => {
+      let active = true;
+      const syncLeaderboard = async () => {
+        try {
+          await saveToLeaderboard(playerName, gameState.level, gameState.gold, gameState.job, gameState.rank);
+        } catch (err) {
+          console.error("Leaderboard synchronization failed", err);
+        }
+      };
+      
+      // Simple debounce/timeout so we don't spam Firestore on rapid changes
+      const t = setTimeout(() => {
+        if (active) {
+          syncLeaderboard();
+        }
+      }, 10000); // 10 seconds debounce for extreme scale
+      
+      return () => {
+        active = false;
+        clearTimeout(t);
+      };
+    }, [playerName, gameState.level, gameState.gold, gameState.job, gameState.rank]);
 
   // Fetch Leaderboard entries when active tab is "leaderboard"
   useEffect(() => {
@@ -1746,7 +1746,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
   };
 
-  // Main Daily System Allocation Bounty (500 MP and 200 XP)
+  // Main Daily System Allocation Bounty (2 MP and 200 XP)
   const claimDailyAllocation = () => {
     const allCompleted = gameState.quests.every((q: any) => q.current >= q.target);
     if (!allCompleted || isDailyAllocationClaimed) return;
@@ -1755,13 +1755,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setIsDailyAllocationClaimed(true);
     localStorage.setItem(`monarch_daily_claim_${playerName}`, new Date().toDateString());
 
-    const equippedPremiumCount = gameState.inventory.filter(item => item.equipped && (item.rarity === "S" || item.rarity === "National" || item.rarity === "Sovereign")).length;
-    const sigilsCount = gameState.sigils ?? 0;
-    const rawBooster = gameState.boosterMultiplier ?? 1.0;
-    const prestigeHaloMultiplier = 1.0 + (equippedPremiumCount * 0.15) + (sigilsCount * 0.10) + (rawBooster - 1.0);
-    const finalDailyGold = Math.round(5 * prestigeHaloMultiplier);
+    const finalDailyGold = 2;
 
-    addExp(50);
+    addExp(200);
     setGameState(prev => {
       const actualGold = finalDailyGold; // Ensure EXACT sync with backend without any caps
       return {
@@ -4186,7 +4182,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <span className="text-[10px] text-indigo-400 uppercase font-extrabold tracking-widest block animate-pulse">DAILY ALLOCATION PORTAL</span>
                     <h4 className="text-sm font-bold text-slate-100 uppercase">SOVEREIGN ALLOCATION BOUNTY</h4>
                     <p className="text-[10px] text-slate-400 max-w-sm font-sans leading-relaxed">
-                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 5 Mana (MP) and 200 character experience points.
+                      Completing all 4 multi-disciplinary self development grinds unlocks the daily system allocation allowance containing 2 Mana (MP) and 200 character experience points.
                     </p>
                   </div>
 
@@ -4228,7 +4224,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                             className="bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-500 text-white font-black text-[10px] uppercase py-3 px-6 rounded-xl cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.2)] tracking-widest block text-center animate-pulse"
                             onClick={claimDailyAllocation}
                           >
-                            CLAIM MANA ALLOCATE (+500 MP)
+                            CLAIM MANA ALLOCATE (+2 MP)
                           </motion.button>
                         ) : (
                           <span className="bg-slate-900 border border-slate-800 text-slate-550 font-extrabold text-[10px] uppercase py-3 px-5 rounded-xl block tracking-widest text-center">

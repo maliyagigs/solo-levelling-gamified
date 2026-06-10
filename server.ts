@@ -3,7 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { getFirestore, collection, getDocs, getAggregateFromServer, sum } from "firebase/firestore";
 
 async function startServer() {
   const app = express();
@@ -37,14 +37,11 @@ async function startServer() {
   const updateEconomyMetrics = async () => {
     if (!db) return;
     try {
-      const snapshot = await getDocs(collection(db, "leaderboard"));
-      let totalGold = 0;
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (typeof data.gold === 'number' && data.gold > 0) {
-          totalGold += data.gold;
-        }
+      const coll = collection(db, "leaderboard");
+      const aggregateSnapshot = await getAggregateFromServer(coll, {
+        totalGold: sum('gold')
       });
+      const totalGold = aggregateSnapshot.data().totalGold || 0;
       
       cachedCirculatingMana = totalGold;
       cachedCurrentManaValue = LISTING_PRICE_USD;

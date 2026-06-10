@@ -118,13 +118,13 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
   };
 
   return (
-    <div id="plan_preview_container" className="min-h-screen bg-slate-950 text-white p-4 flex flex-col justify-between font-sans relative overflow-hidden select-none">
+    <div id="plan_preview_container" className="min-h-[100dvh] bg-slate-950 text-white p-4 flex flex-col justify-between font-sans relative overflow-y-auto overflow-x-hidden select-none pb-safe">
       {/* Visual Effects */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
       <div className="absolute bottom-10 left-5 w-80 h-80 bg-cyan-900/10 rounded-full filter blur-[100px] pointer-events-none" />
 
       {/* Main Container */}
-      <main role="main" className="flex-1 max-w-2xl w-full mx-auto flex flex-col justify-center py-6 z-10">
+      <main role="main" className="flex-1 max-w-2xl w-full mx-auto flex flex-col justify-start sm:justify-center py-6 z-10 min-h-0">
         <AnimatePresence mode="wait">
           
           {/* 1. PLAN PREVIEW DISPLAY */}

@@ -269,7 +269,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     if (!isAdminAuthorized) return;
 
     // Listen to Leaderboard (Hunters)
-    const qPlayers = query(collection(db, "leaderboard"), orderBy("level", "desc"), orderBy("gold", "desc"));
+    const qPlayers = query(collection(db, "leaderboard"), orderBy("level", "desc"), orderBy("gold", "desc"), limit(100));
     const unsubscribePlayers = onSnapshot(qPlayers, (snapshot) => {
       const plist: Player[] = [];
       snapshot.forEach((doc) => {
@@ -292,7 +292,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     });
 
     // Listen to Announcements
-    const unsubscribeAnnouncements = onSnapshot(collection(db, "announcements"), (snapshot) => {
+    const qAnnouncements = query(collection(db, "announcements"), limit(100));
+    const unsubscribeAnnouncements = onSnapshot(qAnnouncements, (snapshot) => {
       const alist: Announcement[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -310,7 +311,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     });
 
     // Listen to Custom Quests
-    const unsubscribeQuests = onSnapshot(collection(db, "admin_quests"), (snapshot) => {
+    const qQuests = query(collection(db, "admin_quests"), limit(100));
+    const unsubscribeQuests = onSnapshot(qQuests, (snapshot) => {
       const qlist: AdminQuest[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -331,7 +333,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     });
 
     // Listen to Custom Gates
-    const unsubscribeGates = onSnapshot(collection(db, "admin_gates"), (snapshot) => {
+    const qGates = query(collection(db, "admin_gates"), limit(100));
+    const unsubscribeGates = onSnapshot(qGates, (snapshot) => {
       const glist: AdminGate[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -353,7 +356,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     });
 
     // Listen to Market Items
-    const unsubscribeMarket = onSnapshot(collection(db, "admin_market_items"), (snapshot) => {
+    const qMarketItems = query(collection(db, "admin_market_items"), limit(100));
+    const unsubscribeMarket = onSnapshot(qMarketItems, (snapshot) => {
       const mlist: AdminMarketItem[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -395,7 +399,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     });
 
     // Listen to Lobbies
-    const unsubscribeLobbies = onSnapshot(collection(db, "party_lobbies"), (snapshot) => {
+    const qLobbies = query(collection(db, "party_lobbies"), limit(100));
+    const unsubscribeLobbies = onSnapshot(qLobbies, (snapshot) => {
       const llist: PartyLobby[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();

@@ -193,7 +193,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
   }, []);
 
   return (
-    <div id="onboarding_container" className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-hidden font-sans select-none">
+    <div id="onboarding_container" className="min-h-[100dvh] bg-slate-950 text-white flex flex-col justify-between p-4 relative overflow-y-auto overflow-x-hidden font-sans select-none pb-safe">
       {/* Background artwork with a tiny blur to add textured atmosphere */}
       <div 
         className="absolute inset-0 z-0 opacity-20 pointer-events-none select-none blur-[1px] transition-all duration-1000 bg-cover bg-center"
@@ -265,7 +265,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none z-0" />
 
       {/* MAIN CONTENT AREA */}
-      <main role="main" className="flex-1 flex items-center justify-center py-6 w-full max-w-2xl mx-auto z-10">
+      <main role="main" className="flex-1 flex flex-col items-center justify-start sm:justify-center py-6 w-full max-w-2xl mx-auto z-10 min-h-0">
         <AnimatePresence mode="wait">
           {/* STEP 0: Cover Screen */}
           {step === 0 && (
@@ -287,7 +287,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 <MonarchLogo size={140} />
               </motion.div>
 
-              <h1 id="cover_title" className="text-4xl sm:text-5xl font-extrabold tracking-widest text-slate-100 uppercase mb-3">
+              <h1 id="cover_title" className="text-3xl sm:text-5xl font-extrabold tracking-widest text-slate-100 uppercase mb-3">
                 <span className="sr-only">Monarch</span>
                 <span aria-hidden="true">ʍօռǟʀƈɦ</span>
               </h1>
@@ -295,7 +295,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 Physical Ascension Protocol &middot; Gate Challenge
               </p>
 
-              <div id="flavor_quote" className="bg-slate-950/80 border border-slate-900 p-4 rounded-xl mb-10 text-sm text-slate-400 font-mono leading-relaxed max-w-sm">
+              <div id="flavor_quote" className="bg-slate-950/80 border border-slate-900 p-4 rounded-xl mb-6 sm:mb-10 text-sm text-slate-400 font-mono leading-relaxed max-w-sm">
                 &ldquo;Do you desire to break your limits? The System offers a path. Break away from your battered E-Rank shell and ascend as the Sovereign ruler of your own flesh.&rdquo;
               </div>
 
