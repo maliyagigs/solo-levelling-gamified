@@ -13,23 +13,6 @@ interface AuthScreenProps {
   onSuccess: () => void;
 }
 
-// Helper to determine if the web app is running in an embedded WebView (e.g. Android Webview, iOS WebView wrapper)
-const checkIsWebView = (): boolean => {
-  if (typeof window === "undefined" || !window.navigator) return false;
-  const ua = window.navigator.userAgent || "";
-  
-  // Android WebViews typically carry "Version/4.0" alongside "Chrome"
-  const isAndroidWebView = /Android/i.test(ua) && /Version\/\d/i.test(ua);
-  
-  // iOS WebViews (UIWebView or WKWebView) typically lack "Safari" in their user agent when embedded
-  const isIosWebView = /iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua);
-  
-  // Other mobile wrappers / standalone mode
-  const isStandalone = (window.navigator as any).standalone || window.matchMedia("(display-mode: standalone)").matches;
-
-  return isAndroidWebView || isIosWebView || isStandalone;
-};
-
 export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,7 +53,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
     const msg = err?.message || "";
     
     if (code.includes("invalid-credential") || msg.includes("invalid-credential")) {
-      return "Access Denied: Incorrect credentials passcode or email coordinate. If you don't have an account, make sure to click 'Need an account? Sign Up' below!";
+      return "Invalid email, password, or security token. If you do not have a registered password account yet, click 'Need an account? Sign Up' below, or authenticate using your Google account.";
     }
     if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
       return "Registration Error: This email coordinate is already bound to an active Shadow Monarch hunter card.";
@@ -104,55 +87,89 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
       console.error("Auth error details:", err);
       setError(getFriendlyErrorMessage(err));
     } finally {
-      setAuthLoading(false);
+      // Small delay to ensure state doesn't jitter
+      setTimeout(() => setAuthLoading(false), 500);
     }
   };
 
   const handleGoogleAuth = async () => {
+    let isPending = true;
     try {
       setError(null);
       setAuthLoading(true);
       const provider = new GoogleAuthProvider();
       
-      // Select account automatically on trigger, but you could omit if not desired
+      // Select account automatically on trigger
       provider.setCustomParameters({
         prompt: "select_account"
       });
 
-      // If we detect the environment is an Android or iOS WebView container, use Google Sign-in on redirect
-      if (checkIsWebView()) {
-        console.log("Device mode: WebView detected. Initiating Firebase Google Authentication Redirect...");
-        await signInWithRedirect(auth, provider);
-        return; 
-      }
+      // Safety timeout for the popup (25 seconds)
+      const popupTimeout = setTimeout(() => {
+        if (isPending) {
+          setError("The authentication window is taking too long to respond. Please ensure popups are allowed and try again.");
+          setAuthLoading(false);
+          isPending = false;
+        }
+      }, 25000);
 
-      // Try Popup first for general web browsers (faster, single session)
-      await signInWithPopup(auth, provider);
-      onSuccess();
-    } catch (err: any) {
-      console.warn("Popup blocked or failed. Checking alternative authenticators...", err);
-      
-      // Fallback seamlessly to standard HTTP Auth redirect if popup is blocked or closed manually
-      if (
-        err.code === "auth/popup-blocked" || 
-        err.code === "auth/popup-closed-by-user" || 
-        err.code === "auth/cancelled-popup-request" ||
-        err.message?.toLowerCase().includes("closed")
-      ) {
-        try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(auth, provider);
-        } catch (redirectErr: any) {
-          setError(`Google Sign-In redirection failed: ${redirectErr.message}`);
+      try {
+        // Try Popup first for general web browsers (faster, single session)
+        await signInWithPopup(auth, provider);
+        isPending = false;
+        clearTimeout(popupTimeout);
+        onSuccess();
+        setAuthLoading(false);
+      } catch (err: any) {
+        if (!isPending) return;
+        isPending = false;
+        clearTimeout(popupTimeout);
+        console.error("Google Auth error details:", err);
+        
+        // Fallback seamlessly to standard HTTP Auth redirect if popup is blocked or closed manually
+        const isPopupIssue = 
+          err.code === "auth/popup-blocked" || 
+          err.code === "auth/popup-closed-by-user" || 
+          err.code === "auth/cancelled-popup-request" ||
+          err.message?.toLowerCase().includes("closed") ||
+          err.message?.toLowerCase().includes("blocked");
+
+        const isIframe = window.self !== window.top;
+
+        if (isPopupIssue) {
+          if (isIframe) {
+            setError(
+              "Popup Blocked: The authentication window was blocked. " +
+              "Since you are inside the preview iframe, please click the 'Open in New Tab' icon at the top right of this preview panel, allow popups, and sign in there!"
+            );
+            setAuthLoading(false);
+          } else {
+            try {
+              await signInWithRedirect(auth, provider);
+            } catch (redirectErr: any) {
+              setError(`Google Sign-In redirection failed: ${redirectErr.message}`);
+              setAuthLoading(false);
+            }
+          }
+        } else if (err.code === "auth/operation-not-allowed") {
+          setError("Console Setting Error: Google Auth is disabled in the Firebase Console under Sign-in methods.");
+          setAuthLoading(false);
+        } else {
+          setError(getFriendlyErrorMessage(err));
           setAuthLoading(false);
         }
-      } else if (err.code === "auth/operation-not-allowed") {
-        setError("Console Setting Error: Google Auth is disabled in the Firebase Console under Sign-in methods.");
-        setAuthLoading(false);
-      } else {
-        setError(err.message);
-        setAuthLoading(false);
       }
+    } catch (outerErr: any) {
+      console.error("Critical Google Auth Error:", outerErr);
+      setError("System failure during authentication initialization.");
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePurge = () => {
+    if (confirm("This will PERMANENTLY wipe all local hunter progress. Are you sure you wish to purge the local spatial matrix?")) {
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -194,7 +211,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           disabled={authLoading}
           className="w-full p-4 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 mb-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {authLoading && !checkIsWebView() ? (
+          {authLoading ? (
             <div className="w-5 h-5 border-2 border-dashed border-white rounded-full animate-spin" />
           ) : null}
           {isSignUp ? "Create Account" : "Access Console"}
@@ -245,6 +262,15 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
           )}
           {authLoading ? "Synchronizing..." : "Sign in with Google"}
         </button>
+
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+            <button 
+              onClick={handlePurge}
+              className="text-[10px] uppercase tracking-widest text-slate-600 hover:text-red-500 transition-colors"
+            >
+              Emergency Hunter Profile Purge
+            </button>
+        </div>
       </div>
     </main>
   );

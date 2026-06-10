@@ -287,7 +287,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [adminQuestProgress, setAdminQuestProgress] = useState<Record<string, { current: number; completed: boolean; claimed: boolean }>>(() => {
     const saved = localStorage.getItem(`monarch_admin_qst_progress_${playerName}`);
     try {
-      return saved ? JSON.parse(saved) : {};
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && typeof p === 'object' && !Array.isArray(p)) return p;
+      }
+      return {};
     } catch (e) {
       return {};
     }
@@ -630,7 +634,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [academicQuests, setAcademicQuests] = useState<any[]>(() => {
     const saved = localStorage.getItem(`monarch_acad_quests_${playerName}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { const p = JSON.parse(saved); if (Array.isArray(p)) return p; } catch (e) {}
     }
     return [];
   });
@@ -639,7 +643,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [bodybuildingExercises, setBodybuildingExercises] = useState<any[]>(() => {
     const saved = localStorage.getItem(`monarch_body_lifts_${playerName}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { const p = JSON.parse(saved); if (Array.isArray(p)) return p; } catch (e) {}
     }
     const split = onboardProfile?.bodybuildingSplit || "push_pull_legs";
     const weightLabel = onboardProfile?.weight ? `${Math.round(onboardProfile.weight * 0.55)}kg` : "70kg";
@@ -686,7 +690,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [careerMilestones, setCareerMilestones] = useState<any>(() => {
     const saved = localStorage.getItem(`monarch_career_stones_${playerName}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { 
+        const p = JSON.parse(saved); 
+        if (p && typeof p === 'object' && !Array.isArray(p)) return p; 
+      } catch (e) {}
     }
     return {
       resumeScore: 0,       // 0 or 1
@@ -700,7 +707,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [jobApplications, setJobApplications] = useState<any[]>(() => {
     const saved = localStorage.getItem(`monarch_job_apps_${playerName}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { const p = JSON.parse(saved); if (Array.isArray(p)) return p; } catch (e) {}
     }
     return [];
   });
@@ -715,7 +722,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const [focusLogs, setFocusLogs] = useState<string[]>(() => {
     const saved = localStorage.getItem(`monarch_focus_logs_${playerName}`);
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { const p = JSON.parse(saved); if (Array.isArray(p)) return p; } catch (e) {}
     }
     return [];
   });
@@ -1004,9 +1011,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     // Grant rewards
     addExp(expAward);
     setGameState(prev => {
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(goldAward, allowedGold, 5);
+      const actualGold = goldAward; // Ensure EXACT sync with backend without any caps
 
       const offeringItem = {
         id: `offering_${Date.now()}`,
@@ -1021,7 +1026,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold,
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins,
         inventory: [...prev.inventory, offeringItem]
       };
@@ -1368,6 +1373,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       forceSystemEnforcement,
       playerMp,
       isInPenaltyZone,
+      v3_reset: true,
       updatedAt: new Date().toISOString()
     };
 
@@ -1720,13 +1726,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         }
         return q;
       });
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(finalGoldAward, allowedGold, 5);
+      const actualGold = finalGoldAward; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold,
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         quests: list
       };
     });
@@ -1757,13 +1761,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
     addExp(50);
     setGameState(prev => {
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(finalDailyGold, allowedGold, 5);
+      const actualGold = finalDailyGold; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold
       };
     });
 
@@ -1865,13 +1867,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     playLootSound();
     
     setGameState(prev => {
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(stakedYield, allowedGold, 5);
+      const actualGold = stakedYield; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold
       };
     });
     triggerSystemToast(`🌾 HARVEST SECURED: Formally claimed +${stakedYield} MP of accumulated compound spatial interest into liquid reserves!`);
@@ -3059,13 +3059,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       if (lootDropped && !inv.some(item => item.id === lootDropped?.id)) {
         inv.push(lootDropped);
       }
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      const actualGold = Math.min(gold, allowedGold, 5);
+      const actualGold = gold; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold,
+        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         inventory: inv,
         dailyGatesCleared: (prev.dailyGatesCleared ?? 0) + 1
       };

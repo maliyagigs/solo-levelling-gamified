@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense, lazy, useRef } from "react";
 import CosmicBackground from "./components/CosmicBackground";
 import { OnboardingData } from "./types";
 import { auth, db, saveToLeaderboard } from "./utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, getDocFromServer } from "firebase/firestore";
+
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const Onboarding = lazy(() => import("./components/Onboarding"));
 const PlanPreview = lazy(() => import("./components/PlanPreview"));
@@ -50,11 +52,12 @@ export default function App() {
     const savedName = localStorage.getItem("monarch_active_player");
     const savedProfile = localStorage.getItem("monarch_onboard_profile");
     if (savedName && savedProfile) return "rpg_dashboard";
-    return "authentication";
+    return "onboarding";
   });
 
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
+  const syncTargetRef = useRef<string | null>(null);
 
   const [activePlayerName, setActivePlayerName] = useState<string>(() => {
     return localStorage.getItem("monarch_active_player") || "Sung Jin-Woo";
@@ -93,21 +96,72 @@ export default function App() {
 
   // Monitor Authentication and Sync with Firestore
   useEffect(() => {
+    // Global fallback for initial mount: if auth never fires, don't keep loading forever
+    const globalTimeout = setTimeout(() => {
+      if (isSyncing) {
+        console.warn("Global auth synchronization timeout. Releasing UI.");
+        setIsSyncing(false);
+      }
+    }, 8000);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setIsSyncing(true);
+      clearTimeout(globalTimeout);
+      const clearSync = () => {
+        setIsSyncing(false);
+      };
+
       if (user) {
+        // If we switch users or just logged in, show the sync indicator
+        if (syncTargetRef.current !== user.uid) {
+          setIsSyncing(true);
+          syncTargetRef.current = user.uid;
+        }
+        setSyncStatus(`Shadow System: Scanning credentials for ${user.email}...`);
+        
+        // Safety timeout for Firestore sync (5 seconds max)
+        const syncTimeout = setTimeout(() => {
+          console.warn("Firestore sync taking too long or silent. Releasing UI lock.");
+          clearSync();
+          // Safety phase transition: if stuck on login during sync, let them continue or do onboarding
+          setPhase((currentPhase) => {
+            if (currentPhase === "authentication") {
+              const savedProfile = localStorage.getItem("monarch_onboard_profile");
+              if (savedProfile) {
+                try {
+                  setProfile(JSON.parse(savedProfile));
+                } catch (e) {}
+                return "rpg_dashboard";
+              }
+              return "onboarding";
+            }
+            return currentPhase;
+          });
+        }, 5000);
+
         try {
           const userDocRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(userDocRef);
+          setSyncStatus("Retrieving Hunter Profile from Sovereign database...");
+          
+          // Fetch document with robust getFromServer fast-fail and standard cache recovery
+          let docSnap;
+          try {
+            docSnap = await getDocFromServer(userDocRef);
+          } catch (errFromServer) {
+            console.warn("Using offline mode fallback due to client/server connection latency:", errFromServer);
+            docSnap = await getDoc(userDocRef);
+          }
+          
           if (docSnap.exists()) {
+            setSyncStatus("Rematerializing progress metadata...");
             const data = docSnap.data();
             
             // Force reset balance v3 on the cloud database
             if (!data.v3_reset) {
+              setSyncStatus("Calibrating Dimensional Balance [V3 Reset]...");
               await setDoc(userDocRef, {
                 v3_reset: true,
                 updatedAt: new Date().toISOString()
-              });
+              }, { merge: true });
               
               Object.keys(localStorage).forEach(key => {
                 if (key.startsWith("monarch_") && key !== "monarch_v3_balanced_reset_enforced") {
@@ -118,7 +172,8 @@ export default function App() {
               setProfile(null);
               setOnboardingStep(0);
               setPhase("onboarding");
-              setIsSyncing(false);
+              clearTimeout(syncTimeout);
+              clearSync();
               return;
             }
             
@@ -183,14 +238,8 @@ export default function App() {
                 setPhase("onboarding");
               }
             } else {
-              setPhase((currentPhase) => {
-                if (currentPhase === "authentication") {
-                  setOnboardingStep(1);
-                  return "onboarding";
-                }
-                if (currentPhase === "plan_preview") return currentPhase;
-                return "onboarding";
-              });
+              setOnboardingStep(1);
+              setPhase("onboarding");
             }
           }
         } catch (err) {
@@ -209,18 +258,15 @@ export default function App() {
               setPhase("onboarding");
             }
           } else {
-            setPhase((currentPhase) => {
-              if (currentPhase === "authentication") {
-                setOnboardingStep(1);
-                return "onboarding";
-              }
-              if (currentPhase === "plan_preview") return currentPhase;
-              return "onboarding";
-            });
+            setOnboardingStep(1);
+            setPhase("onboarding");
           }
+        } finally {
+          clearTimeout(syncTimeout);
         }
       } else {
         // Logged out: clean local variables if they was in active game
+        syncTargetRef.current = null;
         setPhase((currentPhase) => {
           if (currentPhase === "rpg_dashboard") {
             setProfile(null);
@@ -229,7 +275,7 @@ export default function App() {
           return currentPhase;
         });
       }
-      setIsSyncing(false);
+      clearSync();
     });
 
     return () => unsubscribe();
@@ -252,6 +298,7 @@ export default function App() {
         await setDoc(doc(db, "users", user.uid), {
           playerName: name,
           onboardProfile: profile,
+          v3_reset: true,
           updatedAt: serverTimestamp()
         });
         
@@ -282,10 +329,24 @@ export default function App() {
     setPhase("onboarding");
   };
 
+  const [syncStatus, setSyncStatus] = useState<string>("Initializing Spatial Gateway...");
+
   const suspenseFallback = (
-    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-screen relative z-10 font-mono text-cyan-400">
+    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-screen relative z-10 font-mono text-cyan-400 p-6 text-center">
       <div className="w-12 h-12 border-2 border-dashed border-cyan-500 rounded-full animate-spin mb-4" />
-      <span className="text-xs uppercase tracking-widest animate-pulse">Syncing with System Database...</span>
+      <span className="text-xs uppercase tracking-widest animate-pulse mb-2">{syncStatus}</span>
+      <p className="text-[10px] text-slate-500 max-w-xs mb-6">Communicating with the Shadow Monarch core processor...</p>
+      
+      {/* Emergency escape if sync hangs for some reason */}
+      <button 
+        onClick={() => {
+          localStorage.clear();
+          window.location.reload();
+        }}
+        className="mt-8 text-[10px] uppercase tracking-tighter text-slate-600 hover:text-red-500 transition-colors border border-slate-800 px-3 py-1 rounded"
+      >
+        Force System Purge & Reload
+      </button>
       <span className="sr-only">Loading</span>
     </div>
   );
@@ -304,15 +365,17 @@ export default function App() {
       <div id="monarch_root" className="min-h-screen bg-slate-950 text-white font-sans selection:bg-purple-500/30 selection:text-purple-300 relative overflow-x-hidden">
         <CosmicBackground />
         <div className="relative z-10 w-full h-full">
-          <Suspense fallback={suspenseFallback}>
-            <AdminPanel 
-              onBackToApp={() => {
-                window.history.pushState({}, "", "/");
-                window.location.hash = "";
-                setIsAdminMode(false);
-              }} 
-            />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={suspenseFallback}>
+              <AdminPanel 
+                onBackToApp={() => {
+                  window.history.pushState({}, "", "/");
+                  window.location.hash = "";
+                  setIsAdminMode(false);
+                }} 
+              />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </div>
     );
@@ -320,17 +383,19 @@ export default function App() {
 
   if (isPartyMode) {
     return (
-      <Suspense fallback={suspenseFallback}>
-        <PartyApp 
-          playerName={activePlayerName}
-          onBack={() => {
-            window.history.pushState({}, "", "/");
-            window.location.hash = "";
-            setIsPartyMode(false);
-          }}
-          playSelectSound={() => {}}
-        />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={suspenseFallback}>
+          <PartyApp 
+            playerName={activePlayerName}
+            onBack={() => {
+              window.history.pushState({}, "", "/");
+              window.location.hash = "";
+              setIsPartyMode(false);
+            }}
+            playSelectSound={() => {}}
+          />
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
@@ -339,33 +404,35 @@ export default function App() {
       <CosmicBackground />
 
       <main role="main" className="relative z-10 w-full h-full">
-        <Suspense fallback={suspenseFallback}>
-          {phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview")) ? (
-            <Onboarding 
-              initialStep={onboardingStep} 
-              onStartGate={() => setPhase("authentication")} 
-              onComplete={handleOnboardingComplete} 
-            />
-          ) : null}
+        <ErrorBoundary>
+          <Suspense fallback={suspenseFallback}>
+            {phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview")) ? (
+              <Onboarding 
+                initialStep={onboardingStep} 
+                onStartGate={() => setPhase("authentication")} 
+                onComplete={handleOnboardingComplete} 
+              />
+            ) : null}
 
-          {phase === "authentication" && (
-            <AuthScreen onSuccess={() => {
-                // Routing is fully handled by the onAuthStateChanged listener
-            }} />
-          )}
+            {phase === "authentication" && (
+              <AuthScreen onSuccess={() => {
+                  // Routing is fully handled by the onAuthStateChanged listener
+              }} />
+            )}
 
-          {phase === "plan_preview" && profile && (
-            <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
-          )}
+            {phase === "plan_preview" && profile && (
+              <PlanPreview profile={profile} onComplete={handleRegistrationComplete} />
+            )}
 
-          {phase === "rpg_dashboard" && profile && (
-            <RpgGame 
-              playerName={activePlayerName}
-              onboardProfile={profile}
-              onLogout={handleLogout}
-            />
-          )}
-        </Suspense>
+            {phase === "rpg_dashboard" && profile && (
+              <RpgGame 
+                playerName={activePlayerName}
+                onboardProfile={profile}
+                onLogout={handleLogout}
+              />
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   );

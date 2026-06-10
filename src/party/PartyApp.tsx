@@ -1301,13 +1301,11 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
         // Evaluate dynamic contributions across normal or study boss battles
         const myContribs = currentLobby.contributions?.[playerName] || { damage: 0, heals: 0, interrupts: 0 };
         const engagementScore = myContribs.damage + myContribs.heals + myContribs.interrupts;
+        const maxGold = currentLobby?.boss?.isStudySession ? 50 : 100;
+        const maxExp = currentLobby?.boss?.isStudySession ? 200 : 500;
 
-        // Base caps
-        const maxGold = 5; // Capped to 5 max mana per task/bonus as requested
-        const maxExp = 100;
-
-        let addedGold = currentLobby?.boss?.isStudySession ? Math.min(maxGold, 5 + Math.floor(engagementScore / 300)) : maxGold;
-        let addedExp = currentLobby?.boss?.isStudySession ? Math.min(maxExp, 40 + Math.floor(engagementScore / 40)) : maxExp;
+        let addedGold = currentLobby?.boss?.isStudySession ? (5 + Math.floor(engagementScore / 300)) : 15;
+        let addedExp = currentLobby?.boss?.isStudySession ? (40 + Math.floor(engagementScore / 40)) : 100;
 
         let alertMsg = "";
 
