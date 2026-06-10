@@ -265,7 +265,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-900/10 rounded-full filter blur-[120px] pointer-events-none z-0" />
 
       {/* MAIN CONTENT AREA */}
-      <main role="main" className="flex-1 flex flex-col items-center justify-start sm:justify-center py-6 w-full max-w-2xl mx-auto z-10 min-h-0">
+      <main role="main" className="flex-1 flex flex-col items-center justify-center py-4 w-full max-w-2xl mx-auto z-10 min-h-0">
         <AnimatePresence mode="wait">
           {/* STEP 0: Cover Screen */}
           {step === 0 && (
@@ -277,25 +277,25 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
               className="text-center flex flex-col items-center max-w-lg px-4"
             >
               <motion.div 
-                className="mb-8 relative flex items-center justify-center p-8 bg-slate-900 border-2 border-cyan-400/30 rounded-full"
+                className="mb-6 sm:mb-10 relative flex items-center justify-center p-6 sm:p-10 bg-slate-900 border-2 border-cyan-400/30 rounded-full shadow-2xl"
                 id="gate_icon_container"
                 initial={{ rotateY: 180, opacity: 0 }}
                 animate={{ rotateY: 0, opacity: 1 }}
                 transition={{ duration: 1 }}
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full blur opacity-40 animate-pulse" />
-                <MonarchLogo size={140} />
+                <MonarchLogo size={160} />
               </motion.div>
 
-              <h1 id="cover_title" className="text-3xl sm:text-5xl font-extrabold tracking-widest text-slate-100 uppercase mb-3">
+              <h1 id="cover_title" className="text-4xl sm:text-6xl font-extrabold tracking-widest text-slate-100 uppercase mb-4">
                 <span className="sr-only">Monarch</span>
                 <span aria-hidden="true">ʍօռǟʀƈɦ</span>
               </h1>
-              <p className="text-cyan-400 text-xs font-mono tracking-widest uppercase mb-8 shadow-cyan-500/50 drop-shadow-md">
+              <p className="text-cyan-400 text-[10px] sm:text-xs font-mono tracking-[0.3em] uppercase mb-8 shadow-cyan-500/50 drop-shadow-md">
                 Physical Ascension Protocol &middot; Gate Challenge
               </p>
 
-              <div id="flavor_quote" className="bg-slate-950/80 border border-slate-900 p-4 rounded-xl mb-6 sm:mb-10 text-sm text-slate-400 font-mono leading-relaxed max-w-sm">
+              <div id="flavor_quote" className="bg-slate-950/80 border border-slate-900 p-5 rounded-xl mb-8 sm:mb-12 text-sm sm:text-base text-slate-400 font-mono leading-relaxed max-w-sm shadow-inner">
                 &ldquo;Do you desire to break your limits? The System offers a path. Break away from your battered E-Rank shell and ascend as the Sovereign ruler of your own flesh.&rdquo;
               </div>
 
@@ -303,7 +303,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
                 id="btn_get_started"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold tracking-widest uppercase px-12 py-4 rounded-full shadow-lg shadow-cyan-500/20 text-sm cursor-pointer border border-cyan-300/20"
+                className="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold tracking-widest uppercase px-14 py-5 rounded-full shadow-2xl shadow-cyan-500/40 text-sm sm:text-base cursor-pointer border border-cyan-300/20 transition-all"
                 onClick={startOnboarding}
               >
                 Enter the Gate
@@ -311,7 +311,7 @@ export default function Onboarding({ onComplete, onStartGate, initialStep = 0 }:
 
               <button
                 id="btn_direct_signin"
-                className="block mt-6 text-xs text-slate-500 hover:text-cyan-400 font-mono tracking-wider uppercase transition-colors underline underline-offset-4 cursor-pointer"
+                className="block mt-8 text-[11px] sm:text-xs text-slate-500 hover:text-cyan-400 font-mono tracking-widest uppercase transition-colors underline underline-offset-4 cursor-pointer"
                 onClick={() => {
                   if (onStartGate) onStartGate();
                 }}

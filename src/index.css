@@ -17,6 +17,14 @@
     font-family: var(--font-display);
     letter-spacing: 0.05em;
   }
+  
+  html {
+    /* Base font size scaling for small mobile devices */
+    font-size: 16px;
+    @media (max-width: 380px) {
+      font-size: 14px;
+    }
+  }
 }
 
 
@@ -84,6 +92,28 @@ html, body {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+#monarch_root {
+  background-color: #020617; /* Slate-950 */
+  min-height: 100dvh;
+}
+
+/* Ensure better readability on mobile by scaling up small text */
+@media (max-width: 640px) {
+  .text-xs {
+    font-size: 0.75rem !important; /* 12px */
+    line-height: 1rem !important;
+  }
+  .text-[10px] {
+    font-size: 0.7rem !important; /* ~11px */
+  }
+  .text-[11px] {
+    font-size: 0.75rem !important;
+  }
+  button, input {
+    font-size: 14px !important; /* Prevent iOS zoom and improve readability */
+  }
 }
 
 /* Allow selection in inputs and specific areas */

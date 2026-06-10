@@ -124,7 +124,7 @@ export default function PlanPreview({ profile, onComplete }: PlanPreviewProps) {
       <div className="absolute bottom-10 left-5 w-80 h-80 bg-cyan-900/10 rounded-full filter blur-[100px] pointer-events-none" />
 
       {/* Main Container */}
-      <main role="main" className="flex-1 max-w-2xl w-full mx-auto flex flex-col justify-start sm:justify-center py-6 z-10 min-h-0">
+      <main role="main" className="flex-1 max-w-2xl w-full mx-auto flex flex-col justify-center py-6 z-10 min-h-0 pt-10 sm:pt-6">
         <AnimatePresence mode="wait">
           
           {/* 1. PLAN PREVIEW DISPLAY */}

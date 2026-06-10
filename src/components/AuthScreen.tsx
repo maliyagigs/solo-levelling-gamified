@@ -103,7 +103,7 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   };
 
   return (
-    <main role="main" className="flex flex-col items-center justify-start sm:justify-center min-h-[100dvh] p-4 text-slate-100 select-none overflow-y-auto w-full pb-safe">
+    <main role="main" className="flex flex-col items-center justify-center min-h-[100dvh] p-4 text-slate-100 select-none overflow-y-auto w-full pb-safe pt-8 sm:pt-0">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

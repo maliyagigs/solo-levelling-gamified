@@ -315,22 +315,33 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState<string>("Initializing Spatial Gateway...");
 
   const suspenseFallback = (
-    <div role="status" aria-live="polite" className="flex flex-col items-center justify-start sm:justify-center min-h-[100dvh] relative z-10 font-mono text-cyan-400 p-6 text-center overflow-y-auto">
-      <div className="w-12 h-12 border-2 border-dashed border-cyan-500 rounded-full animate-spin mb-4" />
-      <span className="text-xs uppercase tracking-widest animate-pulse mb-2">{syncStatus}</span>
-      <p className="text-[10px] text-slate-500 max-w-xs mb-6">Communicating with the Shadow Monarch core processor...</p>
+    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center min-h-[100dvh] w-full fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] font-mono text-cyan-400 p-8 text-center overflow-y-auto">
+      <div className="relative animate-pulse flex flex-col items-center">
+        <div className="w-20 h-20 border-4 border-dashed border-cyan-500 rounded-full animate-spin mb-8" />
+        <div className="absolute top-0 w-20 h-20 flex items-center justify-center">
+          <div className="w-8 h-8 bg-cyan-500 rounded-full animate-ping opacity-75" />
+        </div>
+      </div>
+      
+      <span className="text-sm sm:text-base uppercase tracking-[0.4em] font-black animate-pulse mb-4 text-white drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]">
+        {syncStatus}
+      </span>
+      <p className="text-[11px] sm:text-xs text-slate-400 max-w-sm mb-10 leading-relaxed uppercase tracking-widest">
+        Synchronizing with the Sovereign Monarch core processor. Establishing dimensional link...
+      </p>
       
       {/* Emergency escape if sync hangs for some reason */}
       <button 
+        type="button"
         onClick={() => {
           localStorage.clear();
           window.location.reload();
         }}
-        className="mt-8 text-[10px] uppercase tracking-tighter text-slate-600 hover:text-red-500 transition-colors border border-slate-800 px-3 py-1 rounded"
+        className="text-[10px] sm:text-xs uppercase tracking-widest text-slate-500 hover:text-red-500 transition-all border border-slate-800 px-8 py-3 rounded-full bg-slate-900/50 hover:bg-slate-900 active:scale-95 shadow-xl"
       >
         Force System Purge & Reload
       </button>
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">Loading Progress</span>
     </div>
   );
 
@@ -385,13 +396,15 @@ export default function App() {
   }
 
   return (
-    <div id="monarch_root" className="min-h-[100dvh] bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-y-auto overflow-x-hidden">
+    <div id="monarch_root" className="min-h-[100dvh] bg-slate-950 text-white font-sans selection:bg-cyan-500/30 selection:text-cyan-300 relative overflow-y-auto overflow-x-hidden flex flex-col">
       <CosmicBackground />
 
-      <main role="main" className="relative z-10 w-full min-h-full flex flex-col">
+      <main role="main" className="relative z-10 w-full flex-1 flex flex-col">
         <ErrorBoundary>
           <Suspense fallback={suspenseFallback}>
-            {phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview")) ? (
+            {/* If we are loading or syncing, the top-level isSyncing check handles it. 
+                Below is the authenticated view logic. */}
+            {(phase === "onboarding" || (!profile && (phase === "rpg_dashboard" || phase === "plan_preview"))) ? (
               <Onboarding 
                 initialStep={onboardingStep} 
                 onStartGate={() => setPhase("authentication")} 
@@ -399,9 +412,9 @@ export default function App() {
               />
             ) : null}
 
-            {phase === "authentication" && (
+            {phase === "authentication" && !profile && (
               <AuthScreen onSuccess={() => {
-                  // Routing is fully handled by the onAuthStateChanged listener
+                  // Listener in App.tsx handles transition
               }} />
             )}
 
