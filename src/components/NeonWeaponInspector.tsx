@@ -546,6 +546,95 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
   const animationFrameRef = useRef<number | null>(null);
   const plateRef = useRef<HTMLDivElement>(null);
 
+  // High quality adaptive glow and color parameters for inherit weapon styling
+  const WEAPON_THEMES: Record<string, {
+    color: string;
+    glowColor: string;
+    glowColorLight: string;
+    accentColor: string;
+    shadows: {
+      backGlow: string;
+      midGlow: string;
+      frontGlow: string;
+    };
+    wireframeBorder: string;
+  }> = {
+    rusty_dagger: {
+      color: "#eab308",
+      glowColor: "rgba(234, 179, 8, 1)",
+      glowColorLight: "rgba(234, 179, 8, 0.4)",
+      accentColor: "amber",
+      shadows: {
+        backGlow: "drop-shadow(0 0 35px rgba(234,179,8,0.95)) drop-shadow(0 0 50px rgba(234,179,8,0.45))",
+        midGlow: "drop-shadow(0 0 25px rgba(234,179,8,0.9)) drop-shadow(0 0 40px rgba(234,179,8,0.45))",
+        frontGlow: "drop-shadow(0 0 25px rgba(234,179,8,1)) drop-shadow(0 0 12px #ffffff)"
+      },
+      wireframeBorder: "border-amber-500/35 shadow-[inset_0_0_25px_rgba(234,179,8,0.3)]"
+    },
+    kasaka_fang: {
+      color: "#22d3ee",
+      glowColor: "rgba(34, 211, 238, 1)",
+      glowColorLight: "rgba(34, 211, 238, 0.4)",
+      accentColor: "cyan",
+      shadows: {
+        backGlow: "drop-shadow(0 0 35px rgba(34,211,238,0.95)) drop-shadow(0 0 50px rgba(34,211,238,0.45))",
+        midGlow: "drop-shadow(0 0 25px rgba(34,211,238,0.9)) drop-shadow(0 0 40px rgba(34,211,238,0.45))",
+        frontGlow: "drop-shadow(0 0 25px rgba(34,211,238,1)) drop-shadow(0 0 12px #ffffff)"
+      },
+      wireframeBorder: "border-cyan-500/35 shadow-[inset_0_0_25px_rgba(34,211,238,0.3)]"
+    },
+    igris_sword: {
+      color: "#f43f5e",
+      glowColor: "rgba(244, 63, 94, 1)",
+      glowColorLight: "rgba(244, 63, 94, 0.4)",
+      accentColor: "rose",
+      shadows: {
+        backGlow: "drop-shadow(0 0 35px rgba(244,63,94,0.95)) drop-shadow(0 0 50px rgba(244,63,94,0.45))",
+        midGlow: "drop-shadow(0 0 25px rgba(244,63,94,0.9)) drop-shadow(0 0 40px rgba(244,63,94,0.45))",
+        frontGlow: "drop-shadow(0 0 25px rgba(244,63,94,1)) drop-shadow(0 0 12px #ffffff)"
+      },
+      wireframeBorder: "border-rose-500/35 shadow-[inset_0_0_25px_rgba(244,63,94,0.3)]"
+    },
+    demon_dagger: {
+      color: "#818cf8",
+      glowColor: "rgba(129, 140, 248, 1)",
+      glowColorLight: "rgba(129, 140, 248, 0.4)",
+      accentColor: "indigo",
+      shadows: {
+        backGlow: "drop-shadow(0 0 35px rgba(129,140,248,0.95)) drop-shadow(0 0 50px rgba(129,140,248,0.45))",
+        midGlow: "drop-shadow(0 0 25px rgba(129,140,248,0.9)) drop-shadow(0 0 40px rgba(129,140,248,0.45))",
+        frontGlow: "drop-shadow(0 0 25px rgba(129,140,248,1)) drop-shadow(0 0 12px #ffffff)"
+      },
+      wireframeBorder: "border-indigo-500/35 shadow-[inset_0_0_25px_rgba(129,140,248,0.3)]"
+    },
+    kamish_fang: {
+      color: "#db2777",
+      glowColor: "rgba(219, 39, 119, 1)",
+      glowColorLight: "rgba(219, 39, 119, 0.4)",
+      accentColor: "purple",
+      shadows: {
+        backGlow: "drop-shadow(0 0 35px rgba(219,39,119,0.95)) drop-shadow(0 0 50px rgba(219,39,119,0.45))",
+        midGlow: "drop-shadow(0 0 25px rgba(219,39,119,0.9)) drop-shadow(0 0 40px rgba(219,39,119,0.45))",
+        frontGlow: "drop-shadow(0 0 25px rgba(219,39,119,1)) drop-shadow(0 0 12px #ffffff)"
+      },
+      wireframeBorder: "border-fuchsia-500/35 shadow-[inset_0_0_25px_rgba(219,39,119,0.3)]"
+    },
+    sovereigns_wrath: {
+      color: "#ec4899",
+      glowColor: "rgba(236, 72, 153, 1)",
+      glowColorLight: "rgba(236, 72, 153, 0.4)",
+      accentColor: "pink",
+      shadows: {
+        backGlow: "drop-shadow(0 0 40px rgba(236,72,153,0.95)) drop-shadow(0 0 60px rgba(236,72,153,0.5))",
+        midGlow: "drop-shadow(0 0 25px rgba(236,72,153,0.9)) drop-shadow(0 0 45px rgba(236,72,153,0.45))",
+        frontGlow: "drop-shadow(0 0 30px rgba(236,72,153,1)) drop-shadow(0 0 10px #ffffff)"
+      },
+      wireframeBorder: "border-pink-500/40 shadow-[inset_0_0_30px_rgba(236,72,153,0.35)]"
+    }
+  };
+
+  const theme = WEAPON_THEMES[itemId] || WEAPON_THEMES.rusty_dagger;
+
   const updateTransforms = () => {
     if (plateRef.current) {
       plateRef.current.style.transform = `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`;
@@ -675,7 +764,7 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
             transform: `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`
           }}
         >
-          {/* Layer 1: Radiant Back Aura Layer (Deepest Z) in Pure Blue Neon */}
+          {/* Layer 1: Radiant Back Aura Layer (Deepest Z) in high saturation inherit glow */}
           <div 
             className="absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center"
             style={{ 
@@ -684,7 +773,10 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
               backfaceVisibility: "visible"
             }}
           >
-            <div className="w-[120%] h-[120%] opacity-90 blur-[12px] flex items-center justify-center filter sepia hue-rotate-[160deg] saturate-[5] brightness-150 contrast-125">
+            <div 
+              className="w-[120%] h-[120%] opacity-[0.98] flex items-center justify-center transition-all duration-300"
+              style={{ filter: `blur(14px) ${theme.shadows.backGlow}` }}
+            >
               {renderNeonWeaponPreview(itemId, false, "back")}
             </div>
           </div>
@@ -698,51 +790,54 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
               backfaceVisibility: "visible"
             }}
           >
-            <div className="w-[110%] h-[110%] filter grayscale sepia hue-rotate-[180deg] saturate-[6] brightness-[1.8]">
+            <div 
+              className="w-[110%] h-[110%] flex items-center justify-center"
+              style={{ filter: `saturate(3) brightness(2.2) drop-shadow(0 0 12px ${theme.color})` }}
+            >
               {renderNeonWeaponPreview(itemId, false, "sparks")}
             </div>
           </div>
 
-          {/* ---- 3D VOLUMETRIC EXTRUSION (Real 3D Detailed Simulation) ---- */}
+          {/* ---- 3D VOLUMETRIC EXTRUSION (Real 3D Detailed Simulation with True Colors!) ---- */}
           {[-24, -18, -12, -6, 6, 12, 18, 24].map((zOffset, idx) => (
             <div 
               key={idx}
-              className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30"
+              className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 animate-fade-in"
               style={{ 
                 transform: `translateZ(${zOffset}px)`, 
                 transformStyle: "preserve-3d",
                 backfaceVisibility: "visible"
               }}
             >
-              <div className={`w-full h-full filter grayscale sepia hue-rotate-[180deg] saturate-[4] ${Math.abs(zOffset) > 15 ? "brightness-50" : "brightness-[0.8]"}`}>
+              <div className={`w-full h-full flex items-center justify-center ${Math.abs(zOffset) > 15 ? "brightness-[0.4] opacity-50" : "brightness-[0.75]"}`}>
                 {renderNeonWeaponPreview(itemId, false, "base")}
               </div>
             </div>
           ))}
 
-          {/* Layer 3: Main Armament Geometry Core Layer */}
+          {/* Layer 3: Main Armament Geometry Core Layer in high-definition correct color */}
           <div 
             className="absolute inset-0 pointer-events-none flex items-center justify-center"
             style={{ 
               transform: "translateZ(0px)", 
               transformStyle: "preserve-3d",
               backfaceVisibility: "visible",
-              filter: "drop-shadow(0 0 20px rgba(6,182,212,0.8)) drop-shadow(0 0 35px rgba(6,182,212,0.4))"
+              filter: theme.shadows.midGlow
             }}
           >
-            <div className="w-full h-full filter grayscale sepia hue-rotate-[170deg] saturate-[8] brightness-[1.3] contrast-[1.25]">
+            <div className="w-full h-full flex items-center justify-center relative">
                {renderNeonWeaponPreview(itemId, false, "base")}
                
-               {/* Internal Wireframe/Facet Lines overlay for "3D detailed" tech look */}
-               <div className="absolute inset-0 border border-cyan-400/30 rounded shadow-[inset_0_0_20px_rgba(6,182,212,0.2)] mix-blend-screen" />
+               {/* Internal Wireframe/Facet Lines overlay matching weapon inherit color */}
+               <div className={`absolute inset-0 border rounded mix-blend-screen ${theme.wireframeBorder}`} />
             </div>
           </div>
 
-          {/* Core Blueprint Tech Crosshairs */}
+          {/* Core Blueprint Tech Crosshairs adapting to weapon accent */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 mix-blend-screen" style={{ transform: "translateZ(0px)", transformStyle: "preserve-3d" }}>
-             <div className="w-[80%] h-[1px] bg-cyan-400/60 shadow-[0_0_8px_cyan]" />
-             <div className="absolute h-[80%] w-[1px] bg-cyan-400/60 shadow-[0_0_8px_cyan]" />
-             <div className="absolute w-[60%] h-[60%] border border-cyan-400/30 rounded-full" />
+             <div className="w-[80%] h-[1px] shadow-[0_0_8px_currentColor]" style={{ backgroundColor: `${theme.color}aa`, color: theme.color }} />
+             <div className="absolute h-[80%] w-[1px] shadow-[0_0_8px_currentColor]" style={{ backgroundColor: `${theme.color}aa`, color: theme.color }} />
+             <div className="absolute w-[60%] h-[60%] border rounded-full" style={{ borderColor: `${theme.color}33` }} />
           </div>
 
           {/* Layer 4: Floating Star Edge & Laser High-Voltage Front Layer */}
@@ -752,21 +847,23 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
               transform: "translateZ(30px)", 
               transformStyle: "preserve-3d",
               backfaceVisibility: "visible",
-              filter: "drop-shadow(0 0 20px rgba(34,211,238,1)) drop-shadow(0 0 10px #ffffff)"
+              filter: theme.shadows.frontGlow
             }}
           >
-            <div className="w-[98%] h-[98%] filter grayscale sepia hue-rotate-[170deg] saturate-[10] brightness-[2.5] contrast-[1.5]">
+            <div className="w-[98%] h-[98%] flex items-center justify-center filter saturate-[2] brightness-[1.6]">
               {renderNeonWeaponPreview(itemId, false, "front")}
             </div>
           </div>
 
-          {/* Holographic Staging Grid (Floor plate to ground the 3D look) */}
+          {/* Holographic Staging Grid (Floor plate to ground the 3D look in match colors) */}
           <div 
-            className="absolute bottom-1 w-[80%] h-[12%] rounded-full border border-cyan-500/15 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"
+            className="absolute bottom-1 w-[80%] h-[12%] rounded-full border pointer-events-none"
             style={{ 
               transform: "rotateX(90deg) translateZ(-65px)",
               transformStyle: "preserve-3d",
-              boxShadow: "0 0 20px rgba(6,182,212,0.1), inset 0 0 10px rgba(6,182,212,0.05)"
+              borderColor: `${theme.color}40`,
+              backgroundImage: `linear-gradient(to top, ${theme.color}25, transparent)`,
+              boxShadow: `0 0 25px ${theme.color}33, inset 0 0 15px ${theme.color}15`
             }}
           />
         </div>

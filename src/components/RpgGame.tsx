@@ -2025,6 +2025,53 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     triggerSystemToast(`🔮 ARSENAL EXPANSION: Successfully integrated ${template.name} into your spatial compartment!`);
   };
 
+  // Selling price logic: half the buying price, rounded to the nearest odd number
+  const getSellingPrice = (buyPrice: number): number => {
+    if (buyPrice <= 0) return 0;
+    const half = buyPrice / 2;
+    const lowerOdd = Math.floor(half) % 2 !== 0 ? Math.floor(half) : Math.floor(half) - 1;
+    const upperOdd = Math.ceil(half) % 2 !== 0 ? Math.ceil(half) : Math.ceil(half) + 1;
+    
+    // Choose the closest one
+    const diffLower = Math.abs(half - lowerOdd);
+    const diffUpper = Math.abs(half - upperOdd);
+    
+    let closest = diffLower <= diffUpper ? lowerOdd : upperOdd;
+    if (closest < 1) closest = 1;
+    return closest;
+  };
+
+  // Sell weapon function
+  const sellWeapon = (itemId: string) => {
+    const shopMeta = WEAPON_SHOP_DETAILS[itemId];
+    if (!shopMeta) return;
+
+    const itemIndex = gameState.inventory.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) {
+      triggerSystemToast(`⚠️ RESOURCE ERR: You do not own this weapon!`);
+      return;
+    }
+
+    const item = gameState.inventory[itemIndex];
+    if (item.equipped) {
+      triggerSystemToast(`⚠️ SYSTEM ALERT: Cannot sell active primary armament! Equip another weapon first.`);
+      return;
+    }
+
+    const sellPrice = getSellingPrice(shopMeta.cost);
+
+    playSelectSound();
+    setGameState(prev => {
+      const updatedInventory = prev.inventory.filter(i => i.id !== itemId);
+      return {
+        ...prev,
+        gold: prev.gold + sellPrice,
+        inventory: updatedInventory
+      };
+    });
+    triggerSystemToast(`💰 ARSENAL DECOMMISSION: Successfully decommissioned ${item.name} and received ${sellPrice} MP!`);
+  };
+
   const handleBuyAdminMarketItem = async (item: any) => {
     try {
       playSelectSound();
@@ -2443,7 +2490,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* SYNCED TOP HUD: MANA & LEVEL (LEFT), MESSAGES (RIGHT) */}
-      <nav aria-label="System Status" className="fixed top-0 left-0 right-0 z-50 h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
+      <nav aria-label="System Status" className="fixed top-0 left-0 right-0 z-50 h-20 lg:h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 pt-[18px] lg:pt-0 pb-[2px] lg:pb-0 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">MANA CAPACITY</span>
@@ -5241,49 +5288,78 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </motion.button>
                 ) : (
                   <>
-                    {selectedWeaponDetails.equipped ? (
-                      <div className={`w-full text-center font-bold text-xs py-4 border rounded-xl uppercase tracking-widest overflow-hidden relative ${
-                        selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/30 bg-amber-950/20" :
-                        selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/30 bg-cyan-950/20" :
-                        selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/30 bg-rose-950/20" :
-                        selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/30 bg-indigo-950/20" :
-                        selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/30 bg-purple-950/20" :
-                        selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/40 bg-pink-950/20" :
-                        "text-cyan-400 border-cyan-500/30 bg-cyan-950/20"
-                      }`}>
-                        <div className={`absolute inset-0 animate-pulse pointer-events-none ${
-                          selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/5" :
-                          selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-500/5" :
-                          selectedWeaponDetails.id === "igris_sword" ? "bg-rose-500/5" :
-                          selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-500/5" :
-                          selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-500/5" :
-                          selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-500/10" :
-                          "bg-cyan-500/5"
-                        }`} />
-                        ✓ ACTIVE PRIMARY ARSENAL ENGAGED IN SLOT
-                      </div>
-                    ) : (
-                      <motion.button 
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full lg:w-auto px-12 py-4 bg-slate-950 border text-center text-xs tracking-widest uppercase font-extrabold rounded-xl cursor-pointer shadow-md transition-all relative overflow-hidden ${
-                          selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/40 hover:text-white" :
-                          selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/40 hover:text-white" :
-                          selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/40 hover:text-white" :
-                          selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/40 hover:text-white" :
-                          selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/40 hover:text-white" :
-                          selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/50 hover:text-white" :
-                          "text-cyan-400 border-cyan-500/45 hover:text-white"
-                        }`}
-                        onClick={() => {
-                          equipWeapon(selectedWeaponDetails.id);
-                          setSelectedWeaponDetails(null);
-                        }}
-                      >
-                        <div className={`absolute inset-0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 pointer-events-none opacity-20 bg-gradient-to-r from-transparent via-white to-transparent`} />
-                        EQUIP ARSENAL UNIT
-                      </motion.button>
-                    )}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full justify-end items-center">
+                      {selectedWeaponDetails.equipped ? (
+                        <div className={`w-full sm:flex-1 text-center font-bold text-xs py-4 border rounded-xl uppercase tracking-widest overflow-hidden relative ${
+                          selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/30 bg-amber-950/20" :
+                          selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/30 bg-cyan-950/20" :
+                          selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/30 bg-rose-950/20" :
+                          selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/30 bg-indigo-950/20" :
+                          selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/30 bg-purple-950/20" :
+                          selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/40 bg-pink-950/20" :
+                          "text-cyan-400 border-cyan-500/30 bg-cyan-950/20"
+                        }`}>
+                          <div className={`absolute inset-0 animate-pulse pointer-events-none ${
+                            selectedWeaponDetails.id === "rusty_dagger" ? "bg-amber-500/5" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "bg-cyan-500/5" :
+                            selectedWeaponDetails.id === "igris_sword" ? "bg-rose-500/5" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "bg-indigo-500/5" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "bg-purple-500/5" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "bg-pink-500/10" :
+                            "bg-cyan-500/5"
+                          }`} />
+                          ✓ ACTIVE PRIMARY ARSENAL ENGAGED IN SLOT
+                        </div>
+                      ) : (
+                        <motion.button 
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`w-full sm:flex-1 px-8 py-4 bg-slate-950 border text-center text-xs tracking-widest uppercase font-extrabold rounded-xl cursor-pointer shadow-md transition-all relative overflow-hidden ${
+                            selectedWeaponDetails.id === "rusty_dagger" ? "text-amber-400 border-amber-500/40 hover:text-white" :
+                            selectedWeaponDetails.id === "kasaka_fang" ? "text-cyan-400 border-cyan-500/40 hover:text-white" :
+                            selectedWeaponDetails.id === "igris_sword" ? "text-rose-400 border-rose-500/40 hover:text-white" :
+                            selectedWeaponDetails.id === "demon_dagger" ? "text-indigo-400 border-indigo-500/40 hover:text-white" :
+                            selectedWeaponDetails.id === "kamish_fang" ? "text-purple-400 border-purple-500/40 hover:text-white" :
+                            selectedWeaponDetails.id === "sovereigns_wrath" ? "text-pink-400 border-pink-500/50 hover:text-white" :
+                            "text-cyan-400 border-cyan-500/45 hover:text-white"
+                          }`}
+                          onClick={() => {
+                            equipWeapon(selectedWeaponDetails.id);
+                            setSelectedWeaponDetails(null);
+                          }}
+                        >
+                          <div className={`absolute inset-0 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 pointer-events-none opacity-20 bg-gradient-to-r from-transparent via-white to-transparent`} />
+                          EQUIP ARSENAL UNIT
+                        </motion.button>
+                      )}
+
+                      {/* Sell back weapon option */}
+                      {(() => {
+                        const shopMeta = WEAPON_SHOP_DETAILS[selectedWeaponDetails.id];
+                        const sellPrice = shopMeta ? getSellingPrice(shopMeta.cost) : 0;
+                        if (sellPrice <= 0) return null;
+
+                        return (
+                          <motion.button
+                            whileHover={selectedWeaponDetails.equipped ? {} : { scale: 1.02 }}
+                            whileTap={selectedWeaponDetails.equipped ? {} : { scale: 0.98 }}
+                            className={`w-full sm:w-auto px-6 py-4 text-center text-xs tracking-widest uppercase font-extrabold rounded-xl border transition-all ${
+                              selectedWeaponDetails.equipped 
+                                ? "bg-slate-900/40 text-slate-600 border-slate-950 cursor-not-allowed opacity-50"
+                                : "bg-red-950/30 text-rose-400 border-rose-950/50 hover:bg-rose-950/20 hover:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.05)] hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] cursor-pointer"
+                            }`}
+                            disabled={selectedWeaponDetails.equipped}
+                            onClick={() => {
+                              sellWeapon(selectedWeaponDetails.id);
+                              setSelectedWeaponDetails(null);
+                            }}
+                            title={selectedWeaponDetails.equipped ? "Cannot sell active primary armament. Equip another weapon first!" : `Decommission blueprint for ${sellPrice} MP`}
+                          >
+                            DECOMMISSION (+{sellPrice} MP)
+                          </motion.button>
+                        );
+                      })()}
+                    </div>
                   </>
                 )}
               </div>
@@ -5805,7 +5881,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
-      <nav aria-label="Mobile Navigation" className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-2 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
+      <nav aria-label="Mobile Navigation" className="fixed bottom-0 left-0 right-0 z-40 h-[78px] bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
         {[
           { icon: Activity, idx: 0, label: "Character Stats" },
           { icon: Users, idx: 1, label: "Social Hub" },
