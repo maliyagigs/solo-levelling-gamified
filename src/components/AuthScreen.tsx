@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { auth, db } from "../utils/firebase";
+import { safeLocalStorage as localStorage } from "../utils/storage";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword 

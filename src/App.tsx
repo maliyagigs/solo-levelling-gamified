@@ -9,6 +9,7 @@ import { OnboardingData } from "./types";
 import { auth, db, saveToLeaderboard } from "./utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, getDocFromServer } from "firebase/firestore";
+import { safeLocalStorage as localStorage } from "./utils/storage";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 

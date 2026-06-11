@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
+import { safeLocalStorage as localStorage } from "../utils/storage";
 
 interface Props {
   children: React.ReactNode;

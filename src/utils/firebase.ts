@@ -1,5 +1,11 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { 
+  getAuth, 
+  initializeAuth, 
+  browserLocalPersistence, 
+  indexedDBLocalPersistence, 
+  inMemoryPersistence 
+} from "firebase/auth";
 import { 
   getFirestore,
   doc,
@@ -14,8 +20,39 @@ import {
 import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth();
+
+let db: any;
+try {
+  db = getFirestore(app);
+} catch (e) {
+  console.error("Critical: Firestore initialization failed (using dummy fallback):", e);
+  db = {} as any;
+}
+
+let auth: any;
+try {
+  // Safe priority persistence config avoids crashes in storage-blocked frames
+  auth = initializeAuth(app, {
+    persistence: [browserLocalPersistence, indexedDBLocalPersistence, inMemoryPersistence]
+  });
+} catch (e) {
+  console.warn("initializeAuth failed, trying standard getAuth:", e);
+  try {
+    auth = getAuth(app);
+  } catch (err) {
+    console.error("Critical: Firebase Auth initialization completely failed:", err);
+    auth = {
+      currentUser: null,
+      onAuthStateChanged: (cb: any) => {
+        cb(null);
+        return () => {};
+      },
+      signOut: async () => {}
+    } as any;
+  }
+}
+
+export { db, auth };
 
 export enum OperationType {
   CREATE = 'create',

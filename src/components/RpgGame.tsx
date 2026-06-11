@@ -59,6 +59,7 @@ import {
   playLootSound, 
   playHurtSound 
 } from "../utils/audio";
+import { safeLocalStorage as localStorage } from "../utils/storage";
 
 import { getWeaponColorClasses, CircularProgress, VerticalBar } from "./gameHelpers";
 import { SocialHub } from "./SocialHub";

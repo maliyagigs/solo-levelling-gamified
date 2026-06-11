@@ -13,6 +13,7 @@ import {
   getDocs
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
+import { safeLocalStorage as localStorage } from "../utils/storage";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { 
   Shield, 

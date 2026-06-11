@@ -12,6 +12,205 @@
     <meta name="kadam-verification" content="kadam9b3b30934399a34b0c302413426ce2ac" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script>
+      (function() {
+        function createMemoryStorage() {
+          var store = {};
+          var storageObj = {
+            getItem: function(key) { return key in store ? store[key] : null; },
+            setItem: function(key, value) { store[key] = String(value); },
+            removeItem: function(key) { delete store[key]; },
+            clear: function() { store = {}; },
+            key: function(index) {
+              var keys = Object.keys(store);
+              return index >= 0 && index < keys.length ? keys[index] : null;
+            }
+          };
+          Object.defineProperty(storageObj, 'length', {
+            get: function() { return Object.keys(store).length; },
+            configurable: true
+          });
+          if (typeof Proxy !== "undefined") {
+            return new Proxy(storageObj, {
+              get: function(target, prop) {
+                if (prop in target) return target[prop];
+                if (typeof prop === "string") return store[prop] !== undefined ? store[prop] : null;
+                return undefined;
+              },
+              set: function(target, prop, value) {
+                if (typeof prop === "string" && !(prop in target)) {
+                  store[prop] = String(value);
+                  return true;
+                }
+                target[prop] = value;
+                return true;
+              },
+              deleteProperty: function(target, prop) {
+                if (typeof prop === "string" && !(prop in target)) {
+                  delete store[prop];
+                  return true;
+                }
+                return delete target[prop];
+              },
+              ownKeys: function() {
+                return Object.keys(store);
+              },
+              getOwnPropertyDescriptor: function(target, prop) {
+                if (typeof prop === "string" && store[prop] !== undefined) {
+                  return { value: store[prop], writable: true, enumerable: true, configurable: true };
+                }
+                return undefined;
+              }
+            });
+          }
+          return storageObj;
+        }
+
+        var storageOperational = false;
+        try {
+          if (typeof window !== "undefined" && window.localStorage) {
+            var testKey = "__monarch_storage_test__";
+            window.localStorage.setItem(testKey, testKey);
+            var retrieved = window.localStorage.getItem(testKey);
+            window.localStorage.removeItem(testKey);
+            if (retrieved === testKey) {
+              storageOperational = true;
+            }
+          }
+        } catch (e) {
+          console.warn("Native localStorage check failed in head script:", e);
+        }
+
+        if (!storageOperational) {
+          console.log("🔒 Deploying memory-storage fallback shims...");
+          var fallbackLocal = createMemoryStorage();
+          var fallbackSession = createMemoryStorage();
+
+          function applyShim(targetObj, propName, value) {
+            try {
+              try { delete targetObj[propName]; } catch(e) {}
+              Object.defineProperty(targetObj, propName, {
+                get: function() { return value; },
+                set: function() { /* ignore silent assignments */ },
+                configurable: true,
+                enumerable: true
+              });
+            } catch (err) {
+              try { targetObj[propName] = value; } catch (_) {}
+            }
+          }
+
+          if (typeof Window !== "undefined" && Window.prototype) {
+            applyShim(Window.prototype, "localStorage", fallbackLocal);
+            applyShim(Window.prototype, "sessionStorage", fallbackSession);
+          }
+          if (typeof window !== "undefined") {
+            applyShim(window, "localStorage", fallbackLocal);
+            applyShim(window, "sessionStorage", fallbackSession);
+          }
+          if (typeof globalThis !== "undefined") {
+            applyShim(globalThis, "localStorage", fallbackLocal);
+            applyShim(globalThis, "sessionStorage", fallbackSession);
+          }
+        }
+      })();
+
+      window.addEventListener("error", function(event) {
+        var errObj = event.error || new Error(event.message || "Unknown compile/runtime error");
+        if (shouldIgnoreError(errObj)) {
+          console.warn("Monarch Diagnostics ignored benign error:", errObj);
+          return;
+        }
+        renderDiagnosticsOverlay(errObj);
+      });
+      window.addEventListener("unhandledrejection", function(event) {
+        var reason = event.reason;
+        if (shouldIgnoreError(reason)) {
+          console.warn("Monarch Diagnostics ignored benign rejection:", reason);
+          return;
+        }
+        var errObj = new Error(String(reason || "Unhandled Promise Rejection"));
+        renderDiagnosticsOverlay(errObj);
+      });
+
+      function shouldIgnoreError(error) {
+        if (!error) return false;
+        var msg = "";
+        try {
+          if (typeof error === "string") {
+            msg = error;
+          } else if (error.message) {
+            msg = error.message;
+          } else {
+            msg = String(error);
+          }
+          if (error.stack) {
+            msg += " " + error.stack;
+          }
+        } catch (_) {}
+
+        var lowerMsg = msg.toLowerCase();
+
+        // Safe filters for expected environment WebSocket/HMR and Firestore transport alerts
+        if (lowerMsg.indexOf("websocket") !== -1) return true;
+        if (lowerMsg.indexOf("web-socket") !== -1) return true;
+        if (lowerMsg.indexOf("vite") !== -1 && lowerMsg.indexOf("connect") !== -1) return true;
+        if (lowerMsg.indexOf("transport errored") !== -1) return true;
+        if (lowerMsg.indexOf("write' stream") !== -1) return true;
+        if (lowerMsg.indexOf("webchannel") !== -1) return true;
+        if (lowerMsg.indexOf("firestore") !== -1 && lowerMsg.indexOf("stream") !== -1) return true;
+
+        return false;
+      }
+
+      function renderDiagnosticsOverlay(error) {
+        console.error("Monarch Diagnostics overlay caught error:", error);
+        if (typeof document === "undefined" || !document.body) return;
+        var div = document.getElementById("diagnostics-overlay");
+        if (!div) {
+          div = document.createElement("div");
+          div.id = "diagnostics-overlay";
+          div.style.position = "fixed";
+          div.style.inset = "0";
+          div.style.backgroundColor = "#020617";
+          div.style.color = "#f8fafc";
+          div.style.fontFamily = "monospace";
+          div.style.padding = "24px";
+          div.style.zIndex = "999999";
+          div.style.display = "flex";
+          div.style.flexDirection = "column";
+          div.style.justifyContent = "center";
+          div.style.alignItems = "center";
+          div.style.textAlign = "center";
+          div.style.overflowY = "auto";
+
+          var errorDetails = error ? (error.stack || error.message || String(error)) : "Unknown system disruption";
+
+          div.innerHTML = `
+            <div style="background-color: #0f172a; border: 1px solid #ef4444; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+               <div style="font-size: 40px; margin-bottom: 16px;">🔮</div>
+               <h2 style="font-size: 18px; font-weight: bold; color: #ef4444; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.1em;">System Interruption</h2>
+               <p style="font-size: 13px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
+                 The Monarch interface encountered a runtime mismatch. Please ensure cookies & JavaScript storage are enabled in your device settings.
+               </p>
+               <pre style="background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; font-size: 11px; color: #cbd5e1; text-align: left; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; margin-bottom: 24px;">` + errorDetails + `</pre>
+               <button id="diagnostics-retry" style="background-color: #3b82f6; border: none; color: white; padding: 10px 24px; border-radius: 9999px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(59, 130, 246, 0.3));">
+                 Wipe Cache & Recalibrate
+               </button>
+            </div>
+          `;
+          document.body.appendChild(div);
+
+          var btn = document.getElementById("diagnostics-retry");
+          if (btn) {
+            btn.onclick = function() {
+              try { localStorage.clear(); } catch (_) {}
+              window.location.reload();
+            };
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
