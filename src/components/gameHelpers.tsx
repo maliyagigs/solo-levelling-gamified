@@ -69,21 +69,37 @@ export const getWeaponColorClasses = (itemId: string) => {
   }
 };
 
-export const renderCircularProgress = (
-  value: number,
-  max: number,
-  colorFrom: string,
-  colorTo: string,
-  glowColor: string,
-  label: string,
-  subText: React.ReactNode,
-  icon: React.ReactNode,
-  id: string,
-  secondaryValue?: number,
-  secondaryMax?: number,
-  secondaryColorFrom?: string,
-  secondaryColorTo?: string
-) => {
+interface CircularProgressProps {
+  value: number;
+  max: number;
+  colorFrom: string;
+  colorTo: string;
+  glowColor: string;
+  label: string;
+  subText: React.ReactNode;
+  icon: React.ReactNode;
+  id: string;
+  secondaryValue?: number;
+  secondaryMax?: number;
+  secondaryColorFrom?: string;
+  secondaryColorTo?: string;
+}
+
+export const CircularProgress: React.FC<CircularProgressProps> = ({
+  value,
+  max,
+  colorFrom,
+  colorTo,
+  glowColor,
+  label,
+  subText,
+  icon,
+  id,
+  secondaryValue,
+  secondaryMax,
+  secondaryColorFrom,
+  secondaryColorTo,
+}) => {
   const percentage = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   const radius = 24;
   const strokeWidth = 3.5;
@@ -181,13 +197,21 @@ export const renderCircularProgress = (
   );
 };
 
-export const renderVerticalBar = (
-  current: number,
-  total: number,
-  label: string,
-  color: string,
-  icon: React.ReactNode
-) => {
+interface VerticalBarProps {
+  current: number;
+  total: number;
+  label: string;
+  color: string;
+  icon: React.ReactNode;
+}
+
+export const VerticalBar: React.FC<VerticalBarProps> = ({
+  current,
+  total,
+  label,
+  color,
+  icon,
+}) => {
   const percentage = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
   
   return (

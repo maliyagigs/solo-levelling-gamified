@@ -60,7 +60,7 @@ import {
   playHurtSound 
 } from "../utils/audio";
 
-import { getWeaponColorClasses, renderCircularProgress, renderVerticalBar } from "./gameHelpers";
+import { getWeaponColorClasses, CircularProgress, VerticalBar } from "./gameHelpers";
 import { SocialHub } from "./SocialHub";
 import { listenToFriendships } from "../utils/social";
 
@@ -3271,39 +3271,39 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
           {/* Unified Round/Circular Progresses */}
           <div className="bg-slate-950/75 p-2 rounded-2xl backdrop-blur-md grid grid-cols-3 gap-2">
-            {renderCircularProgress(
-              gameState.exp,
-              gameState.maxExp,
-              "#22d3ee",
-              "#4f46e5",
-              "rgba(34, 211, 238, 0.4)",
-              "LEVEL XP",
-              `${gameState.exp}/${gameState.maxExp}`,
-              <Activity className="w-3 h-3 text-cyan-400" />,
-              "xp-desktop"
-            )}
-            {renderCircularProgress(
-              gameState.weeklyManaAccumulated ?? 0,
-              30,
-              "#eab308",
-              "#d97706",
-              "rgba(234, 179, 8, 0.4)",
-              "WEEKLY MP",
-              `${gameState.weeklyManaAccumulated ?? 0}/30`,
-              <Zap className="w-3 h-3 text-yellow-400" />,
-              "wk-desktop"
-            )}
-            {renderCircularProgress(
-              gameState.weeklyExpAccumulated ?? 0,
-              gameState.level * 300 + 1500,
-              "#a855f7",
-              "#6366f1",
-              "rgba(168, 85, 247, 0.4)",
-              "WEEKLY XP",
-              `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
-              <TrendingUp className="w-3 h-3 text-purple-400" />,
-              "wexp-desktop"
-            )}
+            <CircularProgress
+              value={gameState.exp}
+              max={gameState.maxExp}
+              colorFrom="#22d3ee"
+              colorTo="#4f46e5"
+              glowColor="rgba(34, 211, 238, 0.4)"
+              label="LEVEL XP"
+              subText={`${gameState.exp}/${gameState.maxExp}`}
+              icon={<Activity className="w-3 h-3 text-cyan-400" />}
+              id="xp-desktop"
+            />
+            <CircularProgress
+              value={gameState.weeklyManaAccumulated ?? 0}
+              max={30}
+              colorFrom="#eab308"
+              colorTo="#d97706"
+              glowColor="rgba(234, 179, 8, 0.4)"
+              label="WEEKLY MP"
+              subText={`${gameState.weeklyManaAccumulated ?? 0}/30`}
+              icon={<Zap className="w-3 h-3 text-yellow-400" />}
+              id="wk-desktop"
+            />
+            <CircularProgress
+              value={gameState.weeklyExpAccumulated ?? 0}
+              max={gameState.level * 300 + 1500}
+              colorFrom="#a855f7"
+              colorTo="#6366f1"
+              glowColor="rgba(168, 85, 247, 0.4)"
+              label="WEEKLY XP"
+              subText={`${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`}
+              icon={<TrendingUp className="w-3 h-3 text-purple-400" />}
+              id="wexp-desktop"
+            />
             <div className="col-span-1" />
             <div className="col-span-2 flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-900/40 pt-2 mt-1 px-1 font-mono">
               <span>TIER:</span>
@@ -3314,27 +3314,27 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           {/* DAILY PERFORMANCE BARS (VERTICAL) */}
           <div className="bg-slate-950/75 p-4 rounded-2xl backdrop-blur-md border border-slate-900/40">
             <div className="flex justify-around items-end h-32 px-2">
-              {renderVerticalBar(
-                gameState.quests.filter(q => q.completed).length,
-                gameState.quests.length || 5,
-                "QUESTS",
-                "#ef4444",
-                <Target className="w-3 h-3 text-white" />
-              )}
-              {renderVerticalBar(
-                gameState.dailyGatesCleared ?? 0,
-                5,
-                "GATES",
-                "#06b6d4",
-                <Sword className="w-3 h-3 text-white" />
-              )}
-              {renderVerticalBar(
-                gameState.dailyFocusMinutes ?? 0,
-                onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
-                "WORK",
-                "#818cf8",
-                <BookOpen className="w-3 h-3 text-white" />
-              )}
+              <VerticalBar
+                current={gameState.quests.filter(q => q.completed).length}
+                total={gameState.quests.length || 5}
+                label="QUESTS"
+                color="#ef4444"
+                icon={<Target className="w-3 h-3 text-white" />}
+              />
+              <VerticalBar
+                current={gameState.dailyGatesCleared ?? 0}
+                total={5}
+                label="GATES"
+                color="#06b6d4"
+                icon={<Sword className="w-3 h-3 text-white" />}
+              />
+              <VerticalBar
+                current={gameState.dailyFocusMinutes ?? 0}
+                total={onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125}
+                label="WORK"
+                color="#818cf8"
+                icon={<BookOpen className="w-3 h-3 text-white" />}
+              />
             </div>
           </div>
 
@@ -3516,39 +3516,39 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         <h5 className="text-xs font-mono font-black text-slate-400 uppercase tracking-widest">Growth Analytics</h5>
                       </div>
                       <div className="grid grid-cols-3 gap-4">
-                        {renderCircularProgress(
-                          gameState.exp,
-                          gameState.maxExp,
-                          "#22d3ee",
-                          "#4f46e5",
-                          "rgba(34, 211, 238, 0.4)",
-                          "LEVEL XP",
-                          `${gameState.exp}/${gameState.maxExp}`,
-                          <Activity className="w-4 h-4 text-cyan-400" />,
-                          "xp-home-detail"
-                        )}
-                        {renderCircularProgress(
-                          gameState.weeklyManaAccumulated ?? 0,
-                          30,
-                          "#eab308",
-                          "#d97706",
-                          "rgba(234, 179, 8, 0.4)",
-                          "WEEKLY MP",
-                          `${gameState.weeklyManaAccumulated ?? 0}/30`,
-                          <Zap className="w-4 h-4 text-yellow-400" />,
-                          "wk-home-detail"
-                        )}
-                        {renderCircularProgress(
-                          gameState.weeklyExpAccumulated ?? 0,
-                          gameState.level * 300 + 1500,
-                          "#a855f7",
-                          "#6366f1",
-                          "rgba(168, 85, 247, 0.4)",
-                          "WEEKLY XP",
-                          `${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`,
-                          <TrendingUp className="w-4 h-4 text-purple-400" />,
-                          "wexp-home-detail"
-                        )}
+                        <CircularProgress
+                          value={gameState.exp}
+                          max={gameState.maxExp}
+                          colorFrom="#22d3ee"
+                          colorTo="#4f46e5"
+                          glowColor="rgba(34, 211, 238, 0.4)"
+                          label="LEVEL XP"
+                          subText={`${gameState.exp}/${gameState.maxExp}`}
+                          icon={<Activity className="w-4 h-4 text-cyan-400" />}
+                          id="xp-home-detail"
+                        />
+                        <CircularProgress
+                          value={gameState.weeklyManaAccumulated ?? 0}
+                          max={30}
+                          colorFrom="#eab308"
+                          colorTo="#d97706"
+                          glowColor="rgba(234, 179, 8, 0.4)"
+                          label="WEEKLY MP"
+                          subText={`${gameState.weeklyManaAccumulated ?? 0}/30`}
+                          icon={<Zap className="w-4 h-4 text-yellow-400" />}
+                          id="wk-home-detail"
+                        />
+                        <CircularProgress
+                          value={gameState.weeklyExpAccumulated ?? 0}
+                          max={gameState.level * 300 + 1500}
+                          colorFrom="#a855f7"
+                          colorTo="#6366f1"
+                          glowColor="rgba(168, 85, 247, 0.4)"
+                          label="WEEKLY XP"
+                          subText={`${gameState.weeklyExpAccumulated ?? 0}/${gameState.level * 300 + 1500}`}
+                          icon={<TrendingUp className="w-4 h-4 text-purple-400" />}
+                          id="wexp-home-detail"
+                        />
                       </div>
                     </div>
 
@@ -3559,27 +3559,27 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest">Daily Performance Grid</span>
                       </div>
                       <div className="flex justify-around items-end h-36">
-                        {renderVerticalBar(
-                          gameState.quests.filter(q => q.completed).length,
-                          gameState.quests.length || 5,
-                          "QUESTS",
-                          "#f43f5e",
-                          <Target className="w-4 h-4 text-white" />
-                        )}
-                        {renderVerticalBar(
-                          gameState.dailyGatesCleared ?? 0,
-                          5,
-                          "GATES",
-                          "#22d3ee",
-                          <Sword className="w-4 h-4 text-white" />
-                        )}
-                        {renderVerticalBar(
-                          gameState.dailyFocusMinutes ?? 0,
-                          onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125,
-                          "WORK",
-                          "#6366f1",
-                          <BookOpen className="w-4 h-4 text-white" />
-                        )}
+                        <VerticalBar
+                          current={gameState.quests.filter(q => q.completed).length}
+                          total={gameState.quests.length || 5}
+                          label="QUESTS"
+                          color="#f43f5e"
+                          icon={<Target className="w-4 h-4 text-white" />}
+                        />
+                        <VerticalBar
+                          current={gameState.dailyGatesCleared ?? 0}
+                          total={5}
+                          label="GATES"
+                          color="#22d3ee"
+                          icon={<Sword className="w-4 h-4 text-white" />}
+                        />
+                        <VerticalBar
+                          current={gameState.dailyFocusMinutes ?? 0}
+                          total={onboardProfile.academicSessionsGoal ? onboardProfile.academicSessionsGoal * 25 : 125}
+                          label="WORK"
+                          color="#6366f1"
+                          icon={<BookOpen className="w-4 h-4 text-white" />}
+                        />
                       </div>
                     </div>
                   </div>

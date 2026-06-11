@@ -19,11 +19,8 @@
   }
   
   html {
-    /* Base font size scaling for small mobile devices */
+    /* Base font size scaling for small mobile devices and WebViews */
     font-size: 16px;
-    @media (max-width: 380px) {
-      font-size: 14px;
-    }
   }
 }
 
@@ -94,6 +91,16 @@ html, body {
   -ms-user-select: none;
 }
 
+@keyframes custom-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes custom-spin-reverse {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
 #monarch_root {
   background-color: #020617; /* Slate-950 */
   min-height: 100dvh;
@@ -102,14 +109,14 @@ html, body {
 /* Ensure better readability on mobile by scaling up small text */
 @media (max-width: 640px) {
   .text-xs {
-    font-size: 0.75rem !important; /* 12px */
-    line-height: 1rem !important;
+    font-size: 0.825rem !important; /* ~13.2px */
+    line-height: 1.125rem !important;
   }
   .text-[10px] {
-    font-size: 0.7rem !important; /* ~11px */
+    font-size: 0.75rem !important; /* ~12px */
   }
   .text-[11px] {
-    font-size: 0.75rem !important;
+    font-size: 0.775rem !important; /* ~12.4px */
   }
   button, input {
     font-size: 14px !important; /* Prevent iOS zoom and improve readability */

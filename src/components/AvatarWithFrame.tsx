@@ -99,15 +99,14 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
       return (
         <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]" viewBox="0 0 100 100" fill="none">
           {/* Dashed outer technical gauge */}
-          <motion.circle 
+          <circle 
             cx="50" 
             cy="50" 
             r="44" 
             stroke="#0891b2" 
             strokeWidth="1" 
             strokeDasharray="4 6" 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+            style={{ transformOrigin: "center", animation: "custom-spin 12s linear infinite" }}
           />
           {/* Inner silver circle */}
           <circle cx="50" cy="50" r="40" stroke="#94a3b8" strokeWidth="2.5" />
@@ -129,15 +128,14 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
           {/* Interlocking golden dials */}
           <circle cx="50" cy="50" r="45" stroke="#eab308" strokeWidth="1" />
           {/* Runic notches */}
-          <motion.circle 
+          <circle 
             cx="50" 
             cy="50" 
             r="41" 
             stroke="#f59e0b" 
             strokeWidth="2.5" 
             strokeDasharray="25 8" 
-            animate={{ rotate: -360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            style={{ transformOrigin: "center", animation: "custom-spin-reverse 25s linear infinite" }}
           />
           <circle cx="50" cy="50" r="36" stroke="#fbbf24" strokeWidth="1" />
           {/* Royal Gems - glowing top/bottom and flanks */}
@@ -154,25 +152,23 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
       return (
         <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-[0_0_12px_rgba(99,102,241,0.8)]" viewBox="0 0 100 100" fill="none">
           {/* Dual tone electric energy fields */}
-          <motion.circle 
+          <circle 
             cx="50" 
             cy="50" 
             r="46" 
             stroke="#4338ca" 
             strokeWidth="1.5" 
             strokeDasharray="40 10 10 10" 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            style={{ transformOrigin: "center", animation: "custom-spin 15s linear infinite" }}
           />
-          <motion.circle 
+          <circle 
             cx="50" 
             cy="50" 
             r="42" 
             stroke="#22d3ee" 
             strokeWidth="2" 
             strokeDasharray="5 15" 
-            animate={{ rotate: -180 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            style={{ transformOrigin: "center", animation: "custom-spin-reverse 8s linear infinite" }}
           />
           <circle cx="50" cy="50" r="36" stroke="#818cf8" strokeWidth="1" strokeDasharray="2 2" />
           {/* Curved cyan lines following the circle */}
@@ -188,35 +184,32 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-[0_0_15px_rgba(34,211,238,0.95)]" viewBox="0 0 100 100" fill="none">
         {/* Triple ring solar system engine */}
-        <motion.circle 
+        <circle 
           cx="50" 
           cy="50" 
           r="47" 
           stroke="#06b6d4" 
           strokeWidth="2.5" 
           strokeDasharray="60 30" 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "center", animation: "custom-spin 10s linear infinite" }}
         />
-        <motion.circle 
+        <circle 
           cx="50" 
           cy="50" 
           r="43" 
           stroke="#f59e0b" 
           strokeWidth="1.5" 
           strokeDasharray="10 15 30 15" 
-          animate={{ rotate: -360 }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "center", animation: "custom-spin-reverse 18s linear infinite" }}
         />
-        <motion.circle 
+        <circle 
           cx="50" 
           cy="50" 
           r="39" 
           stroke="#a855f7" 
           strokeWidth="1" 
           strokeDasharray="5 5" 
-          animate={{ rotate: 180 }}
-          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "center", animation: "custom-spin 4s linear infinite" }}
         />
         {/* Orbit flare nodes ON the circular paths (no square bounds) */}
         <circle cx="50" cy="3" r="3.5" fill="#eab308" />
