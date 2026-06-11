@@ -46,9 +46,9 @@ export default function CosmicBackground() {
     const simplifyGraphics = isMobile || isLowEnd;
 
     const particles: Particle[] = [];
-    // Drastically reduce particle count for performance on low-end devices
-    const particleRatio = simplifyGraphics ? 40000 : 20000;
-    const maxParticles = simplifyGraphics ? 25 : 80;
+    // Drastically reduce particle count to fix TBT metric and get excellent health
+    const particleRatio = simplifyGraphics ? 100000 : 50000;
+    const maxParticles = simplifyGraphics ? 15 : 40;
     const particleCount = Math.min(maxParticles, Math.floor((width * height) / particleRatio));
 
     const colors = [
@@ -261,9 +261,13 @@ export default function CosmicBackground() {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    // Delay start slightly to unblock First Contentful Paint
+    const startTimeout = setTimeout(() => {
+      render();
+    }, 200);
 
     return () => {
+      clearTimeout(startTimeout);
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);

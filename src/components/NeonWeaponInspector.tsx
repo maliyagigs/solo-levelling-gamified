@@ -1,82 +1,451 @@
 import React, { useState, useEffect, useRef } from "react";
-import demonDaggerImg from "../assets/images/demon_dagger_1781193232605.jpg";
-import huntersBowImg from "../assets/images/hunters_bow_1781193274363.jpg";
-import igrisSwordImg from "../assets/images/igris_sword_1781193196591.jpg";
-import kasakaFangImg from "../assets/images/kasaka_fang_1781193216513.jpg";
-import knightsShieldImg from "../assets/images/knights_shield_1781193292481.jpg";
-import mageStaffImg from "../assets/images/mage_staff_1781193308306.jpg";
-import shadowScytheImg from "../assets/images/shadow_scythe_1781193247889.jpg";
-import sovereignsWrathImg from "../assets/images/sovereigns_wrath_1781193262267.jpg";
+import React, { useState, useEffect, useRef } from "react";
 
-// High quality vector contour neon renderings for weapon previews (1000x Detailed)
-export const renderNeonWeaponPreview = (itemId: string, animate = false, layer: "all" | "back" | "base" | "front" | "sparks" = "all") => {
+// Extremely detailed menacing SVG representations of the weapons.
+const VectorWeapons = {
+  rusty_dagger: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="rustyGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#451a03" />
+          <stop offset="50%" stopColor="#9a3412" />
+          <stop offset="100%" stopColor="#451a03" />
+        </linearGradient>
+        <linearGradient id="rustEdge" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#94a3b8" />
+          <stop offset="50%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#94a3b8" />
+        </linearGradient>
+        <filter id="rustAura">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+      </defs>
+      {/* Blade Base */}
+      <path d="M45,30 L50,5 L55,30 L53,130 L47,130 Z" fill="url(#rustyGrad)" stroke="#292524" strokeWidth="1" filter="url(#rustAura)" />
+      {/* Edge */}
+      <path d="M48,30 L50,10 L52,30 L51,128 L49,128 Z" fill="url(#rustEdge)" opacity="0.8" />
+      {/* Deep jagged chunks missing */}
+      <path d="M55,50 L48,55 L54,60 Z" fill="#0c0a09" />
+      <path d="M45,75 L50,78 L46,85 Z" fill="#0c0a09" />
+      <path d="M54,100 L51,102 L53,108 Z" fill="#0c0a09" />
+      <path d="M50,40 L50,110" stroke="#78350f" strokeWidth="1.5" strokeDasharray="4 2" />
+      {/* Guard */}
+      <path d="M30,130 L70,130 L65,138 L35,138 Z" fill="#292524" stroke="#ca8a04" strokeWidth="0.5" />
+      {/* Handle */}
+      <rect x="43" y="138" width="14" height="42" fill="#451a03" />
+      <path d="M43,142 L57,148 M43,150 L57,156 M43,158 L57,164 M43,166 L57,172" stroke="#b45309" strokeWidth="2" />
+      {/* Pommel */}
+      <polygon points="50,186 42,180 58,180" fill="#292524" stroke="#ca8a04" strokeWidth="1" />
+    </svg>
+  ),
+  kasaka_fang: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_20px_rgba(16,185,129,0.8)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="kasakaGrad" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="#064e3b" />
+          <stop offset="30%" stopColor="#059669" />
+          <stop offset="70%" stopColor="#34d399" />
+          <stop offset="100%" stopColor="#ecfdf5" />
+        </linearGradient>
+        <filter id="kasakaGlow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <radialGradient id="venomPulse" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#6ee7b7" />
+            <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+      {/* Ambient venom glow */}
+      <circle cx="50" cy="50" r="40" fill="url(#venomPulse)" opacity="0.4" />
+      
+      {/* Wicked Curved Fang Blade */}
+      <path d="M35,115 C20,70 45,20 70,5 C70,5 65,35 55,50 C45,65 60,90 50,115 Z" fill="url(#kasakaGrad)" filter="url(#kasakaGlow)" />
+      
+      {/* Internal acidic core */}
+      <path d="M42,105 C32,70 50,30 65,15" fill="none" stroke="#a7f3d0" strokeWidth="2" strokeLinecap="round" className="animate-pulse" />
+      
+      {/* Serpentine Bone Guard */}
+      <path d="M25,115 Q50,140 75,115 L80,125 Q50,150 20,125 Z" fill="#0f172a" stroke="#10b981" strokeWidth="1" />
+      <circle cx="25" cy="120" r="3" fill="#10b981" className="animate-ping" />
+      <circle cx="75" cy="120" r="3" fill="#10b981" className="animate-ping" />
+      
+      {/* Scaled Viper Handle */}
+      <path d="M42,125 L58,125 L55,175 L45,175 Z" fill="#020617" />
+      <path d="M43,130 L57,135 L43,140 L57,145 L43,150 L57,155 L43,160 L57,165 L43,170 L57,175" fill="none" stroke="#059669" strokeWidth="1.5" />
+      
+      {/* Venom drip from tip */}
+      <circle cx="70" cy="10" r="2" fill="#34d399" className="animate-bounce" />
+    </svg>
+  ),
+  demon_dagger: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(220,38,38,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="demonGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#450a0a" />
+          <stop offset="50%" stopColor="#ef4444" />
+          <stop offset="100%" stopColor="#450a0a" />
+        </linearGradient>
+        <linearGradient id="demonSteel" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#1e1b4b" />
+          <stop offset="50%" stopColor="#312e81" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <filter id="hellFire">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Menacing Demonic Aura */}
+      <ellipse cx="50" cy="60" rx="30" ry="50" fill="#991b1b" opacity="0.3" filter="url(#hellFire)" className="animate-pulse" />
+      
+      {/* Brutal Serrated Main Blade */}
+      <path d="M45,20 L50,-5 L55,20 L65,30 L57,40 L68,55 L55,60 L62,80 L55,85 L60,110 L40,110 L45,85 L38,80 L45,60 L32,55 L43,40 L35,30 Z" fill="url(#demonGrad)" />
+      
+      {/* Razor Edge Highlight */}
+      <path d="M50,-2 L50,110" stroke="#fecaca" strokeWidth="1.5" opacity="0.8" />
+      <path d="M45,20 L65,30 M57,40 L68,55 M55,60 L62,80 M45,20 L35,30 M43,40 L32,55 M45,60 L38,80" stroke="#fca5a5" strokeWidth="1" opacity="0.6" />
+      
+      {/* Infernal Eye Guard */}
+      <path d="M20,105 Q50,90 80,105 Q90,130 80,120 Q50,140 20,120 Q10,130 20,105 Z" fill="url(#demonSteel)" stroke="#991b1b" strokeWidth="2" />
+      <circle cx="50" cy="115" r="5" fill="#f87171" filter="url(#hellFire)" className="animate-ping" />
+      <circle cx="50" cy="115" r="2" fill="#ffffff" />
+      
+      {/* Spiked Grip */}
+      <rect x="42" y="125" width="16" height="45" fill="#020617" />
+      <path d="M40,135 L60,138 M40,150 L60,153 M40,165 L60,168" stroke="#dc2626" strokeWidth="2" />
+      
+      {/* Claw Pommel */}
+      <path d="M35,170 L45,195 L50,185 L55,195 L65,170 Z" fill="url(#demonSteel)" stroke="#ef4444" strokeWidth="1" />
+    </svg>
+  ),
+  igris_sword: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(225,29,72,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="igrisBlade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#020617" />
+          <stop offset="30%" stopColor="#1e1b4b" />
+          <stop offset="45%" stopColor="#be123c" />
+          <stop offset="50%" stopColor="#f43f5e" />
+          <stop offset="55%" stopColor="#be123c" />
+          <stop offset="70%" stopColor="#1e1b4b" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <linearGradient id="igrisGold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="50%" stopColor="#b45309" />
+          <stop offset="100%" stopColor="#fef08a" />
+        </linearGradient>
+        <filter id="bloodLightning">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Arcing Red Lightning Vectors */}
+      <path d="M45,20 L35,30 L40,50 L25,60 L45,70" fill="none" stroke="#f43f5e" strokeWidth="1" filter="url(#bloodLightning)" opacity="0.7" className="animate-pulse" />
+      <path d="M55,30 L70,40 L60,60 L75,70 L55,80" fill="none" stroke="#f43f5e" strokeWidth="1" filter="url(#bloodLightning)" opacity="0.7" className="animate-pulse" />
+      
+      {/* Massive Dark Greatsword Blade */}
+      <path d="M40,30 L50,-10 L60,30 L62,110 L38,110 Z" fill="url(#igrisBlade)" />
+      
+      {/* Crimson Energy Core Fuller */}
+      <path d="M50,0 L50,110" stroke="#fb7185" strokeWidth="2" filter="url(#bloodLightning)" />
+      <path d="M50,0 L50,110" stroke="#ffffff" strokeWidth="1" />
+      
+      {/* intricate Royal Guard */}
+      <path d="M10,105 L35,115 L45,108 L50,120 L55,108 L65,115 L90,105 L70,125 L85,140 L60,130 L50,145 L40,130 L15,140 L30,125 Z" fill="url(#igrisGold)" stroke="#78350f" strokeWidth="0.5" />
+      
+      {/* Extended Two-Handed Dark Grip */}
+      <rect x="42" y="140" width="16" height="45" fill="#0f172a" />
+      <path d="M42,145 L58,150 M42,150 L58,155 M42,155 L58,160 M42,160 L58,165 M42,165 L58,170 M42,170 L58,175 M42,175 L58,180" stroke="#78350f" strokeWidth="1.5" />
+      
+      {/* Weighted Spiked Pommel */}
+      <path d="M35,185 L65,185 L50,205 Z" fill="url(#igrisGold)" />
+      <circle cx="50" cy="188" r="4" fill="#e11d48" filter="url(#bloodLightning)" />
+    </svg>
+  ),
+  shadow_scythe: (animate: boolean) => (
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(147,51,234,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="scytheAura" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#a855f7" />
+          <stop offset="50%" stopColor="#4c1d95" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <filter id="soulGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Massive Dark Aura */}
+      <ellipse cx="120" cy="60" rx="80" ry="60" fill="url(#scytheAura)" opacity="0.5" className="animate-pulse" />
+      
+      {/* Obsidian Staff */}
+      <path d="M115,10 L85,200" stroke="#020617" strokeWidth="10" strokeLinecap="round" />
+      {/* Glowing bindings */}
+      <path d="M115,10 L85,200" stroke="#c084fc" strokeWidth="2" strokeDasharray="15 15" opacity="0.9" filter="url(#soulGlow)" />
+      
+      {/* Immense Soul-Reaping Blade */}
+      <path d="M110,40 C160,0 210,30 200,80 C150,40 120,60 95,95 Z" fill="#4c1d95" />
+      <path d="M107,37 C155,-5 205,25 195,75 C145,35 115,55 92,92 Z" fill="#0f172a" opacity="0.9" />
+      {/* Razor Edge of Void */}
+      <path d="M105,35 C150,-10 200,20 190,70" fill="none" stroke="#d8b4fe" strokeWidth="2" filter="url(#soulGlow)" />
+      
+      {/* Skull Nexus (where blade meets staff) */}
+      <path d="M90,45 C80,35 115,30 120,50 C125,70 90,75 80,60 Z" fill="#1e293b" stroke="#7e22ce" strokeWidth="2" />
+      {/* Glowing amethyst eyes */}
+      <circle cx="102" cy="48" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
+      <circle cx="112" cy="52" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
+      
+      {/* Ethereal soul wisps draining from the blade */}
+      <path d="M150,40 Q160,20 180,25" fill="none" stroke="#c084fc" strokeWidth="1.5" opacity="0.7" filter="url(#soulGlow)" className="animate-pulse" />
+      <path d="M170,55 Q185,45 195,60" fill="none" stroke="#d8b4fe" strokeWidth="1" opacity="0.8" filter="url(#soulGlow)" className="animate-pulse" />
+    </svg>
+  ),
+  sovereigns_wrath: (animate: boolean) => (
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_40px_rgba(236,72,153,1)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="wrathBladeL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#1e1b4b" />
+          <stop offset="50%" stopColor="#be185d" />
+          <stop offset="100%" stopColor="#1e1b4b" />
+        </linearGradient>
+        <linearGradient id="wrathBladeR" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#020617" />
+          <stop offset="50%" stopColor="#6d28d9" />
+          <stop offset="100%" stopColor="#020617" />
+        </linearGradient>
+        <filter id="galaxyGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <radialGradient id="starCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="50%" stopColor="#f472b6" />
+            <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+      
+      {/* Cosmic Nexus Background Aura */}
+      <circle cx="100" cy="110" r="60" fill="url(#starCore)" opacity="0.6" className="animate-pulse" />
+      
+      {/* V-formation Dual Blades crossed at base */}
+      <g transform="translate(0, -10)">
+        {/* Left Saber of Dawn */}
+        <path d="M85,160 L20,30 L35,15 L95,145 Z" fill="url(#wrathBladeL)" />
+        <path d="M28,22 L90,152" stroke="#fbcfe8" strokeWidth="2.5" filter="url(#galaxyGlow)" />
+        
+        {/* Right Saber of Dusk */}
+        <path d="M115,160 L180,30 L165,15 L105,145 Z" fill="url(#wrathBladeR)" />
+        <path d="M172,22 L110,152" stroke="#d8b4fe" strokeWidth="2.5" filter="url(#galaxyGlow)" />
+        
+        {/* Central Crown Guard */}
+        <path d="M70,140 L100,120 L130,140 L140,170 L100,190 L60,170 Z" fill="#0f172a" stroke="#ec4899" strokeWidth="2" filter="url(#galaxyGlow)" />
+        <path d="M80,150 L100,135 L120,150 L100,170 Z" fill="#020617" />
+        <circle cx="100" cy="152" r="10" fill="url(#starCore)" filter="url(#galaxyGlow)" className="animate-pulse" />
+        
+        {/* Monarch Grip */}
+        <rect x="90" y="180" width="20" height="30" fill="#020617" />
+        <path d="M85,190 L115,190 M85,200 L115,200" stroke="#8b5cf6" strokeWidth="3" />
+        
+        {/* Orbiting Stars */}
+        <circle cx="50" cy="60" r="3" fill="#fdf2f8" filter="url(#galaxyGlow)" className="animate-ping" />
+        <circle cx="150" cy="80" r="2.5" fill="#f5f3ff" filter="url(#galaxyGlow)" className="animate-ping" />
+        <circle cx="100" cy="40" r="4" fill="#fbcfe8" filter="url(#galaxyGlow)" className="animate-ping" />
+      </g>
+    </svg>
+  ),
+  hunters_bow: (animate: boolean) => (
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(14,165,233,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="bowMetal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#cbd5e1" />
+          <stop offset="50%" stopColor="#0ea5e9" />
+          <stop offset="100%" stopColor="#cbd5e1" />
+        </linearGradient>
+        <filter id="holyLight">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Electrified Hard-Light Bow String */}
+      <path d="M40,20 Q60,100 40,180" fill="none" stroke="#7dd3fc" strokeWidth="2" filter="url(#holyLight)" className="animate-pulse" />
+      <path d="M40,20 L60,100 L40,180" fill="none" stroke="#e0f2fe" strokeWidth="1" />
+      
+      {/* High Tech Composite Recurve Limbs */}
+      <path d="M30,10 C180,30 180,170 30,190 C75,140 85,120 85,100 C85,80 75,60 30,10 Z" fill="url(#bowMetal)" />
+      {/* Inner power tracts */}
+      <path d="M45,30 C150,50 150,150 45,170" fill="none" stroke="#38bdf8" strokeWidth="3" filter="url(#holyLight)" />
+      
+      {/* Advanced Stabilizer Grip */}
+      <path d="M70,80 L100,80 L95,120 L70,120 Z" fill="#020617" stroke="#38bdf8" strokeWidth="2" />
+      <circle cx="85" cy="100" r="5" fill="#bae6fd" filter="url(#holyLight)" className="animate-ping" />
+      
+      {/* Loaded Radiant Arrow */}
+      <path d="M10,100 L160,100" stroke="#ffffff" strokeWidth="3" filter="url(#holyLight)" />
+      {/* Arrow Head */}
+      <polygon points="150,90 180,100 150,110" fill="#e0f2fe" filter="url(#holyLight)" className="animate-pulse" />
+      {/* Arrow Fletching */}
+      <path d="M10,100 L30,90 L30,110 Z" fill="#bae6fd" opacity="0.8" />
+    </svg>
+  ),
+  knights_shield: (animate: boolean) => (
+    <svg viewBox="0 0 160 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(59,130,246,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="shieldBase" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#94a3b8" />
+          <stop offset="50%" stopColor="#334155" />
+          <stop offset="100%" stopColor="#0f172a" />
+        </linearGradient>
+        <linearGradient id="shieldGold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="20%" stopColor="#ca8a04" />
+          <stop offset="80%" stopColor="#ca8a04" />
+          <stop offset="100%" stopColor="#854d0e" />
+        </linearGradient>
+        <filter id="coreGlow">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Massive Tower Shield Base */}
+      <path d="M15,15 L145,15 L145,90 C145,150 80,195 80,195 C80,195 15,150 15,90 Z" fill="url(#shieldBase)" stroke="#020617" strokeWidth="6" />
+      
+      {/* Heavy Gold Spiked Trim */}
+      <path d="M25,25 L135,25 L135,85 C135,135 80,175 80,175 C80,175 25,135 25,85 Z" fill="none" stroke="url(#shieldGold)" strokeWidth="8" />
+      <path d="M10,10 L30,30 M150,10 L130,30 M80,195 L80,175" stroke="url(#shieldGold)" strokeWidth="6" strokeLinecap="round" />
+      
+      {/* Central Blue Diamond Core (Paladin's Heart) */}
+      <path d="M80,50 L110,85 L80,120 L50,85 Z" fill="#1d4ed8" stroke="#60a5fa" strokeWidth="2" />
+      <path d="M80,60 L100,85 L80,110 L60,85 Z" fill="#93c5fd" filter="url(#coreGlow)" className="animate-pulse" />
+      <circle cx="80" cy="85" r="5" fill="#ffffff" filter="url(#coreGlow)" />
+      
+      {/* Engraved Guardian Wings */}
+      <path d="M70,85 Q40,60 35,95 Q50,110 70,100" fill="none" stroke="#64748b" strokeWidth="3" opacity="0.6" />
+      <path d="M90,85 Q120,60 125,95 Q110,110 90,100" fill="none" stroke="#64748b" strokeWidth="3" opacity="0.6" />
+      
+      {/* Forged Steel Rivets */}
+      <circle cx="35" cy="35" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+      <circle cx="125" cy="35" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+      <circle cx="35" cy="85" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+      <circle cx="125" cy="85" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+      <circle cx="55" cy="135" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+      <circle cx="105" cy="135" r="4" fill="#cbd5e1" stroke="#0f172a" strokeWidth="1" />
+    </svg>
+  ),
+  mage_staff: (animate: boolean) => (
+    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-[0_0_35px_rgba(56,189,248,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="ancientWood" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#292524" />
+          <stop offset="30%" stopColor="#451a03" />
+          <stop offset="70%" stopColor="#78350f" />
+          <stop offset="100%" stopColor="#292524" />
+        </linearGradient>
+        <filter id="manaGlow">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <radialGradient id="gemCore" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="30%" stopColor="#7dd3fc" />
+            <stop offset="100%" stopColor="#0284c7" />
+        </radialGradient>
+      </defs>
+      
+      {/* Ambient Mana Aura */}
+      <circle cx="50" cy="40" r="35" fill="#38bdf8" opacity="0.3" filter="url(#manaGlow)" className="animate-pulse" />
+      
+      {/* Gnarled Ancient Wood Shaft */}
+      <path d="M42,70 C55,120 35,180 48,235 L52,235 C38,180 58,120 48,70 Z" fill="url(#ancientWood)" />
+      
+      {/* Dark magical vines wrapped around staff */}
+      <path d="M45,90 C30,110 70,130 45,160" fill="none" stroke="#1c1917" strokeWidth="3" />
+      <path d="M48,150 C70,170 30,190 50,220" fill="none" stroke="#1c1917" strokeWidth="2.5" />
+      
+      {/* Crown of Gnarled Branches clutching the gem */}
+      <path d="M45,75 C25,50 15,30 25,10 C35,25 42,50 48,65 Z" fill="url(#ancientWood)" />
+      <path d="M52,70 C70,45 80,25 70,10 C60,25 55,50 50,65 Z" fill="url(#ancientWood)" />
+      <path d="M48,75 C35,60 30,50 40,40 C45,50 48,60 50,70 Z" fill="url(#ancientWood)" />
+      
+      {/* Levitating Supreme Mana Gem */}
+      <polygon points="50,15 65,40 50,65 35,40" fill="url(#gemCore)" filter="url(#manaGlow)" />
+      <polygon points="50,20 60,40 50,60 40,40" fill="#ffffff" opacity="0.8" />
+      
+      {/* Floating Arcane Runes & Mana Particles */}
+      <circle cx="20" cy="20" r="2.5" fill="#bae6fd" filter="url(#manaGlow)" className="animate-ping" />
+      <circle cx="80" cy="50" r="2" fill="#7dd3fc" filter="url(#manaGlow)" className="animate-ping" />
+      <circle cx="50" cy="0" r="3" fill="#e0f2fe" filter="url(#manaGlow)" className="animate-ping" />
+      <path d="M15,40 L25,45 L15,50" fill="none" stroke="#38bdf8" strokeWidth="1.5" filter="url(#manaGlow)" className="animate-pulse" />
+      <path d="M75,20 L85,15 L80,25" fill="none" stroke="#38bdf8" strokeWidth="1.5" filter="url(#manaGlow)" className="animate-pulse" />
+    </svg>
+  ),
+  default: (animate: boolean) => (
+    <svg viewBox="0 0 100 100" className={`w-full h-full opacity-50 ${animate ? "animate-pulse" : ""}`}>
+      <circle cx="50" cy="50" r="20" fill="currentColor" />
+    </svg>
+  )
+};
+
+export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
   const baseId = itemId.split("_")[0];
-  let imageUrl = "";
-  let glowColor = "rgba(255,255,255,0.2)";
-
-  switch (baseId) {
-    case "rusty_dagger":
-    case "kasaka_fang":
-    case "baruka_dagger":
-      imageUrl = kasakaFangImg;
-      glowColor = "rgba(34,197,94,0.6)"; // green
-      break;
-    case "demon_dagger":
-    case "shadow_reaper":
-      imageUrl = demonDaggerImg;
-      glowColor = "rgba(239,68,68,0.6)"; // red
-      break;
-    case "igris_sword":
-    case "vulcan_rage":
-      imageUrl = igrisSwordImg;
-      glowColor = "rgba(239,68,68,0.8)"; // bright red
-      break;
-    case "sovereigns_wrath":
-    case "monarch_authority":
-    case "abyssal_void":
-      imageUrl = sovereignsWrathImg;
-      glowColor = "rgba(236,72,153,0.7)"; // pink/purple
-      break;
-    case "shadow_scythe":
-      imageUrl = shadowScytheImg;
-      glowColor = "rgba(168,85,247,0.7)"; // purple
-      break;
-    case "hunters_bow":
-      imageUrl = huntersBowImg;
-      glowColor = "rgba(56,189,248,0.6)"; // cyan
-      break;
-    case "knights_shield":
-      imageUrl = knightsShieldImg;
-      glowColor = "rgba(59,130,246,0.6)"; // blue
-      break;
-    case "mage_staff":
-      imageUrl = mageStaffImg;
-      glowColor = "rgba(96,165,250,0.6)"; // light blue
-      break;
-    default:
-      imageUrl = kasakaFangImg;
-      glowColor = "rgba(255,255,255,0.4)";
-      break;
+  
+  const getVectorGraphic = (id: string) => {
+    switch(id) {
+      case "rusty_dagger": return VectorWeapons.rusty_dagger(animate);
+      case "kasaka_fang":
+      case "baruka_dagger": return VectorWeapons.kasaka_fang(animate);
+      case "demon_dagger":
+      case "shadow_reaper": return VectorWeapons.demon_dagger(animate);
+      case "igris_sword":
+      case "vulcan_rage": return VectorWeapons.igris_sword(animate);
+      case "sovereigns_wrath":
+      case "monarch_authority":
+      case "abyssal_void": return VectorWeapons.sovereigns_wrath(animate);
+      case "shadow_scythe": return VectorWeapons.shadow_scythe(animate);
+      case "hunters_bow": return VectorWeapons.hunters_bow(animate);
+      case "knights_shield": return VectorWeapons.knights_shield(animate);
+      case "mage_staff": return VectorWeapons.mage_staff(animate);
+      default: return VectorWeapons.kasaka_fang(animate);
+    }
   }
 
-  // High-end screen blending drops out the dark generated background, treating the bright weapon pixels as light.
   return (
     <div className={`w-full h-full relative flex items-center justify-center select-none ${animate ? "animate-pulse" : ""}`}>
-      <div 
-        className="absolute inset-0 rounded-full blur-[15px] scale-95 z-0 transition-all mix-blend-screen"
-        style={{ backgroundColor: glowColor, opacity: 0.6 }}
-      />
-      <img 
-        src={imageUrl} 
-        unselectable="on"
-        className="w-[95%] h-[95%] object-contain drop-shadow-2xl z-10 transition-all pointer-events-none rounded-xl" 
-        alt={baseId} 
-        style={{ 
-          filter: `drop-shadow(0 0 10px ${glowColor}) brightness(1.2) contrast(1.1)`,
-          mixBlendMode: "screen",
-          WebkitBackfaceVisibility: "visible" 
-        }}
-      />
+      {getVectorGraphic(baseId)}
     </div>
   );
 };
@@ -364,112 +733,34 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
         {/* Main 3D rotatable staging plate */}
         <div 
           ref={plateRef}
-          className="relative w-full h-full max-w-[280px] max-h-[280px] flex items-center justify-center"
+          className="relative w-full h-full max-w-[280px] max-h-[280px] flex items-center justify-center will-change-transform"
           style={{ 
             transformStyle: "preserve-3d",
             transform: `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`
           }}
         >
-          {/* Layer 1: Radiant Back Aura Layer (Deepest Z) in high saturation inherit glow */}
-          <div 
-            className="absolute inset-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center"
-            style={{ 
-              transform: "translateZ(-45px)", 
-              transformStyle: "preserve-3d",
-              backfaceVisibility: "visible"
-            }}
-          >
-            <div 
-              className="w-[120%] h-[120%] opacity-[0.98] flex items-center justify-center transition-all duration-300"
-              style={{ filter: `blur(14px) ${theme.shadows.backGlow}` }}
-            >
-              {renderNeonWeaponPreview(itemId, false, "back")}
-            </div>
-          </div>
-
-          {/* Layer 2: Sparks & Particle Cloud Layer */}
-          <div 
-            className="absolute inset-0 pointer-events-none flex items-center justify-center animate-pulse"
-            style={{ 
-              transform: "translateZ(-20px)",
-              transformStyle: "preserve-3d",
-              backfaceVisibility: "visible"
-            }}
-          >
-            <div 
-              className="w-[110%] h-[110%] flex items-center justify-center"
-              style={{ filter: `saturate(3) brightness(2.2) drop-shadow(0 0 12px ${theme.color})` }}
-            >
-              {renderNeonWeaponPreview(itemId, false, "sparks")}
-            </div>
-          </div>
-
-          {/* ---- 3D VOLUMETRIC EXTRUSION (Real 3D Detailed Simulation with True Colors!) ---- */}
-          {[-24, -18, -12, -6, 6, 12, 18, 24].map((zOffset, idx) => (
-            <div 
-              key={idx}
-              className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 animate-fade-in"
-              style={{ 
-                transform: `translateZ(${zOffset}px)`, 
-                transformStyle: "preserve-3d",
-                backfaceVisibility: "visible"
-              }}
-            >
-              <div className={`w-full h-full flex items-center justify-center ${Math.abs(zOffset) > 15 ? "brightness-[0.4] opacity-50" : "brightness-[0.75]"}`}>
-                {renderNeonWeaponPreview(itemId, false, "base")}
-              </div>
-            </div>
-          ))}
-
-          {/* Layer 3: Main Armament Geometry Core Layer in high-definition correct color */}
+          {/* Main Geometry Layer in high-definition correct color */}
           <div 
             className="absolute inset-0 pointer-events-none flex items-center justify-center"
             style={{ 
-              transform: "translateZ(0px)", 
+              transform: "translateZ(10px)", 
               transformStyle: "preserve-3d",
-              backfaceVisibility: "visible",
-              filter: theme.shadows.midGlow
+              backfaceVisibility: "hidden",
             }}
           >
             <div className="w-full h-full flex items-center justify-center relative">
-               {renderNeonWeaponPreview(itemId, false, "base")}
-               
-               {/* Internal Wireframe/Facet Lines overlay matching weapon inherit color */}
-               <div className={`absolute inset-0 border rounded mix-blend-screen ${theme.wireframeBorder}`} />
+               {renderNeonWeaponPreview(itemId, false)}
             </div>
           </div>
 
-          {/* Core Blueprint Tech Crosshairs adapting to weapon accent */}
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-40 mix-blend-screen" style={{ transform: "translateZ(0px)", transformStyle: "preserve-3d" }}>
-             <div className="w-[80%] h-[1px] shadow-[0_0_8px_currentColor]" style={{ backgroundColor: `${theme.color}aa`, color: theme.color }} />
-             <div className="absolute h-[80%] w-[1px] shadow-[0_0_8px_currentColor]" style={{ backgroundColor: `${theme.color}aa`, color: theme.color }} />
-             <div className="absolute w-[60%] h-[60%] border rounded-full" style={{ borderColor: `${theme.color}33` }} />
-          </div>
-
-          {/* Layer 4: Floating Star Edge & Laser High-Voltage Front Layer */}
+          {/* Holographic Staging Grid (Floor plate to ground the look in match colors) */}
           <div 
-            className="absolute inset-0 pointer-events-none flex items-center justify-center"
+            className="absolute bottom-1 w-[80%] h-[12%] rounded-full border pointer-events-none opacity-60"
             style={{ 
-              transform: "translateZ(30px)", 
-              transformStyle: "preserve-3d",
-              backfaceVisibility: "visible",
-              filter: theme.shadows.frontGlow
-            }}
-          >
-            <div className="w-[98%] h-[98%] flex items-center justify-center filter saturate-[2] brightness-[1.6]">
-              {renderNeonWeaponPreview(itemId, false, "front")}
-            </div>
-          </div>
-
-          {/* Holographic Staging Grid (Floor plate to ground the 3D look in match colors) */}
-          <div 
-            className="absolute bottom-1 w-[80%] h-[12%] rounded-full border pointer-events-none"
-            style={{ 
-              transform: "rotateX(90deg) translateZ(-65px)",
+              transform: "rotateX(90deg) translateZ(-40px)",
               transformStyle: "preserve-3d",
               borderColor: `${theme.color}40`,
-              backgroundImage: `linear-gradient(to top, ${theme.color}25, transparent)`,
-              boxShadow: `0 0 25px ${theme.color}33, inset 0 0 15px ${theme.color}15`
+              backgroundImage: `radial-gradient(ellipse at center, ${theme.color}25 0%, transparent 70%)`
             }}
           />
         </div>
