@@ -7,11 +7,12 @@
     clear: () => void;
     readonly length: number;
     key: (index: number) => string | null;
+    [key: string]: any;
   }
 
   const createMemoryStorage = (): MemoryStorage => {
     let store: Record<string, string> = {};
-    return {
+    const storageObj = {
       getItem(key: string): string | null {
         return key in store ? store[key] : null;
       },
@@ -32,55 +33,124 @@
         return index >= 0 && index < keys.length ? keys[index] : null;
       }
     };
+
+    return new Proxy(storageObj, {
+      get(target, prop, receiver) {
+        if (prop in target) {
+          return Reflect.get(target, prop, receiver);
+        }
+        if (typeof prop === "string") {
+          return store[prop] !== undefined ? store[prop] : null;
+        }
+        return undefined;
+      },
+      set(target, prop, value, receiver) {
+        if (typeof prop === "string" && !(prop in target)) {
+          store[prop] = String(value);
+          return true;
+        }
+        return Reflect.set(target, prop, value, receiver);
+      },
+      deleteProperty(target, prop) {
+        if (typeof prop === "string" && !(prop in target)) {
+          delete store[prop];
+          return true;
+        }
+        return Reflect.deleteProperty(target, prop);
+      },
+      ownKeys() {
+        return Object.keys(store);
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        if (typeof prop === "string" && store[prop] !== undefined) {
+          return {
+            value: store[prop],
+            writable: true,
+            enumerable: true,
+            configurable: true
+          };
+        }
+        return undefined;
+      }
+    }) as any;
   };
 
   let storageOperational = false;
   try {
-    const testKey = "__monarch_storage_test__";
-    window.localStorage.setItem(testKey, testKey);
-    const retrieved = window.localStorage.getItem(testKey);
-    window.localStorage.removeItem(testKey);
-    if (retrieved === testKey) {
-      storageOperational = true;
+    // Checking if both accessing and using localStorage works
+    if (typeof window !== "undefined" && window.localStorage) {
+      const testKey = "__monarch_storage_test__";
+      window.localStorage.setItem(testKey, testKey);
+      const retrieved = window.localStorage.getItem(testKey);
+      window.localStorage.removeItem(testKey);
+      if (retrieved === testKey) {
+        storageOperational = true;
+      }
     }
   } catch (e) {
-    console.warn("Storage check failed. Redundant memory storage fallback initiated.", e);
+    console.warn("Native localStorage check failed. Initiating fallback...", e);
   }
 
   if (!storageOperational) {
-    try {
-      Object.defineProperty(window, "localStorage", {
-        value: createMemoryStorage(),
-        writable: true,
-        configurable: true
-      });
-    } catch (err) {
-      console.error("Critical: Failed to shim localStorage.", err);
+    const fallbackLocal = createMemoryStorage();
+    const fallbackSession = createMemoryStorage();
+
+    const applyShim = (targetObj: any, propName: string, value: any) => {
+      try {
+        Object.defineProperty(targetObj, propName, {
+          get() { return value; },
+          set() { /* Keep read-only assignment silent */ },
+          configurable: true,
+          enumerable: true
+        });
+      } catch (err) {
+        // Fallback simple assignment
+        try {
+          targetObj[propName] = value;
+        } catch (_) {}
+      }
+    };
+
+    // Apply shim at multiple layers to catch all access vectors
+    if (typeof Window !== "undefined" && Window.prototype) {
+      applyShim(Window.prototype, "localStorage", fallbackLocal);
+      applyShim(Window.prototype, "sessionStorage", fallbackSession);
+    }
+    
+    if (typeof window !== "undefined") {
+      applyShim(window, "localStorage", fallbackLocal);
+      applyShim(window, "sessionStorage", fallbackSession);
     }
 
-    try {
-      Object.defineProperty(window, "sessionStorage", {
-        value: createMemoryStorage(),
-        writable: true,
-        configurable: true
-      });
-    } catch (err) {
-      console.error("Critical: Failed to shim sessionStorage.", err);
+    if (typeof globalThis !== "undefined") {
+      applyShim(globalThis, "localStorage", fallbackLocal);
+      applyShim(globalThis, "sessionStorage", fallbackSession);
     }
+    
+    console.log("🔒 Storage security compatibility shields successfully deployed.");
   }
 })();
 
 // Global uncaught error tracker to prevent blank screens and offer friendly on-screen diagnostics in WebViews
 window.addEventListener("error", (event) => {
-  renderDiagnosticsOverlay(event.error || new Error(event.message || "Unknown error"));
+  const errObj = event.error || new Error(event.message || "Unknown error");
+  renderDiagnosticsOverlay(errObj);
 });
 
 window.addEventListener("unhandledrejection", (event) => {
-  renderDiagnosticsOverlay(new Error(String(event.reason || "Unhandled Promise Rejection")));
+  const errObj = new Error(String(event.reason || "Unhandled Promise Rejection"));
+  renderDiagnosticsOverlay(errObj);
 });
 
 function renderDiagnosticsOverlay(error: Error) {
-  console.error("Monarch Global Diagnostics caught error:", error);
+  // Explicitly log the full error details and stack trace to help test runners see the actual root cause
+  console.error("Monarch Global Diagnostics caught error message:", error.message);
+  console.error("Monarch Global Diagnostics caught error stack:", error.stack || "No stack trace available");
+  
+  if (typeof document === "undefined" || !document.body) {
+    return;
+  }
+  
   let div = document.getElementById("diagnostics-overlay");
   if (!div) {
     div = document.createElement("div");
@@ -102,7 +172,7 @@ function renderDiagnosticsOverlay(error: Error) {
     const errorDetails = error ? (error.stack || error.message || String(error)) : "Unknown system disruption";
 
     div.innerHTML = `
-      <div style="background-color: #0f172a; border: 1px solid #ef4444; border-radius: 16px; padding: 32px; max-w: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+      <div style="background-color: #0f172a; border: 1px solid #ef4444; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
          <div style="font-size: 40px; margin-bottom: 16px;">🔮</div>
          <h2 style="font-size: 18px; font-weight: bold; color: #ef4444; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.1em;">System Interruption</h2>
          <p style="font-size: 13px; color: #94a3b8; margin: 0 0 20px 0; line-height: 1.5;">
@@ -110,7 +180,7 @@ function renderDiagnosticsOverlay(error: Error) {
          </p>
          <pre style="background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; font-size: 11px; color: #cbd5e1; text-align: left; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; margin-bottom: 24px;">${errorDetails}</pre>
          <button id="diagnostics-retry" style="background-color: #3b82f6; border: none; color: white; padding: 10px 24px; border-radius: 9999px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(59, 130, 246, 0.3));">
-           Wipe Cash & Recalibrate
+           Wipe Cache & Recalibrate
          </button>
       </div>
     `;
