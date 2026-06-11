@@ -81,15 +81,19 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
     if (tier === 1) {
       return (
         <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-[0_0_4px_rgba(180,83,9,0.3)]" viewBox="0 0 100 100" fill="none">
-          {/* Outer simple circular outline */}
-          <circle cx="50" cy="50" r="43" stroke="#b45309" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-          {/* Inner solid border */}
+          {/* Inner solid border (keeps static) */}
           <circle cx="50" cy="50" r="38" stroke="#78350f" strokeWidth="2" />
-          {/* Circular beads */}
-          <circle cx="50" cy="8" r="3" fill="#b45309" />
-          <circle cx="50" cy="92" r="3" fill="#b45309" />
-          <circle cx="8" cy="50" r="3" fill="#b45309" />
-          <circle cx="92" cy="50" r="3" fill="#b45309" />
+          
+          {/* Rotating outer ring and beads */}
+          <g style={{ transformOrigin: "50px 50px", animation: "custom-spin 20s linear infinite" }}>
+            {/* Outer simple circular outline */}
+            <circle cx="50" cy="50" r="43" stroke="#b45309" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+            {/* Circular beads */}
+            <circle cx="50" cy="8" r="3" fill="#b45309" />
+            <circle cx="50" cy="92" r="3" fill="#b45309" />
+            <circle cx="8" cy="50" r="3" fill="#b45309" />
+            <circle cx="92" cy="50" r="3" fill="#b45309" />
+          </g>
         </svg>
       );
     }
@@ -106,17 +110,19 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
             stroke="#0891b2" 
             strokeWidth="1" 
             strokeDasharray="4 6" 
-            style={{ transformOrigin: "center", animation: "custom-spin 12s linear infinite" }}
+            style={{ transformOrigin: "50px 50px", animation: "custom-spin 12s linear infinite" }}
           />
           {/* Inner silver circle */}
           <circle cx="50" cy="50" r="40" stroke="#94a3b8" strokeWidth="2.5" />
           <circle cx="50" cy="50" r="37" stroke="#334155" strokeWidth="1" />
           
           {/* Circular ring nodes (instead of square angles) */}
-          <circle cx="24" cy="24" r="2.5" fill="#06b6d4" />
-          <circle cx="76" cy="24" r="2.5" fill="#06b6d4" />
-          <circle cx="24" cy="76" r="2.5" fill="#06b6d4" />
-          <circle cx="76" cy="76" r="2.5" fill="#06b6d4" />
+          <g style={{ transformOrigin: "50px 50px", animation: "custom-spin 12s linear infinite" }}>
+            <circle cx="24" cy="24" r="2.5" fill="#06b6d4" />
+            <circle cx="76" cy="24" r="2.5" fill="#06b6d4" />
+            <circle cx="24" cy="76" r="2.5" fill="#06b6d4" />
+            <circle cx="76" cy="76" r="2.5" fill="#06b6d4" />
+          </g>
         </svg>
       );
     }
@@ -135,14 +141,16 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
             stroke="#f59e0b" 
             strokeWidth="2.5" 
             strokeDasharray="25 8" 
-            style={{ transformOrigin: "center", animation: "custom-spin-reverse 25s linear infinite" }}
+            style={{ transformOrigin: "50px 50px", animation: "custom-spin-reverse 25s linear infinite" }}
           />
           <circle cx="50" cy="50" r="36" stroke="#fbbf24" strokeWidth="1" />
           {/* Royal Gems - glowing top/bottom and flanks */}
-          <circle cx="50" cy="5" r="4" fill="#ef4444" stroke="#eab308" strokeWidth="1" />
-          <circle cx="50" cy="95" r="4" fill="#ef4444" stroke="#eab308" strokeWidth="1" />
-          <circle cx="5" cy="50" r="4" fill="#eab308" />
-          <circle cx="95" cy="50" r="4" fill="#eab308" />
+          <g style={{ transformOrigin: "50px 50px", animation: "custom-spin 16s linear infinite" }}>
+            <circle cx="50" cy="5" r="4" fill="#ef4444" stroke="#eab308" strokeWidth="1" />
+            <circle cx="50" cy="95" r="4" fill="#ef4444" stroke="#eab308" strokeWidth="1" />
+            <circle cx="5" cy="50" r="4" fill="#eab308" />
+            <circle cx="95" cy="50" r="4" fill="#eab308" />
+          </g>
         </svg>
       );
     }
@@ -159,7 +167,7 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
             stroke="#4338ca" 
             strokeWidth="1.5" 
             strokeDasharray="40 10 10 10" 
-            style={{ transformOrigin: "center", animation: "custom-spin 15s linear infinite" }}
+            style={{ transformOrigin: "50px 50px", animation: "custom-spin 15s linear infinite" }}
           />
           <circle 
             cx="50" 
@@ -168,14 +176,16 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
             stroke="#22d3ee" 
             strokeWidth="2" 
             strokeDasharray="5 15" 
-            style={{ transformOrigin: "center", animation: "custom-spin-reverse 8s linear infinite" }}
+            style={{ transformOrigin: "50px 50px", animation: "custom-spin-reverse 8s linear infinite" }}
           />
           <circle cx="50" cy="50" r="36" stroke="#818cf8" strokeWidth="1" strokeDasharray="2 2" />
           {/* Curved cyan lines following the circle */}
-          <path d="M 8 30 C 4 42, 4 58, 8 70" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M 92 30 C 96 42, 96 58, 92 70" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx="50" cy="6" r="4.5" fill="#22d3ee" />
-          <circle cx="50" cy="94" r="4.5" fill="#22d3ee" />
+          <g style={{ transformOrigin: "50px 50px", animation: "custom-spin 20s linear infinite" }}>
+            <path d="M 8 30 C 4 42, 4 58, 8 70" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M 92 30 C 96 42, 96 58, 92 70" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="50" cy="6" r="4.5" fill="#22d3ee" />
+            <circle cx="50" cy="94" r="4.5" fill="#22d3ee" />
+          </g>
         </svg>
       );
     }
@@ -191,7 +201,7 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
           stroke="#06b6d4" 
           strokeWidth="2.5" 
           strokeDasharray="60 30" 
-          style={{ transformOrigin: "center", animation: "custom-spin 10s linear infinite" }}
+          style={{ transformOrigin: "50px 50px", animation: "custom-spin 10s linear infinite" }}
         />
         <circle 
           cx="50" 
@@ -200,7 +210,7 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
           stroke="#f59e0b" 
           strokeWidth="1.5" 
           strokeDasharray="10 15 30 15" 
-          style={{ transformOrigin: "center", animation: "custom-spin-reverse 18s linear infinite" }}
+          style={{ transformOrigin: "50px 50px", animation: "custom-spin-reverse 18s linear infinite" }}
         />
         <circle 
           cx="50" 
@@ -209,13 +219,15 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
           stroke="#a855f7" 
           strokeWidth="1" 
           strokeDasharray="5 5" 
-          style={{ transformOrigin: "center", animation: "custom-spin 4s linear infinite" }}
+          style={{ transformOrigin: "50px 50px", animation: "custom-spin 4s linear infinite" }}
         />
         {/* Orbit flare nodes ON the circular paths (no square bounds) */}
-        <circle cx="50" cy="3" r="3.5" fill="#eab308" />
-        <circle cx="50" cy="97" r="3.5" fill="#06b6d4" />
-        <circle cx="3" cy="50" r="3.5" fill="#a855f7" />
-        <circle cx="97" cy="50" r="3.5" fill="#22d3ee" />
+        <g style={{ transformOrigin: "50px 50px", animation: "custom-spin 14s linear infinite" }}>
+          <circle cx="50" cy="3" r="3.5" fill="#eab308" />
+          <circle cx="50" cy="97" r="3.5" fill="#06b6d4" />
+          <circle cx="3" cy="50" r="3.5" fill="#a855f7" />
+          <circle cx="97" cy="50" r="3.5" fill="#22d3ee" />
+        </g>
       </svg>
     );
   };

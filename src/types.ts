@@ -137,6 +137,7 @@ export interface GameState {
   dailyFocusMinutes?: number;
   weeklyManaAccumulated?: number;
   weeklyExpAccumulated?: number;
+  dailyManaAccumulated?: number;
   weeklyCyclesCompleted?: number;
   weeklyHistory?: { weekStart: string, mp: number, exp: number, targetMp: number, targetExp: number }[];
 }

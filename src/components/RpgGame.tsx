@@ -387,6 +387,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             prestigePoints: d.prestigePoints !== undefined && d.prestigePoints !== null ? Number(d.prestigePoints) : prev.prestigePoints,
             weeklyManaAccumulated: d.weeklyManaAccumulated !== undefined && d.weeklyManaAccumulated !== null ? Number(d.weeklyManaAccumulated) : prev.weeklyManaAccumulated,
             weeklyExpAccumulated: d.weeklyExpAccumulated !== undefined && d.weeklyExpAccumulated !== null ? Number(d.weeklyExpAccumulated) : prev.weeklyExpAccumulated,
+            dailyManaAccumulated: d.dailyManaAccumulated !== undefined && d.dailyManaAccumulated !== null ? Number(d.dailyManaAccumulated) : prev.dailyManaAccumulated,
             weeklyCyclesCompleted: d.weeklyCyclesCompleted !== undefined && d.weeklyCyclesCompleted !== null ? Number(d.weeklyCyclesCompleted) : prev.weeklyCyclesCompleted,
             weeklyHistory: d.weeklyHistory ?? prev.weeklyHistory,
             dailyGatesCleared: d.dailyGatesCleared !== undefined && d.dailyGatesCleared !== null ? Number(d.dailyGatesCleared) : prev.dailyGatesCleared,
@@ -459,6 +460,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           prestigePoints: parsed.prestigePoints ?? 0,
           weeklyManaAccumulated: parsed.weeklyManaAccumulated ?? 0,
           weeklyExpAccumulated: parsed.weeklyExpAccumulated ?? 0,
+          dailyManaAccumulated: parsed.dailyManaAccumulated ?? 0,
           weeklyCyclesCompleted: parsed.weeklyCyclesCompleted ?? 0,
           weeklyHistory: parsed.weeklyHistory || [],
         };
@@ -499,6 +501,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       prestigePoints: 0,
       weeklyManaAccumulated: 0,
       weeklyExpAccumulated: 0,
+      dailyManaAccumulated: 0,
       weeklyCyclesCompleted: 0,
       weeklyHistory: [],
       dailyGatesCleared: 0,
@@ -914,7 +917,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               ...prevGameState,
               exp: nextExp,
               gold: nextGold,
-              quests: refreshed
+              quests: refreshed,
+              dailyGatesCleared: 0,
+              dailyFocusMinutes: 0,
+              dailyManaAccumulated: 0
             };
           } else {
             // Clean refresh of daily quests with no penalties!
@@ -933,7 +939,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               ...prevGameState,
               quests: refreshed,
               dailyGatesCleared: 0,
-              dailyFocusMinutes: 0
+              dailyFocusMinutes: 0,
+              dailyManaAccumulated: 0
             };
           }
         });
@@ -1028,7 +1035,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         dailyFocusMinutes: (prev.dailyFocusMinutes ?? 0) + durationMins,
         inventory: [...prev.inventory, offeringItem]
       };
@@ -1102,19 +1108,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   };
 
   const awardGold = (amt: number) => {
-    setGameState(prev => {
-      const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
-      const allowedGold = Math.max(0, 30 - currentWeeklyMp);
-      if (allowedGold <= 0) {
-        return prev;
-      }
-      const actualGold = amt; // Removed 5 MP cap and allowedGold hard cap on activities to exactly sync with backend
-      return {
-        ...prev,
-        gold: prev.gold + actualGold,
-        weeklyManaAccumulated: currentWeeklyMp + actualGold
-      };
-    });
+    setGameState(prev => ({
+      ...prev,
+      gold: prev.gold + amt
+    }));
   };
 
   // 1. Academics Handlers
@@ -1416,14 +1413,34 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       const diff = gameState.gold - prevGoldRef.current;
       prevGoldRef.current = gameState.gold;
       
-      setGameState(prev => ({
-        ...prev,
-        weeklyManaAccumulated: Math.min(30, (prev.weeklyManaAccumulated ?? 0) + diff)
-      }));
+      const DAILY_MANA_CAP = 6; // Maximum 6 MP can count toward the 30 MP weekly milestone per day.
+      const currentDaily = gameState.dailyManaAccumulated ?? 0;
+      const potentialIncrease = Math.min(diff, Math.max(0, DAILY_MANA_CAP - currentDaily));
+      
+      if (potentialIncrease > 0) {
+        setGameState(prev => {
+          const nextWeekly = Math.min(30, (prev.weeklyManaAccumulated ?? 0) + potentialIncrease);
+          const nextDaily = (prev.dailyManaAccumulated ?? 0) + potentialIncrease;
+          return {
+            ...prev,
+            weeklyManaAccumulated: nextWeekly,
+            dailyManaAccumulated: nextDaily
+          };
+        });
+        
+        const remainingToday = DAILY_MANA_CAP - (currentDaily + potentialIncrease);
+        if (remainingToday === 0) {
+          triggerSystemToast("⚡ WEEKLY MP CAP REACHED TODAY: You gained today's maximum of +6 weekly progress Mana Points! Return tomorrow for more weekly development.");
+        } else {
+          triggerSystemToast(`🔮 WEEKLY DEVELOPMENT BOOST: +${potentialIncrease} MP stored in weekly milestone reserves! [${remainingToday} left today]`);
+        }
+      } else {
+        triggerSystemToast("⚖️ DAILY ROUTINE SAFEGUARD: Weekly target contribution is capped at 6 MP per day to cultivate solid, long-term habit patterns! Standard MP (Gold) earned successfully.");
+      }
     } else {
       prevGoldRef.current = gameState.gold;
     }
-  }, [gameState.gold]);
+  }, [gameState.gold, gameState.dailyManaAccumulated]);
 
   // Evaluate Weekly Completion & History Logging
   useEffect(() => {
@@ -1732,7 +1749,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         quests: list
       };
     });
@@ -1762,8 +1778,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       const actualGold = finalDailyGold; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
-        gold: prev.gold + actualGold,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold
+        gold: prev.gold + actualGold
       };
     });
 
@@ -1868,8 +1883,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       const actualGold = stakedYield; // Ensure EXACT sync with backend without any caps
       return {
         ...prev,
-        gold: prev.gold + actualGold,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold
+        gold: prev.gold + actualGold
       };
     });
     triggerSystemToast(`🌾 HARVEST SECURED: Formally claimed +${stakedYield} MP of accumulated compound spatial interest into liquid reserves!`);
@@ -3061,7 +3075,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return {
         ...prev,
         gold: prev.gold + actualGold,
-        weeklyManaAccumulated: (prev.weeklyManaAccumulated ?? 0) + actualGold,
         inventory: inv,
         dailyGatesCleared: (prev.dailyGatesCleared ?? 0) + 1
       };
@@ -4096,12 +4109,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                         // Add actual real game parameters!
                         addExp(quest.rewardExp);
                         setGameState(prev => {
-                          const currentWeeklyMp = prev.weeklyManaAccumulated ?? 0;
                           const actualGold = quest.rewardGold; // Respect backend setting exactly
                           return {
                             ...prev,
-                            gold: prev.gold + actualGold,
-                            weeklyManaAccumulated: currentWeeklyMp + actualGold
+                            gold: prev.gold + actualGold
                           };
                         });
 
