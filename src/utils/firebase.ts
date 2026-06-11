@@ -8,6 +8,9 @@ import {
 } from "firebase/auth";
 import { 
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   setDoc, 
   getDocs, 
@@ -23,10 +26,20 @@ const app = initializeApp(firebaseConfig);
 
 let db: any;
 try {
-  db = getFirestore(app);
+  // Enable local cache persistence for ultra-fast, offline-first retrieval in Android WebViews
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
 } catch (e) {
-  console.error("Critical: Firestore initialization failed (using dummy fallback):", e);
-  db = {} as any;
+  console.warn("Firestore persistent cache setup failed or blocked in this environment (falling back)...", e);
+  try {
+    db = getFirestore(app);
+  } catch (err) {
+    console.error("Critical: Firestore initialization failed (using dummy fallback):", err);
+    db = {} as any;
+  }
 }
 
 let auth: any;

@@ -2521,14 +2521,21 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     }
   };
 
-  // Rotatable 3D Weapon inspector stage utilizing layered parallax Z-axial translation offsets
+  // Rotatable 3D Weapon inspector stage utilizing layered parallax Z-axial translation offsets (highly optimized for Android WebView performance)
   const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
-    const [rotation, setRotation] = useState({ x: -10, y: 35, z: 0 });
+    const rotationRef = useRef({ x: -10, y: 35, z: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const currentRotationStart = useRef({ x: 0, y: 0 });
     const autoSpinActive = useRef(true);
     const animationFrameRef = useRef<number | null>(null);
+    const plateRef = useRef<HTMLDivElement>(null);
+
+    const updateTransforms = () => {
+      if (plateRef.current) {
+        plateRef.current.style.transform = `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`;
+      }
+    };
 
     // Passive slow idle spin/wobble
     useEffect(() => {
@@ -2539,11 +2546,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         lastTime = now;
 
         if (!isDragging && autoSpinActive.current) {
-          setRotation((prev) => ({
-            x: -10 + Math.sin(now * 0.001) * 8, // subtle elegant floating wobble
-            y: (prev.y + delta * 25) % 360,     // slow continuous passive Y rotation (25 deg/sec)
-            z: Math.cos(now * 0.0007) * 4       // micro wobble
-          }));
+          rotationRef.current.x = -10 + Math.sin(now * 0.001) * 8;
+          rotationRef.current.y = (rotationRef.current.y + delta * 25) % 360;
+          rotationRef.current.z = Math.cos(now * 0.0007) * 4;
+          updateTransforms();
         }
         animationFrameRef.current = requestAnimationFrame(updateRef);
       };
@@ -2561,7 +2567,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       setIsDragging(true);
       autoSpinActive.current = false;
       dragStart.current = { x: clientX, y: clientY };
-      currentRotationStart.current = { x: rotation.x, y: rotation.y };
+      currentRotationStart.current = { x: rotationRef.current.x, y: rotationRef.current.y };
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -2587,11 +2593,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       // Clamp X rotation to prevent flipping upside down (-60 to 60 is perfect)
       const newRotationX = Math.max(-60, Math.min(60, currentRotationStart.current.x - deltaY * 0.6));
 
-      setRotation((prev) => ({
-        ...prev,
-        x: newRotationX,
-        y: newRotationY,
-      }));
+      rotationRef.current.x = newRotationX;
+      rotationRef.current.y = newRotationY;
+      updateTransforms();
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -2615,7 +2619,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
     const resetRotation = (e: React.MouseEvent) => {
       e.stopPropagation();
-      setRotation({ x: -10, y: 35, z: 0 });
+      rotationRef.current = { x: -10, y: 35, z: 0 };
+      updateTransforms();
       autoSpinActive.current = true;
     };
 
@@ -2648,10 +2653,11 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         >
           {/* Main 3D rotatable staging plate */}
           <div 
+            ref={plateRef}
             className="relative w-full h-full max-w-[280px] max-h-[280px] flex items-center justify-center"
             style={{ 
               transformStyle: "preserve-3d",
-              transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg)`
+              transform: `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`
             }}
           >
             {/* Layer 1: Radiant Back Aura Layer (Deepest Z) in Pure Blue Neon */}
