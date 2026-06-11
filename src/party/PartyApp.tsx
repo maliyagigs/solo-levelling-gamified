@@ -1411,8 +1411,8 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
       const snap = await getDoc(lobbyRef);
       if (snap.exists()) {
         const data = snap.data();
-        if (data.members && data.members.length >= data.maxMembers) {
-          triggerLocalAlert("Channel frequency is saturated! Full party capacity.", "warning");
+        if (data.members && (data.members.length >= data.maxMembers || data.members.length >= 40)) {
+          triggerLocalAlert("CAPACITY FULL! This party has reached its server capacity limit.", "warning");
           setJoiningLobbyId(null);
           return;
         }
@@ -2963,7 +2963,7 @@ export default function PartyPage({ playerName, onBack, playSelectSound }: Party
                       onChange={(e) => setNewLobbyData({...newLobbyData, maxMembers: Number(e.target.value)})}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-indigo-500/50"
                     >
-                      {[2,3,4,5,6].map(n => <option key={n} value={n}>{n} Hunters</option>)}
+                      {[2, 4, 8, 12, 16, 20, 30, 40].map(n => <option key={n} value={n}>{n} Hunters</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">

@@ -1984,6 +1984,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     demon_dagger: { cost: 120, levelReq: 50 },
     kamish_fang: { cost: 350, levelReq: 75 },
     sovereigns_wrath: { cost: 800, levelReq: 90 },
+    baruka_dagger: { cost: 150, levelReq: 35 },
+    vulcan_rage: { cost: 250, levelReq: 60 },
+    shadow_reaper: { cost: 450, levelReq: 80 },
+    monarch_authority: { cost: 1000, levelReq: 100 },
+    abyssal_void: { cost: 2500, levelReq: 120 },
+  };
+
+  const getWeaponBuyPrice = (item: any): number => {
+    if (!item || !item.id) return 0;
+    const baseId = item.id.split("_")[0];
+    if (WEAPON_SHOP_DETAILS[baseId]) {
+      return WEAPON_SHOP_DETAILS[baseId].cost;
+    }
+    const adminItem = adminMarketItems.find(ai => ai.id === baseId);
+    if (adminItem) {
+      return adminItem.price || 0;
+    }
+    return 0;
   };
 
   // Weapon buy function
@@ -2001,7 +2019,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return;
     }
 
-    // Dynamic slot ceiling limits (starts at 0 slots for level 1, increases by +1 slot each level)
+    // Dynamic slot ceiling limits (starts at 5 slots + player level as expandable backpack requested!)
     const maxSlots = 5 + gameState.level;
     if (gameState.inventory.length >= maxSlots) {
       triggerSystemToast(`⚠️ INVENTORY SPACE CAP: Backpack is full (${gameState.inventory.length}/${maxSlots} slots). Level up to expand storage capacity!`);
@@ -2043,9 +2061,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   // Sell weapon function
   const sellWeapon = (itemId: string) => {
-    const shopMeta = WEAPON_SHOP_DETAILS[itemId];
-    if (!shopMeta) return;
-
     const itemIndex = gameState.inventory.findIndex(i => i.id === itemId);
     if (itemIndex === -1) {
       triggerSystemToast(`⚠️ RESOURCE ERR: You do not own this weapon!`);
@@ -2058,7 +2073,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return;
     }
 
-    const sellPrice = getSellingPrice(shopMeta.cost);
+    const buyPrice = getWeaponBuyPrice(item);
+    const sellPrice = getSellingPrice(buyPrice);
 
     playSelectSound();
     setGameState(prev => {
@@ -2079,9 +2095,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         triggerSystemToast("TRANSACTION FAILED: The system inventory for this item is depleted.");
         return;
       }
-      if (item.adCodeSnippet) {
+      if (item.adCodeSnippet || item.adUrl) {
         setAdModalItem(item);
-        setAdTimeRemaining(30);
+        const duration = (item.adType === "VIDEO_UPLOAD" || item.adType === "STREAMING_URL") ? 60 : 30;
+        setAdTimeRemaining(duration);
         setAdTouched(false);
         return;
       }
@@ -2490,7 +2507,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       )}
 
       {/* SYNCED TOP HUD: MANA & LEVEL (LEFT), MESSAGES (RIGHT) */}
-      <nav aria-label="System Status" className="fixed top-0 left-0 right-0 z-50 h-20 lg:h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 pt-[18px] lg:pt-0 pb-[2px] lg:pb-0 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
+      <nav aria-label="System Status" className="fixed top-0 left-0 right-0 z-50 h-[104px] lg:h-16 bg-slate-950/95 border-b border-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 pt-[36px] lg:pt-0 pb-[8px] lg:pb-0 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <span className="text-[8px] font-mono text-cyan-400/60 uppercase tracking-[0.2em] mb-0.5">MANA CAPACITY</span>
@@ -2540,7 +2557,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </nav>
 
       {/* Main split dashboard area */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-24 sm:pt-28 pb-32 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start min-h-[100dvh]">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 pt-[124px] sm:pt-28 pb-32 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start min-h-[100dvh]">
         
         {/* CHARACTER ILLUSTRATOR TIER CARD (LEFT PANEL - REFINED, RESPONSIVE, & COMPACT) */}
         <div className="hidden lg:block relative lg:col-span-3 xl:col-span-2 space-y-2 lg:sticky lg:top-[124px] lg:max-h-[75vh] lg:overflow-y-auto overflow-x-hidden pr-1.5 max-w-xs mx-auto lg:max-w-none w-full scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
@@ -2766,7 +2783,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Level Up details / player indicator - Main Profile Card */}
-                  <div className="md:col-span-2 lg:col-span-1 bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden flex flex-col justify-center items-center text-center">
+                  <div className="md:col-span-2 lg:col-span-1 bg-slate-950/75 border border-cyan-500/40 shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_35px_rgba(34,211,238,0.4)] hover:border-cyan-400/60 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300">
                     <AvatarWithFrame 
                       size="xl" 
                       playerName={playerName} 
@@ -2778,18 +2795,18 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       }}
                     />
                     <div className="mt-4">
-                      <h4 className="text-2xl font-black font-mono text-cyan-400 tracking-tight">{playerName}</h4>
+                      <h4 className="text-2xl font-black font-mono text-cyan-400 tracking-tight drop-shadow-[0_0_12px_rgba(34,211,238,0.85)]">{playerName}</h4>
                       <p className="text-sm font-mono text-slate-400 uppercase tracking-widest mt-1">{gameState.rank} &middot; {gameState.job}</p>
                     </div>
                     
                     <div className="mt-6 w-full pt-6 border-t border-slate-900/50 grid grid-cols-2 gap-4">
                       <div className="text-center">
                         <span className="text-[10px] text-slate-500 uppercase block font-mono">Mana</span>
-                        <span className="text-lg font-bold text-cyan-300 font-mono">{gameState.gold}</span>
+                        <span className="text-lg font-bold text-cyan-300 font-mono drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">{gameState.gold}</span>
                       </div>
                       <div className="text-center">
                         <span className="text-[10px] text-slate-500 uppercase block font-mono">Level</span>
-                        <span className="text-lg font-bold text-purple-400 font-mono">{gameState.level}</span>
+                        <span className="text-lg font-bold text-purple-400 font-mono drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">{gameState.level}</span>
                       </div>
                     </div>
                   </div>
@@ -2797,10 +2814,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   {/* Desktop Middle Column: Growth Stats & Performance (Only if not already in sidebar or as a complement) */}
                   <div className="lg:col-span-2 space-y-6">
                     {/* Level Exp & Mana Circular Progress Section */}
-                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-slate-900/50">
+                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.15)] hover:shadow-[0_0_35px_rgba(99,102,241,0.3)] hover:border-indigo-400/60 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-4">
                         <TrendingUp className="w-4 h-4 text-cyan-400" />
-                        <h5 className="text-xs font-mono font-black text-slate-400 uppercase tracking-widest">Growth Analytics</h5>
+                        <h5 className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]">Growth Analytics</h5>
                       </div>
                       <div className="grid grid-cols-3 gap-4">
                         <CircularProgress
@@ -2840,10 +2857,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     </div>
 
                     {/* DAILY PERFORMANCE BARS */}
-                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-slate-900/50">
+                    <div className="bg-slate-950/70 p-5 rounded-2xl backdrop-blur-md border border-fuchsia-500/40 shadow-[0_0_20px_rgba(217,70,239,0.15)] hover:shadow-[0_0_35px_rgba(217,70,239,0.3)] hover:border-fuchsia-400/60 transition-all duration-300">
                       <div className="flex items-center gap-2 mb-4">
-                        <Activity className="w-4 h-4 text-cyan-400" />
-                        <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest">Daily Performance Grid</span>
+                        <Activity className="w-4 h-4 text-fuchsia-400" />
+                        <span className="text-xs font-mono font-black text-fuchsia-400 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(217,70,239,0.73)]">Daily Performance Grid</span>
                       </div>
                       <div className="flex justify-around items-end h-36">
                         <VerticalBar
@@ -2874,10 +2891,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Story Campaigns Indicator */}
-                  <div className="bg-slate-950/75 border border-slate-900 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4">
+                  <div className="bg-slate-950/75 border border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:shadow-[0_0_35px_rgba(59,130,246,0.3)] hover:border-blue-400/60 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 transition-all duration-300">
                     <div className="flex items-center gap-2 border-b border-slate-900 pb-3">
-                      <Map className="w-4 h-4 text-slate-400" />
-                      <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Campaign Milestones</h4>
+                      <Map className="w-4 h-4 text-blue-400" />
+                      <h4 className="text-[10px] uppercase font-bold text-blue-400 tracking-wider drop-shadow-[0_0_8px_rgba(59,130,246,0.7)]">Campaign Milestones</h4>
                     </div>
                     <div className="space-y-2.5 text-[11px]">
                       <div className="flex justify-between items-center p-3 bg-slate-900/60 rounded-xl border border-slate-800">
@@ -2902,10 +2919,10 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                   </div>
 
                   {/* System Messages */}
-                  <div className="bg-slate-950/75 border border-amber-900/30 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 relative overflow-hidden">
+                  <div className="bg-slate-950/75 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:shadow-[0_0_35px_rgba(245,158,11,0.3)] hover:border-amber-400/65 p-6 rounded-2xl backdrop-blur-md font-mono text-xs space-y-4 relative overflow-hidden transition-all duration-300">
                     <div className="flex items-center gap-2 pb-3 border-b border-amber-900/40">
                       <Bell className="w-4 h-4 text-amber-400" />
-                      <span className="text-amber-400 font-extrabold uppercase tracking-widest text-[10px]">Command Directives</span>
+                      <span className="text-amber-400 font-extrabold uppercase tracking-widest text-[10px] drop-shadow-[0_0_8px_rgba(245,158,11,0.75)]">Command Directives</span>
                     </div>
                     <div className="space-y-4 text-[11px] leading-relaxed text-slate-300">
                       <div className="bg-slate-900/60 p-4 rounded-xl border border-red-950/30">
@@ -4108,9 +4125,6 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     <ShoppingBag className="w-5 h-5 text-amber-500" />
                     DIMENSIONAL EXCHANGE
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed font-mono mt-2">
-                    Purchase exclusive artifacts and items manifested by the System Monarch. All transactions require pure gold tokens.
-                  </p>
                 </div>
 
                 <div className="space-y-4">
@@ -5335,8 +5349,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                       {/* Sell back weapon option */}
                       {(() => {
-                        const shopMeta = WEAPON_SHOP_DETAILS[selectedWeaponDetails.id];
-                        const sellPrice = shopMeta ? getSellingPrice(shopMeta.cost) : 0;
+                        const buyPrice = getWeaponBuyPrice(selectedWeaponDetails);
+                        const sellPrice = getSellingPrice(buyPrice);
                         if (sellPrice <= 0) return null;
 
                         return (
@@ -5881,7 +5895,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       </div>
 
       {/* FIXED MOBILE BOTTOM NAVIGATION BAR */}
-      <nav aria-label="Mobile Navigation" className="fixed bottom-0 left-0 right-0 z-40 h-[78px] bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
+      <nav aria-label="Mobile Navigation" className="fixed bottom-0 left-0 right-0 z-40 h-[94px] bg-slate-950/98 border-t border-slate-900 backdrop-blur-md pb-safe lg:hidden flex justify-around items-center pt-2.5 pb-4 shadow-[0_-4px_20px_rgba(0,0,0,0.65)] px-4">
         {[
           { icon: Activity, idx: 0, label: "Character Stats" },
           { icon: Users, idx: 1, label: "Social Hub" },
@@ -6158,14 +6172,54 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               className="absolute inset-0 z-0 bg-slate-950 flex items-center justify-center overflow-hidden cursor-pointer"
               onClick={(e) => {
                 setAdTouched(true);
-                // Try to detect if adCodeSnippet is just a URL and open it
-                if (adModalItem.adCodeSnippet.trim().startsWith('http')) {
-                   window.open(adModalItem.adCodeSnippet.trim(), '_blank', 'noopener,noreferrer');
+                if (adModalItem.adType === "REDIRECT_URL" && adModalItem.adUrl) {
+                  window.open(adModalItem.adUrl.trim(), '_blank', 'noopener,noreferrer');
+                } else if (adModalItem.adCodeSnippet && adModalItem.adCodeSnippet.trim().startsWith('http')) {
+                  window.open(adModalItem.adCodeSnippet.trim(), '_blank', 'noopener,noreferrer');
                 }
               }}
               onTouchStart={() => setAdTouched(true)}
             >
-              {adModalItem.adCodeSnippet.trim().startsWith('http') ? (
+              {adModalItem.adType === "VIDEO_UPLOAD" || adModalItem.adType === "STREAMING_URL" ? (
+                <div className="w-full h-full max-w-4xl max-h-[85vh] flex flex-col items-center justify-center p-4">
+                  <video 
+                    src={adModalItem.adUrl || adModalItem.adCodeSnippet} 
+                    autoPlay 
+                    controls 
+                    loop 
+                    playsInline
+                    className="w-full h-full rounded-2xl border-2 border-emerald-500/50 shadow-[0_0_35px_rgba(16,185,129,0.25)] object-contain"
+                    onPlay={() => setAdTouched(true)}
+                    onTimeUpdate={() => setAdTouched(true)}
+                    onClick={(e) => e.stopPropagation()} // let standard video controls handle clicks first
+                  />
+                </div>
+              ) : adModalItem.adType === "REDIRECT_URL" ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-950/95 relative">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0%,transparent_70%)] pointer-events-none" />
+                  <div className="z-10 text-center max-w-sm space-y-6">
+                    <div className="w-20 h-20 mx-auto rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)] animate-pulse">
+                      <Compass className="w-8 h-8 text-blue-400" />
+                    </div>
+                    <h4 className="text-xl font-bold font-mono text-white tracking-widest uppercase">DIMENSIONAL GATEWAY</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed font-mono">
+                       This sponsor requires visiting an external station. Click below or tap anywhere to synchronize links and complete validation.
+                    </p>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdTouched(true);
+                        if (adModalItem.adUrl) {
+                          window.open(adModalItem.adUrl.trim(), '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs uppercase tracking-widest rounded-xl transition-all border border-blue-400/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                    >
+                      VISIT SPONSOR GATEWAY
+                    </button>
+                  </div>
+                </div>
+              ) : adModalItem.adCodeSnippet && adModalItem.adCodeSnippet.trim().startsWith('http') ? (
                  <iframe 
                    src={adModalItem.adCodeSnippet.trim()} 
                    className="w-full h-full border-none pointer-events-none" 

@@ -276,6 +276,16 @@ export const AvatarWithFrame: React.FC<AvatarWithFrameProps> = ({
     >
       {/* 1. Rotatory/Detailed Frame Back layer */}
       <div className={`absolute ${config.frameOffset} z-0`}>
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes custom-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes custom-spin-reverse {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+          }
+        `}} />
         {renderFrameSvg()}
       </div>
 

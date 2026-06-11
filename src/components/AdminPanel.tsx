@@ -115,6 +115,8 @@ interface AdminMarketItem {
   createdAt?: any;
   imageUrl?: string;
   adCodeSnippet?: string;
+  adType?: string;
+  adUrl?: string;
   attackBoost?: number;
   defenseBoost?: number;
   manaBoost?: number;
@@ -192,10 +194,46 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     isActive: true,
     imageUrl: "",
     adCodeSnippet: "",
+    adType: "URL",
+    adUrl: "",
     attackBoost: 0,
     defenseBoost: 0,
     manaBoost: 0
   });
+
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 15 * 1024 * 1024) {
+      showNotification("ERROR: Video size exceeds limit of 15MB.", "error");
+      return;
+    }
+
+    const { getStorage, ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+    const storage = getStorage();
+    const storageRef = ref(storage, `market_videos/${Date.now()}_${file.name}`);
+    
+    try {
+      setIsVideoUploading(true);
+      addSystemLog("Initiating stream video upload to cloud storage...", "info");
+      
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      setMarketItemForm(prev => ({ ...prev, adUrl: downloadURL }));
+      showNotification("SUCCESS: Ad video cached in cloud node!", "success");
+      addSystemLog(`Video upload successful: ${file.name}`, "success");
+    } catch (err) {
+      console.error("Storage upload failed:", err);
+      showNotification("CRITICAL FAILURE: Video upload rejected.", "error");
+      addSystemLog("Video upload failed. Check Storage rules.", "error");
+    } finally {
+      setIsVideoUploading(false);
+    }
+  };
 
   // Notification banners
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -718,7 +756,9 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         stock: Number(marketItemForm.stock),
         isActive: marketItemForm.isActive,
         imageUrl: marketItemForm.imageUrl,
-        adCodeSnippet: marketItemForm.adCodeSnippet,
+        adCodeSnippet: marketItemForm.adUrl || marketItemForm.adCodeSnippet || "",
+        adType: marketItemForm.adType || "URL",
+        adUrl: marketItemForm.adUrl || marketItemForm.adCodeSnippet || "",
         attackBoost: Number(marketItemForm.attackBoost || 0),
         defenseBoost: Number(marketItemForm.defenseBoost || 0),
         manaBoost: Number(marketItemForm.manaBoost || 0),
@@ -735,6 +775,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
         isActive: true,
         imageUrl: "",
         adCodeSnippet: "",
+        adType: "URL",
+        adUrl: "",
         attackBoost: 0,
         defenseBoost: 0,
         manaBoost: 0
@@ -757,6 +799,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       isActive: item.isActive,
       imageUrl: item.imageUrl || "",
       adCodeSnippet: item.adCodeSnippet || "",
+      adType: item.adType || "URL",
+      adUrl: item.adUrl || item.adCodeSnippet || "",
       attackBoost: item.attackBoost || 0,
       defenseBoost: item.defenseBoost || 0,
       manaBoost: item.manaBoost || 0
@@ -779,6 +823,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
           rank: "A-Rank",
           stock: 10,
           isActive: true,
+          imageUrl: "",
+          adCodeSnippet: "",
+          adType: "URL",
+          adUrl: "",
           attackBoost: 0,
           defenseBoost: 0,
           manaBoost: 0
@@ -2067,14 +2115,56 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase">Ad Code Snippet (Watch to Earn)</label>
-                      <input 
-                        type="text" 
-                        value={marketItemForm.adCodeSnippet}
-                        onChange={(e) => setMarketItemForm({...marketItemForm, adCodeSnippet: e.target.value})}
-                        placeholder="<script src='...'> or URL"
+                      <label className="text-[10px] font-black text-slate-500 uppercase">Sponsor Ad Type</label>
+                      <select 
+                        value={marketItemForm.adType}
+                        onChange={(e) => setMarketItemForm({...marketItemForm, adType: e.target.value})}
                         className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors font-mono"
-                      />
+                      >
+                        <option value="URL">Direct Web URL (Iframe Embed)</option>
+                        <option value="VIDEO_UPLOAD">Video File Upload (60 seconds timer)</option>
+                        <option value="STREAMING_URL">Streaming Video URL (60 seconds timer)</option>
+                        <option value="REDIRECT_URL">Redirect Landmark URL (Direct link popup)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase">
+                        {marketItemForm.adType === "VIDEO_UPLOAD" ? "Uplink Sponsor Video File" : "Ad URL / Media Resource location"}
+                      </label>
+                      {marketItemForm.adType === "VIDEO_UPLOAD" ? (
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="text" 
+                            disabled 
+                            value={marketItemForm.adUrl}
+                            placeholder="Uplink video from local file system..."
+                            className="flex-1 bg-slate-950 border border-slate-900 text-slate-400 text-xs p-2.5 rounded-lg focus:outline-none font-mono"
+                          />
+                          <label className="h-10 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-500 rounded-xl cursor-pointer flex items-center justify-center transition-all duration-300">
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="video/*" 
+                              onChange={handleVideoUpload} 
+                              disabled={isVideoUploading}
+                            />
+                            {isVideoUploading ? (
+                              <div className="w-5 h-5 border-2 border-dashed border-amber-500 rounded-full animate-spin" />
+                            ) : (
+                              <Upload className="w-5 h-5" />
+                            )}
+                          </label>
+                        </div>
+                      ) : (
+                        <input 
+                          type="text" 
+                          value={marketItemForm.adUrl}
+                          onChange={(e) => setMarketItemForm({...marketItemForm, adUrl: e.target.value, adCodeSnippet: e.target.value})}
+                          placeholder="https://example.com/ad-resource"
+                          className="w-full bg-slate-950 border border-slate-900 focus:border-amber-500 text-slate-200 text-xs p-2.5 rounded-lg focus:outline-none transition-colors font-mono"
+                        />
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 md:col-span-2 bg-slate-950/30 p-4 rounded-xl border border-slate-900">
@@ -2132,6 +2222,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               isActive: true,
                               imageUrl: "",
                               adCodeSnippet: "",
+                              adType: "URL",
+                              adUrl: "",
                               attackBoost: 0,
                               defenseBoost: 0,
                               manaBoost: 0

@@ -333,6 +333,116 @@ export const WEAPONS_DATABASE: InventoryItem[] = [
       elements: ["Shadow", "Void", "Ethereal"],
       weight: "Weightless"
     }
+  },
+  {
+    id: "baruka_dagger",
+    name: "Baruka's Icy Dagger",
+    description: "The frozen dagger of the Snow Folk Lord Baruka. Radiates absolute zero frost aura.",
+    type: "Weapon",
+    rarity: ItemRarity.A,
+    statBonus: { strength: 40, agility: 45, intelligence: 15 },
+    equipped: false,
+    iconName: "Compass",
+    weaponDetails: {
+      lore: "Harvested from the Lord of the Snow Folk, Baruka, within the icy depths of a Red Gate. It never thaws and freezes the surrounding moisture instantly.",
+      passiveAbility: "Glacial Arrest (Attacks slow down enemy speed by 25% and inflict Frostbite)",
+      criticalChance: "35%",
+      scalingModifier: "AGI A+",
+      speed: "Fast (9 hits/sec)",
+      durability: "1200/1200",
+      origin: "Red Gate - Snow Folk Territory",
+      history: ["Claimed from the defeated Lord Baruka during the double dungeon expedition.", "Imbued with the sovereign frost core."],
+      elements: ["Frost", "Physical"],
+      weight: "1.0 kg"
+    }
+  },
+  {
+    id: "vulcan_rage",
+    name: "Vulcan's Hellfire Greatsword",
+    description: "The colossal flaming greatsword of the Demon Lord Vulcan. Ignites the battlefield.",
+    type: "Weapon",
+    rarity: ItemRarity.A,
+    statBonus: { strength: 95, vitality: 50 },
+    equipped: false,
+    iconName: "Flame",
+    weaponDetails: {
+      lore: "A monstrous sword forged in the magma chambers of the Demon Castle. It crackles with highly unstable volcanic heat.",
+      passiveAbility: "Hellfire Spark (Burns enemies for 180% attack power over 5 seconds)",
+      criticalChance: "20%",
+      scalingModifier: "STR S",
+      speed: "Slow (2 hits/sec)",
+      durability: "3500/3500",
+      origin: "Demon Castle Floor 100",
+      history: ["Claimed after purifying the sovereign chamber of Flame Lord Vulcan.", "Wielded as a physical manifestation of volcanic wrath."],
+      elements: ["Fire", "Demonic"],
+      weight: "45.0 kg"
+    }
+  },
+  {
+    id: "shadow_reaper",
+    name: "Death's Eternal Shadow Reaper",
+    description: "A dark scythe of pure void energy harvested from the shadows of absolute warriors.",
+    type: "Weapon",
+    rarity: ItemRarity.S,
+    statBonus: { strength: 140, agility: 120, perception: 50 },
+    equipped: false,
+    iconName: "Scissors",
+    weaponDetails: {
+      lore: "Harvested directly from the shadow dimensions of the dead command classes, representing pure harvest, execute capabilities.",
+      passiveAbility: "Soul Harvest (Killing blows instantly restore 15% MP and boost speed by 20%)",
+      criticalChance: "50%",
+      scalingModifier: "STR S+ / AGI A",
+      speed: "Fast (6 hits/sec)",
+      durability: "Infinite",
+      origin: "Monarch's Rift Gates",
+      history: ["Formed by combining Sovereign shadows during the final Monarch battle trials.", "Carves deep soul traces with each motion."],
+      elements: ["Shadow", "Scythe"],
+      weight: "18.5 kg"
+    }
+  },
+  {
+    id: "monarch_authority",
+    name: "Monarch's Star Sovereign Scepter",
+    description: "A weapon carrying the celestial law. Commands gravity and space shifts.",
+    type: "Weapon",
+    rarity: ItemRarity.S,
+    statBonus: { strength: 220, intelligence: 350, perception: 120 },
+    equipped: false,
+    iconName: "Shield",
+    weaponDetails: {
+      lore: "The royal scepter which once dictated galactic routes, channel flows, and stellar expansions. Vibrates with the force of command.",
+      passiveAbility: "Ruler's Aura (Damage increases by 60% against group bosses and halves physical damage taken)",
+      criticalChance: "45%",
+      scalingModifier: "INT EX",
+      speed: "Instant Mana Wave",
+      durability: "Absolute",
+      origin: "Celestial Path of Sovereign Kings",
+      history: ["Excavated from the core of the First Gate.", "Vested onto the Shadow Monarch to balance mortal limits."],
+      elements: ["Gravity", "Pure Space"],
+      weight: "4.5 kg"
+    }
+  },
+  {
+    id: "abyssal_void",
+    name: "Abyssal Void Chaos Star",
+    description: "An ancient weapon composed of collapsing darkness. Generates tiny black holes.",
+    type: "Weapon",
+    rarity: ItemRarity.Sovereign,
+    statBonus: { strength: 550, agility: 550, intelligence: 550, vitality: 300, perception: 300 },
+    equipped: false,
+    iconName: "Sparkles",
+    weaponDetails: {
+      lore: "Born from a dying star in the deepest abyssal rift space. It is a singularity bound in dark energy plates.",
+      passiveAbility: "Cosmic Event Horizon (Draws in all surrounding hostiles, reducing defense by 95% for 8 seconds)",
+      criticalChance: "100%",
+      scalingModifier: "ALL STATS EX+",
+      speed: "Transcendent Speed",
+      durability: "Eternal",
+      origin: "Abyssal Gravity Rift",
+      history: ["Forged through a stellar supernova Event Horizon.", "Claimed by Jinwoo in the absolute core of the dead domains."],
+      elements: ["Chaos", "Gravity", "Abyssal"],
+      weight: "Density Variable"
+    }
   }
 ];
 
