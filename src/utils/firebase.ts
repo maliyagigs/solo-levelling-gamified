@@ -31,11 +31,11 @@ try {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
     })
-  });
+  }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
   console.warn("Firestore persistent cache setup failed or blocked in this environment (falling back)...", e);
   try {
-    db = getFirestore(app);
+    db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
   } catch (err) {
     console.error("Critical: Firestore initialization failed (using dummy fallback):", err);
     db = {} as any;
