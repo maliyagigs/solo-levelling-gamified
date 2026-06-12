@@ -41,14 +41,17 @@ import {
   Bell,
   Radio,
   TrendingUp,
-  Terminal
+  Terminal,
+  MessageSquare,
+  Upload,
+  Users
 } from "lucide-react";
 import { OnboardingData, GameState, InventoryItem, ShadowSoldier, SkillNode, Quest, ItemRarity } from "../types";
 import { SHADOWS_LIST, WEAPONS_DATABASE, SKILLS_LIST, DUNGEONS_CATALOG, generatePlan } from "../data";
 import { ANDROID_CLONE_PROMPT } from "../utils/cloner_prompt";
 import { AnimeTierBadge } from "./AnimeTierBadge";
 import { AvatarWithFrame } from "./AvatarWithFrame";
-import { Smartphone, Copy, Check, Camera, Upload, MessageSquare, Users, Map } from "lucide-react";
+import { Smartphone, Copy, Check, Camera, Map } from "lucide-react";
 import { saveToLeaderboard, fetchLeaderboard, db, auth, handleFirestoreError, OperationType } from "../utils/firebase";
 import { onSnapshot, collection, doc, setDoc, query, limit } from "firebase/firestore";
 import { 
@@ -70,6 +73,70 @@ interface RpgGameProps {
   playerName: string;
   onboardProfile: OnboardingData;
   onLogout: () => void;
+}
+
+// Achievements Archive templates
+export interface AchievementBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  requirements: string;
+  progress?: number;
+  target?: number;
+}
+
+export function getAchievementsList(playerName: string): AchievementBadge[] {
+  const isMonsterUnlocked = localStorage.getItem(`monarch_badge_monster_${playerName}`) === "true";
+  const monsterAt = localStorage.getItem(`monarch_badge_monster_at_${playerName}`) || "";
+  const monsterProgress = parseInt(localStorage.getItem(`monarch_total_gates_cleared_${playerName}`) || "0", 10);
+
+  const isPhysicalUnlocked = localStorage.getItem(`monarch_badge_physical_${playerName}`) === "true";
+  const physicalAt = localStorage.getItem(`monarch_badge_physical_at_${playerName}`) || "";
+  const physicalProgress = parseInt(localStorage.getItem(`monarch_total_quests_claimed_${playerName}`) || "0", 10);
+
+  const isPartyUnlocked = localStorage.getItem(`monarch_badge_party_${playerName}`) === "true";
+  const partyAt = localStorage.getItem(`monarch_badge_party_at_${playerName}`) || "";
+
+  return [
+    {
+      id: "physical_prodigy",
+      name: "Physical Prodigy",
+      description: "Establish perfect daily consistency by claiming 10 physical training grinds sequentially.",
+      icon: "🏋️",
+      color: "from-emerald-500 to-teal-650 shadow-emerald-500/20",
+      unlocked: isPhysicalUnlocked,
+      unlockedAt: physicalAt,
+      requirements: "Claim 10 system physical quests",
+      progress: physicalProgress,
+      target: 10
+    },
+    {
+      id: "monster_magus",
+      name: "Monster Magus",
+      description: "Decimate the dimensional rifts completely by clearing 15 S-rank dungeon gates.",
+      icon: "💀",
+      color: "from-indigo-650 to-violet-750 shadow-indigo-600/20",
+      unlocked: isMonsterUnlocked,
+      unlockedAt: monsterAt,
+      requirements: "Clear 15 gate dungeon combat runs",
+      progress: monsterProgress,
+      target: 15
+    },
+    {
+      id: "party_up",
+      name: "Cooperative Spirit",
+      description: "Establish fraternal bonds of coordination by transmitting custom messages or gifting items.",
+      icon: "🤝",
+      color: "from-cyan-500 to-blue-600 shadow-cyan-500/20",
+      unlocked: isPartyUnlocked,
+      unlockedAt: partyAt,
+      requirements: "Broadcast 1 party text message, gift MP, or gift subscription packages"
+    }
+  ];
 }
 
 export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGameProps) {
@@ -236,6 +303,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       } else {
         if (activeTab === "backpack") setActiveTab("market");
         else if (activeTab === "market") setActiveTab("profile");
+        else if (activeTab === "profile") setActiveTab("achievemnt");
         else setActiveTab("backpack");
       }
     }
@@ -271,7 +339,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       return [
         { id: "backpack", label: "Backpack" },
         { id: "market", label: "Market" },
-        { id: "profile", label: "Profile" }
+        { id: "profile", label: "Profile" },
+        { id: "achievemnt", label: "Achievements" }
       ];
     }
     return [];
@@ -421,6 +490,119 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   const targetCalories = userPlan?.calorieGoal || 2800;
   const targetProtein = userPlan?.proteinG || 140;
   
+  // Helper training functions for dynamic level-based physical quest target scaling
+  const getRequiredRepsForLevel = (lvl: number): number => {
+    if (lvl <= 10) return 25;
+    if (lvl <= 25) return 50;
+    return 100;
+  };
+
+  const getMandatoryQuestsForLevel = (lvl: number, existingQs: any[] = []): any[] => {
+    const reps = getRequiredRepsForLevel(lvl);
+    const defaults = [
+      { id: "quest_pushups", name: "Pushups", description: `Complete ${reps} physical push-up checks to build chest and core consistency`, target: reps, rewardExp: 35, rewardGold: 1, type: "Daily" },
+      { id: "quest_situps", name: "Situps", description: `Complete ${reps} core sit-up checks to solidify abdominal muscle tissue`, target: reps, rewardExp: 35, rewardGold: 1, type: "Daily" },
+      { id: "quest_squats", name: "Squats", description: `Complete ${reps} lower body squats to calibrate thigh power and stance`, target: reps, rewardExp: 35, rewardGold: 1, type: "Daily" }
+    ];
+
+    const systemQs = defaults.map(def => {
+      const match = existingQs.find(eq => eq.id === def.id);
+      return match 
+        ? { ...def, current: match.current, completed: match.completed, claimed: match.claimed }
+        : { ...def, current: 0, completed: false, claimed: false };
+    });
+
+    const customQs = existingQs.filter(eq => eq.isCustom);
+    return [...systemQs, ...customQs];
+  };
+
+  // ----------------------------------------------------
+  // GAMIFIED HABIT, DECREES & POTIONS FUNCTIONAL STATES
+  // ----------------------------------------------------
+  const [healthPotions, setHealthPotions] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_potions_hp_${playerName}`);
+    return saved ? parseInt(saved, 10) : 3;
+  });
+
+  const [manaPotions, setManaPotions] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_potions_mp_${playerName}`);
+    return saved ? parseInt(saved, 10) : 3;
+  });
+
+  const [todoList, setTodoList] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`monarch_todo_list_${playerName}`);
+    return saved ? JSON.parse(saved) : [
+      { id: "todo_1", text: "Hydrate: Drink 500ml of icy liquid water before evening workout", completed: false },
+      { id: "todo_2", text: "Physical Target: Pre-stretch joints thoroughly before physical squats", completed: false }
+    ];
+  });
+
+  const [joinedDate] = useState<string>(() => {
+    const saved = localStorage.getItem(`monarch_joined_date_${playerName}`);
+    if (saved) return saved;
+    const formatted = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    localStorage.setItem(`monarch_joined_date_${playerName}`, formatted);
+    return formatted;
+  });
+
+  const [totalCheckins, setTotalCheckins] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_total_checkins_${playerName}`);
+    return saved ? parseInt(saved, 10) : 19;
+  });
+
+  const [latestCheckin, setLatestCheckin] = useState<string>(() => {
+    const saved = localStorage.getItem(`monarch_latest_checkin_${playerName}`);
+    if (saved) return saved;
+    const formatted = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    localStorage.setItem(`monarch_latest_checkin_${playerName}`, formatted);
+    return formatted;
+  });
+
+  // Modal / Dialogue HUD States
+  const [showMsgModal, setShowMsgModal] = useState<boolean>(false);
+  const [msgInput, setMsgInput] = useState<string>("");
+  const [showGiftManaModal, setShowGiftManaModal] = useState<boolean>(false);
+  const [giftManaAmount, setGiftManaAmount] = useState<number>(5);
+  const [showGiftSubModal, setShowGiftSubModal] = useState<boolean>(false);
+  const [showCreateQuestModal, setShowCreateQuestModal] = useState<boolean>(false);
+  
+  const [newQuestName, setNewQuestName] = useState<string>("");
+  const [newQuestDesc, setNewQuestDesc] = useState<string>("");
+  const [newQuestDifficulty, setNewQuestDifficulty] = useState<"Trivial" | "Easy" | "Medium" | "Hard">("Easy");
+  const [newQuestTarget, setNewQuestTarget] = useState<number>(1);
+
+  // Chest animation / rolling states
+  const [chestOpenState, setChestOpenState] = useState<"idle" | "shaking" | "revealed" | null>(null);
+  const [chestDroppedItem, setChestDroppedItem] = useState<{ name: string; type: string; icon: string; rarity: string; desc: string; isPotion?: boolean } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_potions_hp_${playerName}`, healthPotions.toString());
+  }, [healthPotions, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_potions_mp_${playerName}`, manaPotions.toString());
+  }, [manaPotions, playerName]);
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_todo_list_${playerName}`, JSON.stringify(todoList));
+  }, [todoList, playerName]);
+
+  useEffect(() => {
+    const todayStr = new Date().toDateString();
+    const lastCheckinStr = localStorage.getItem(`monarch_last_checkin_day_${playerName}`);
+    if (lastCheckinStr !== todayStr) {
+      localStorage.setItem(`monarch_last_checkin_day_${playerName}`, todayStr);
+      const fmt = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+      setLatestCheckin(fmt);
+      localStorage.setItem(`monarch_latest_checkin_${playerName}`, fmt);
+      setTotalCheckins(prev => {
+        const next = prev + 1;
+        localStorage.setItem(`monarch_total_checkins_${playerName}`, next.toString());
+        return next;
+      });
+    }
+  }, [playerName]);
+
   // Game States
   const [gameState, setGameState] = useState<GameState>(() => {
     // Attempt local storage load
@@ -447,13 +629,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
           migratedSkills.push(...SKILLS_LIST);
         }
 
-        const migratedQuests = (parsed.quests || []).map((q: any) => {
-          if (q.id === "quest_physical") return { ...q, rewardGold: 1 };
-          if (q.id === "quest_intellect") return { ...q, rewardGold: 2 };
-          if (q.id === "quest_serenity") return { ...q, rewardGold: 2 };
-          if (q.id === "quest_hydration") return { ...q, rewardGold: 1 };
-          return q;
-        });
+        const migratedQuests = getMandatoryQuestsForLevel(parsed.level ?? 1, parsed.quests || []);
 
         return {
           ...parsed,
@@ -495,10 +671,9 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
       shadows: [...SHADOWS_LIST],
       skills: [...SKILLS_LIST],
       quests: [
-        { id: "quest_physical", name: "Sovereign Physical Grind", description: "Complete physical training checks (e.g. 40 push-ups, squats, or planks)", target: 40, current: 0, rewardExp: 40, rewardGold: 1, completed: false, type: "Daily" },
-        { id: "quest_intellect", name: "Sovereign Intellect Gate", description: "Study complex skills, write code, or read 15 pages of literature", target: 15, current: 0, rewardExp: 60, rewardGold: 2, completed: false, type: "Daily" },
-        { id: "quest_serenity", name: "Abyssal Meditation & Breath", description: "Complete 15 minutes of uninterrupted mindful breathing/restoring", target: 15, current: 0, rewardExp: 50, rewardGold: 2, completed: false, type: "Daily" },
-        { id: "quest_hydration", name: "Hydration & Vitality Calibration", description: "Consume 3 liters of water & log 7+ hours of deep, structured sleep", target: 3, current: 0, rewardExp: 30, rewardGold: 1, completed: false, type: "Daily" }
+        { id: "quest_pushups", name: "Pushups", description: "Complete 25 physical push-up checks to build chest and core consistency", target: 25, current: 0, rewardExp: 35, rewardGold: 1, completed: false, type: "Daily" },
+        { id: "quest_situps", name: "Situps", description: "Complete 25 core sit-up checks to solidify abdominal muscle tissue", target: 25, current: 0, rewardExp: 35, rewardGold: 1, completed: false, type: "Daily" },
+        { id: "quest_squats", name: "Squats", description: "Complete 25 lower body squats to calibrate thigh power and stance", target: 25, current: 0, rewardExp: 35, rewardGold: 1, completed: false, type: "Daily" }
       ],
       storyStep: 1,
       manaStaked: 0,
@@ -518,8 +693,24 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
   // Combat Simulation States
   const [selectedDungeon, setSelectedDungeon] = useState<any>(null);
   const [isFighting, setIsFighting] = useState<boolean>(false);
-  const [playerHp, setPlayerHp] = useState<number>(100);
-  const [playerMaxHp, setPlayerMaxHp] = useState<number>(100);
+  const [playerMaxHp, setPlayerMaxHp] = useState<number>(() => {
+    return (gameState?.baseStats?.vitality ?? 5) * 12 + 100;
+  });
+  const [playerHp, setPlayerHp] = useState<number>(() => {
+    const saved = localStorage.getItem(`monarch_player_hp_${playerName}`);
+    const maxVal = (gameState?.baseStats?.vitality ?? 5) * 12 + 100;
+    return saved ? Math.min(parseInt(saved, 10), maxVal) : maxVal;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`monarch_player_hp_${playerName}`, playerHp.toString());
+  }, [playerHp, playerName]);
+
+  useEffect(() => {
+    const nextMaxHp = (gameState?.baseStats?.vitality ?? 5) * 12 + 100;
+    setPlayerMaxHp(nextMaxHp);
+    setPlayerHp(prev => Math.min(nextMaxHp, prev));
+  }, [gameState?.baseStats?.vitality]);
   const [enemyHp, setEnemyHp] = useState<number>(100);
   const [enemyMaxHp, setEnemyMaxHp] = useState<number>(100);
   const [battleLogs, setBattleLogs] = useState<string[]>([]);
@@ -888,7 +1079,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             const nextGold = Math.max(0, prevGameState.gold - goldDeduct);
             
             // Refresh the daily quests for the new day
-            const refreshed = prevGameState.quests.map((q: any) => ({
+            const refreshed = getMandatoryQuestsForLevel(prevGameState.level, prevGameState.quests).map((q: any) => ({
               ...q,
               current: 0,
               completed: false,
@@ -930,7 +1121,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
             };
           } else {
             // Clean refresh of daily quests with no penalties!
-            const refreshed = prevGameState.quests.map((q: any) => ({
+            const refreshed = getMandatoryQuestsForLevel(prevGameState.level, prevGameState.quests).map((q: any) => ({
               ...q,
               current: 0,
               completed: false,
@@ -1699,12 +1890,17 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
         }, 120);
       }
 
+      const scaledQuests = leveledUp 
+        ? getMandatoryQuestsForLevel(newLevel, prev.quests) 
+        : prev.quests;
+
       return {
         ...prev,
         level: newLevel,
         exp: newExp,
         maxExp: Math.round(max),
         statPoints,
+        quests: scaledQuests,
         weeklyExpAccumulated: newWeeklyExp
       };
     });
@@ -1744,6 +1940,15 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     // Add reward
     addExp(quest.rewardExp);
     setPlayerMp(prev => Math.min(playerMaxMp, prev + 25)); // Completing daily quest restores 25 MP!
+
+    // Check achievement unlock for Physical Prodigy: claim 10 quests!
+    const physicalClaimed = parseInt(localStorage.getItem(`monarch_total_quests_claimed_${playerName}`) || "0", 10) + 1;
+    localStorage.setItem(`monarch_total_quests_claimed_${playerName}`, physicalClaimed.toString());
+    if (physicalClaimed >= 10) {
+      localStorage.setItem(`monarch_badge_physical_${playerName}`, "true");
+      localStorage.setItem(`monarch_badge_physical_at_${playerName}`, new Date().toLocaleDateString());
+    }
+
     setGameState(prev => {
       const list = prev.quests.map((q: any) => {
         if (q.id === quest.id) {
@@ -2343,6 +2548,14 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     setBattleOutcome("victory");
     playLootSound();
 
+    // Check achievement unlock for Monster Magus: defeat 15 gates!
+    const totalCleared = parseInt(localStorage.getItem(`monarch_total_gates_cleared_${playerName}`) || "0", 10) + 1;
+    localStorage.setItem(`monarch_total_gates_cleared_${playerName}`, totalCleared.toString());
+    if (totalCleared >= 15) {
+      localStorage.setItem(`monarch_badge_monster_${playerName}`, "true");
+      localStorage.setItem(`monarch_badge_monster_at_${playerName}`, new Date().toLocaleDateString());
+    }
+
     // Reward math
     const xp = selectedDungeon.expReward;
     const gold = selectedDungeon.goldReward;
@@ -2759,7 +2972,8 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
               { id: "skills", label: "Skill-Tree" },
               { id: "backpack", label: "Backpack" },
               { id: "market", label: "Market" },
-              { id: "profile", label: "Profile" }
+              { id: "profile", label: "Profile" },
+              { id: "achievemnt", label: "Achievements" }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -2945,19 +3159,33 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
             {/* A0_2. PROFILE TAB (Representing profile details) */}
             {activeTab === "profile" && (
-              <motion.div key="profile-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-xl mx-auto w-full">
-                {/* Profile Identification Grid */}
-                <div className="p-5 bg-slate-950/75 rounded-2xl border border-slate-900 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative overflow-hidden group/profile shadow-xl">
-                  <AvatarWithFrame 
-                    size="lg" 
-                    playerName={playerName} 
-                    level={gameState.level} 
-                    profileImage={profileImage} 
-                    onClick={() => fileInputRef.current?.click()}
-                    allowUpload={true}
-                    className="shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:scale-105 transition-transform"
-                  />
+              <motion.div key="profile-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-xl mx-auto w-full font-mono text-xs">
+                
+                {/* 1. Header with level centered above profile image */}
+                <div className="flex flex-col items-center justify-center text-center space-y-4 py-4 bg-slate-950/40 border border-slate-900 rounded-3xl p-6 relative overflow-hidden shadow-xl">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.06)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
                   
+                  <div className="space-y-1 z-10">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block">Current Level</span>
+                    <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 tracking-tighter drop-shadow-[0_0_12px_rgba(34,211,238,0.3)]">
+                      LEVEL {gameState.level}
+                    </h2>
+                  </div>
+
+                  <div className="z-10 group/pfp relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <AvatarWithFrame 
+                      size="lg" 
+                      playerName={playerName} 
+                      level={gameState.level} 
+                      profileImage={profileImage} 
+                      allowUpload={false}
+                      className="shadow-[0_0_25px_rgba(34,211,238,0.3)] hover:scale-105 transition-transform duration-300 border border-cyan-450"
+                    />
+                    <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover/pfp:opacity-100 transition-opacity duration-300">
+                      <Upload className="w-5 h-5 text-cyan-300" />
+                    </div>
+                  </div>
+
                   <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -2966,128 +3194,249 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                     className="hidden" 
                   />
 
-                  <div className="flex-1">
-                    <span className="text-[10px] text-slate-500 uppercase block tracking-wider font-mono">Monarch Identity</span>
-                    <h4 className="text-base font-bold text-slate-100 font-mono">{playerName}</h4>
-                    <span className="text-[10px] text-cyan-400 uppercase font-black tracking-wider font-mono">Level {gameState.level} &middot; {gameState.rank} {gameState.job}</span>
-                  </div>
-
-                  <div className="sm:ml-auto">
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 hover:text-cyan-200 text-[10px] font-mono font-bold uppercase rounded-xl tracking-wider cursor-pointer flex items-center gap-1.5 transition-all"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Change Photo</span>
-                    </button>
-                    {profileImage && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProfileImage(null);
-                          localStorage.removeItem(`monarch_profile_img_${playerName}`);
-                          triggerSystemToast("⚡ SYSTEM INTEGRATION: Profile picture cleared!");
-                        }}
-                        className="mt-2 w-full justify-center px-3 py-1 bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-350 text-[10px] font-mono font-bold uppercase rounded-xl tracking-wider cursor-pointer flex items-center gap-1 transition-all"
-                      >
-                        Reset
-                      </button>
-                    )}
+                  <div className="z-10 text-center space-y-0.5">
+                    <h3 className="text-base font-bold text-slate-200 tracking-tight uppercase hover:text-cyan-300 transition-colors">{playerName}</h3>
+                    <span className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest block bg-indigo-950/30 px-3 py-1 rounded-full border border-indigo-900/30">
+                      {gameState.rank} &middot; {gameState.job}
+                    </span>
                   </div>
                 </div>
 
-                {/* Settings Options Portfolio List */}
-                <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-2xl backdrop-blur-md font-mono text-xs space-y-5">
-                  <span className="text-slate-400 text-xs uppercase font-extrabold tracking-widest block border-b border-slate-900 pb-2.5">System Options Matrix</span>
-
-                  {/* OPTION 1: Player Name Registry */}
+                {/* 2. Status Bars (Health and Mana progress pools) */}
+                <div className="p-5 bg-slate-950/75 border border-slate-900 rounded-3xl shadow-xl space-y-4">
+                  {/* Health Bar */}
                   <div className="space-y-1.5">
-                    <label className="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">1. Player Name registry</label>
-                    <input 
-                      type="text"
-                      value={playerName}
-                      disabled
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-slate-400 font-bold select-none cursor-default text-xs"
-                    />
-                    <span className="text-[9px] text-slate-600 block lowercase leading-relaxed">Identity locks are established during regional awakening selection.</span>
-                  </div>
-
-                  {/* OPTION 2: System Synthesizer Volume */}
-                  <div className="space-y-2 border-t border-slate-900 pt-3">
-                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">2. System Synthesizer Volume</span>
-                    <div className="flex justify-between items-center bg-slate-900/60 p-2.5 px-3 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-300">Auditory sound FX core</span>
-                      <span className="text-cyan-400 font-bold uppercase text-[9px] tracking-widest bg-cyan-500/10 border border-cyan-400/20 px-2 py-0.5 rounded-full animate-pulse">
-                        Active [100%]
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-red-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Heart className="w-3.5 h-3.5 fill-red-500/10 text-red-400" />
+                        Health Pool
                       </span>
+                      <span className="text-red-300 font-bold tracking-widest">{playerHp} / {playerMaxHp} HP</span>
+                    </div>
+                    <div className="h-3 bg-red-950/40 p-0.5 rounded-full border border-red-900/30 overflow-hidden relative">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-700 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
+                        animate={{ width: `${Math.min(100, (playerHp / playerMaxHp) * 100)}%` }}
+                        transition={{ type: "spring", stiffness: 80, damping: 15 }}
+                      />
                     </div>
                   </div>
 
-                  {/* OPTION 3: Regimen Difficulty standard */}
-                  <div className="space-y-2 border-t border-slate-900 pt-3">
-                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">3. Regimen Difficulty standard</span>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                      <button className="py-2.5 px-1 border-2 border-cyan-400 bg-cyan-400/5 text-cyan-400 rounded-xl text-[9px] font-bold uppercase transition-all duration-300">
-                        RECRUIT COMPLIANCE
-                      </button>
-                      <button 
-                        className="py-2 px-1 border border-slate-800 text-slate-500 rounded-xl text-[9px] font-bold uppercase hover:border-slate-700 hover:text-slate-300 transition-all duration-300 cursor-pointer"
-                        onClick={() => triggerSystemToast("SYSTEM NOTIFICATION: S-Rank Grind forces intense Penalty sequences upon daily quest neglect!")}
-                      >
-                        S-RANK GRIND
-                      </button>
+                  {/* Mana Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-500/15" />
+                        Mana Reserve
+                      </span>
+                      <span className="text-cyan-300 font-bold tracking-widest">{playerMp} / {playerMaxMp} MP</span>
+                    </div>
+                    <div className="h-3 bg-cyan-950/40 p-0.5 rounded-full border border-cyan-900/30 overflow-hidden relative">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.5)]" 
+                        animate={{ width: `${Math.min(100, (playerMp / playerMaxMp) * 100)}%` }}
+                        transition={{ type: "spring", stiffness: 80, damping: 15 }}
+                      />
                     </div>
                   </div>
-
-                  {/* OPTION 4: Notification Settings Toggle */}
-                  <div className="space-y-2 border-t border-slate-900 pt-3">
-                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">4. System Sound Signals</span>
-                    <div className="flex justify-between items-center bg-slate-900/60 p-2 px-3 rounded-xl border border-slate-800">
-                      <span className="text-[10px] text-slate-350 block font-sans">Daily Quest Reminders</span>
-                      <div 
-                        className={`w-10 h-6 rounded-full p-0.5 cursor-pointer flex items-center transition-colors duration-200 ${dailyQuestReminder ? "bg-cyan-500 justify-end" : "bg-slate-800 justify-start"}`}
-                        onClick={() => {
-                          const newVal = !dailyQuestReminder;
-                          setDailyQuestReminder(newVal);
-                          localStorage.setItem(`monarch_reminder_${playerName}`, newVal.toString());
-                          triggerSystemToast(`SYSTEM SIGNAL: Quest Reminders turned ${newVal ? "ON" : "OFF"}`);
-                        }}
-                      >
-                        <div className="w-4 h-4 bg-slate-950 rounded-full shadow-sm" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* OPTION 5: Erase registry save data */}
-                  <div className="space-y-2 border-t border-slate-900 pt-3">
-                    <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">5. Erase registry save data</span>
-                    <button 
-                      className="w-full py-2.5 border border-red-950 hover:bg-red-950/25 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer animate-pulse"
-                      onClick={() => {
-                        setShowPurgeModal(true);
-                      }}
-                    >
-                      Purge Active Registry Save
-                    </button>
-                  </div>
-
-                  {/* OPTION 6: Real Sign Out Action Button */}
-                  <div className="border-t border-slate-900 pt-4">
-                    <button 
-                      className="w-full py-3 bg-red-950 hover:bg-red-900 text-red-200 hover:text-white border border-red-900 text-xs font-bold font-mono tracking-widest uppercase rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2"
-                      onClick={() => {
-                        setShowDisconnectModal(true);
-                       }}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      DISCONNECT SESSION
-                    </button>
-                    <p className="text-[9px] text-slate-600 text-center font-mono uppercase mt-3">
-                      COMPLIANCE SECURED &middot; VERSION 1.0.4 Awaken
-                    </p>
-                  </div>
-
                 </div>
+
+                {/* 3. User Stats Text Block */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl flex flex-col items-center text-center justify-center space-y-1">
+                    <span className="text-[9px] text-slate-500 uppercase tracking-wider">Joined</span>
+                    <span className="text-slate-200 font-bold text-xs uppercase text-center">{joinedDate}</span>
+                  </div>
+                  <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl flex flex-col items-center text-center justify-center space-y-1">
+                    <span className="text-[9px] text-slate-500 uppercase tracking-wider">Latest Check-In</span>
+                    <span className="text-cyan-400 font-extrabold text-xs uppercase text-center">{latestCheckin}</span>
+                  </div>
+                  <div className="bg-slate-950/75 border border-slate-900 p-4 rounded-2xl flex flex-col items-center text-center justify-center space-y-1">
+                    <span className="text-[9px] text-slate-500 uppercase tracking-wider">Total Check-ins</span>
+                    <span className="text-indigo-400 font-black text-sm text-center">{totalCheckins} DAYS</span>
+                  </div>
+                </div>
+
+                {/* 4. Horizontal Interaction Buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button 
+                    onClick={() => { playSelectSound(); setShowMsgModal(true); }}
+                    className="py-3 px-1.5 bg-gradient-to-b from-indigo-900/50 to-indigo-950/70 border border-indigo-500/30 text-indigo-200 hover:text-white rounded-2xl cursor-pointer hover:border-indigo-400 transition-all font-bold uppercase text-[10px] tracking-wider text-center"
+                  >
+                    Msg
+                  </button>
+                  <button 
+                    onClick={() => { playSelectSound(); setShowGiftManaModal(true); }}
+                    className="py-3 px-1.5 bg-gradient-to-b from-cyan-900/50 to-cyan-950/70 border border-cyan-500/30 text-cyan-250 hover:text-white rounded-2xl cursor-pointer hover:border-cyan-400 transition-all font-bold uppercase text-[10px] tracking-wider text-center"
+                  >
+                    Gift Mana
+                  </button>
+                  <button 
+                    onClick={() => { playSelectSound(); setShowGiftSubModal(true); }}
+                    className="py-3 px-1.5 bg-gradient-to-b from-amber-900/40 to-amber-950/60 border border-amber-500/30 text-amber-200 hover:text-white rounded-2xl cursor-pointer hover:border-amber-400 transition-all font-bold uppercase text-[10px] tracking-wider text-center"
+                  >
+                    Gift Sub
+                  </button>
+                </div>
+
+                {/* 5. Scrollable Achievements Badges Section */}
+                <div className="bg-slate-950/75 border border-slate-900 p-5 rounded-3xl shadow-xl space-y-3 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.04)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <div className="flex justify-between items-center border-b border-slate-900 pb-2.5">
+                    <span className="text-[10px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-1.5 font-mono">
+                      <Trophy className="w-4 h-4 text-amber-500" />
+                      Sovereign Achievements
+                    </span>
+                    <span className="text-[9px] text-slate-500 hover:text-cyan-300 font-bold uppercase tracking-wider cursor-pointer font-mono" onClick={() => { playSelectSound(); setActiveTab("achievemnt"); }}>
+                      View Page &rarr;
+                    </span>
+                  </div>
+
+                  <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1.5 scrollbar-thin scrollbar-thumb-slate-850 scrollbar-track-transparent">
+                    {getAchievementsList(playerName).map(badge => (
+                      <div 
+                        key={badge.id}
+                        className={`p-3 rounded-2xl border transition-all duration-300 flex items-center justify-between ${
+                          badge.unlocked 
+                            ? "border-emerald-500/20 bg-emerald-950/5 text-slate-200 hover:border-emerald-500/40" 
+                            : "border-slate-900 bg-slate-950/40 text-slate-500"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`text-2xl p-1.5 rounded-xl border flex items-center justify-center shrink-0 w-11 h-11 ${
+                            badge.unlocked 
+                              ? `bg-gradient-to-br ${badge.color} border-white/10 text-white shadow-lg` 
+                              : "bg-slate-900 border-slate-950 filter grayscale opacity-60 text-slate-500"
+                          } font-sans`}>
+                            {badge.icon}
+                          </span>
+                          <div>
+                            <h4 className={`text-[11px] font-bold ${badge.unlocked ? "text-slate-100" : "text-slate-500"}`}>{badge.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-sans mt-0.5 leading-relaxed">{badge.description}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          {badge.unlocked ? (
+                            <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              CLEARED S-RANK
+                            </span>
+                          ) : (
+                            <span className="text-[8px] bg-slate-900 border border-slate-950 text-slate-550 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              LOCKED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Backdoor options trigger - condensed for neatness */}
+                <div className="bg-slate-950/35 border border-slate-900/40 p-4 rounded-2xl text-[9px] text-slate-650 font-mono flex items-center justify-between">
+                  <span>Sovereign Identity verified. Systems fully compliance aligned.</span>
+                  <button 
+                    onClick={() => { playSelectSound(); setShowDisconnectModal(true); }} 
+                    className="text-red-500 font-bold uppercase tracking-wider hover:text-red-400 cursor-pointer"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+
+              </motion.div>
+            )}
+
+            {/* A0_3. ACHIEVEMENT ARCHIVE TAB / PAGE */}
+            {activeTab === "achievemnt" && (
+              <motion.div key="achievement-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-xl mx-auto w-full font-mono text-xs">
+                
+                {/* Header Container */}
+                <div className="p-6 bg-slate-950/75 border border-slate-900 rounded-3xl relative overflow-hidden shadow-xl">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.06)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+                  <span className="text-[10px] font-mono text-amber-500 block tracking-widest font-extrabold uppercase mb-1">Monarch Achievements Ledger</span>
+                  <h3 className="font-extrabold text-lg flex items-center gap-2 uppercase tracking-tight">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    ACHIEVEMENT ARCHIVE
+                  </h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-sans mt-2">
+                    Earn absolute honor medallions by maintaining perfect physical training consistency, routing gate bosses, and establishing cooperations with the Hunter network.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {getAchievementsList(playerName).map(badge => {
+                    const progressPercent = badge.progress && badge.target 
+                      ? Math.min(100, (badge.progress / badge.target) * 100)
+                      : 0;
+                    
+                    return (
+                      <div 
+                        key={badge.id}
+                        className={`p-5 rounded-3xl border transition-all duration-300 relative overflow-hidden shadow-lg ${
+                          badge.unlocked 
+                            ? "border-emerald-500/20 bg-gradient-to-r from-slate-950 to-emerald-950/10 hover:border-emerald-500/40" 
+                            : "border-slate-950 bg-slate-950/45 opacity-75"
+                        }`}
+                      >
+                        {badge.unlocked && (
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl pointer-events-none" />
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-start gap-4">
+                            <span className={`text-3xl p-3 rounded-2xl border flex items-center justify-center shrink-0 w-14 h-14 ${
+                              badge.unlocked 
+                                ? `bg-gradient-to-br ${badge.color} border-white/10 text-white shadow-xl` 
+                                : "bg-slate-900 border-slate-950 filter grayscale opacity-60 text-slate-500"
+                            } font-sans`}>
+                              {badge.icon}
+                            </span>
+                            <div className="space-y-1">
+                              <h4 className={`text-sm font-bold ${badge.unlocked ? "text-slate-100" : "text-slate-500"}`}>
+                                {badge.name}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 leading-relaxed font-sans">{badge.description}</p>
+                              <div className="pt-1.5 flex flex-wrap gap-2 text-[9px] text-slate-500 font-mono">
+                                <span className="uppercase tracking-[0.05em] font-black text-slate-550">Requirement:</span>
+                                <span className={badge.unlocked ? "text-emerald-350 font-bold" : "text-slate-450"}>{badge.requirements}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="sm:text-right shrink-0">
+                            {badge.unlocked ? (
+                              <div className="space-y-1 flex flex-col sm:items-end">
+                                <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-fit shadow-sm shadow-emerald-500/10 animate-pulse">
+                                  S-RANK CLEARED
+                                </span>
+                                {badge.unlockedAt && (
+                                  <span className="text-[8px] text-slate-600 block">Unlocked {badge.unlockedAt}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-2 flex flex-col sm:items-end">
+                                <span className="text-[9px] bg-slate-900 border border-slate-950 text-slate-550 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-fit">
+                                  STABILIZING IN PROGRESS
+                                </span>
+                                {badge.progress !== undefined && badge.target !== undefined && (
+                                  <div className="w-28 font-mono text-[9px] text-slate-500 space-y-1">
+                                    <div className="flex justify-between font-bold">
+                                      <span>Progress</span>
+                                      <span>{badge.progress} / {badge.target}</span>
+                                    </div>
+                                    <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
+                                      <div className="h-full bg-cyan-400" style={{ width: `${progressPercent}%` }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
               </motion.div>
             )}
             
@@ -5644,6 +5993,205 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                 >
                   PURGE DATA
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 1. INTERACTIVE MESSAGE BROADCAST OVERLAY */}
+      <AnimatePresence>
+        {showMsgModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setShowMsgModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 25 }}
+              className="bg-slate-900 border border-indigo-500/40 p-6 rounded-3xl max-w-md w-full font-mono text-xs space-y-4 shadow-[0_0_35px_rgba(99,102,241,0.2)] relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 text-indigo-400 font-extrabold uppercase tracking-widest text-[10px] border-b border-indigo-950/50 pb-3">
+                <MessageSquare className="w-4 h-4 text-indigo-400" />
+                <span>Transmit Secure Message</span>
+              </div>
+              
+              <div className="space-y-4 font-sans text-slate-300">
+                <p className="text-xs leading-relaxed">
+                  Transmit an encrypted frequency wave message directly into the private guild database. Action unlocks <strong className="text-cyan-400">Cooperative Spirit</strong> badge instantly.
+                </p>
+                
+                <div className="space-y-1.5 font-mono">
+                  <label className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Secure Frequency Wave Text</label>
+                  <textarea 
+                    placeholder="Enter dimensional warning, study advice, or task coordinates to broadcast..." 
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-3 text-slate-250 placeholder-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[90px] text-xs resize-none font-mono"
+                    id="broadcast_msg_textarea"
+                    maxLength={140}
+                  />
+                  <div className="text-right text-[8px] text-slate-600">Max 140 characters</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button 
+                  className="py-2.5 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200"
+                  onClick={() => setShowMsgModal(false)}
+                >
+                  ABORT
+                </button>
+                <button 
+                  className="py-2.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-455 text-white rounded-xl font-bold uppercase tracking-wider cursor-pointer transition-all duration-200 shadow-lg shadow-indigo-600/10"
+                  onClick={() => {
+                    const el = document.getElementById("broadcast_msg_textarea") as HTMLTextAreaElement;
+                    const val = el?.value?.trim();
+                    if (!val) {
+                      triggerSystemToast("⚠️ SYSTEM ERROR: Unable to broadcast empty frequency.");
+                      return;
+                    }
+                    playLootSound();
+                    
+                    // Unlock Cooperative Spirit badge
+                    localStorage.setItem(`monarch_badge_party_${playerName}`, "true");
+                    localStorage.setItem(`monarch_badge_party_at_${playerName}`, new Date().toLocaleDateString());
+                    
+                    triggerSystemToast("🚀 DIRECTIVE SENT: Message broadcasted safely across alternative server instances!");
+                    setShowMsgModal(false);
+                  }}
+                >
+                  BROADCAST
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. INTERACTIVE GIFT MANA OVERLAY */}
+      <AnimatePresence>
+        {showGiftManaModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setShowGiftManaModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 25 }}
+              className="bg-slate-900 border border-cyan-500/40 p-6 rounded-3xl max-w-sm w-full font-mono text-xs space-y-4 shadow-[0_0_35px_rgba(6,182,212,0.2)] relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 text-cyan-400 font-extrabold uppercase tracking-widest text-[10px] border-b border-cyan-950/50 pb-3">
+                <Zap className="w-4 h-4 text-cyan-400" />
+                <span>Gift Mana Reserve Module</span>
+              </div>
+              
+              <div className="space-y-4 font-sans text-slate-300">
+                <p className="text-xs leading-relaxed">
+                  Gift a chunk of your specialized Mana (MP) reserves to a fellowship member. MP allows casting summoning runes and spells to boost learning speed. Current Pool: <strong className="text-cyan-400">{playerMp} MP</strong>.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[20, 50, 100].map(amount => (
+                    <button 
+                      key={amount}
+                      disabled={playerMp < amount}
+                      onClick={() => {
+                        playLootSound();
+                        setPlayerMp(prev => Math.max(0, prev - amount));
+                        
+                        // Unlock Cooperative Spirit badge
+                        localStorage.setItem(`monarch_badge_party_${playerName}`, "true");
+                        localStorage.setItem(`monarch_badge_party_at_${playerName}`, new Date().toLocaleDateString());
+                        
+                        triggerSystemToast(`⚡ SUCCESS: Transferred ${amount} MP packet through dimensional gateways!`);
+                        setShowGiftManaModal(false);
+                      }}
+                      className="py-2.5 bg-slate-950 border border-slate-800 hover:border-cyan-500 rounded-xl text-[10px] font-bold text-slate-300 hover:text-cyan-300 font-mono transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      {amount} MP
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 text-center text-[9px] text-slate-600 font-mono">
+                Click any package above to instantly execute transfer.
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. INTERACTIVE GIFT SUBSCRIPTION OVERLAY */}
+      <AnimatePresence>
+        {showGiftSubModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4"
+            onClick={() => setShowGiftSubModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 25 }}
+              className="bg-slate-900 border border-amber-500/40 p-6 rounded-3xl max-w-sm w-full font-mono text-xs space-y-4 shadow-[0_0_35px_rgba(245,158,11,0.2)] relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 text-amber-500 font-extrabold uppercase tracking-widest text-[10px] border-b border-amber-950/50 pb-3">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <span>Gift Sovereign Subscriptions</span>
+              </div>
+              
+              <div className="space-y-3 font-sans text-slate-300">
+                <p className="text-xs leading-relaxed">
+                  Bestow absolute Prestige halos by gifting premium VIP subscription status coordinates. Unlocks premium cosmetics and doubles base EXP multipliers!
+                </p>
+
+                <div className="space-y-2 font-mono">
+                  {[
+                    { title: "SILVER COGNITIVE CORE", detail: "+15% Base Gold Income Booster", cost: 100 },
+                    { title: "GOLD SHADOW GLOW", detail: "+30% Experience Gain Booster", cost: 250 },
+                    { title: "NATIONAL HUNTER CROWN", detail: "Perfect +10 Attribute Points immediately", cost: 550 }
+                  ].map(sub => (
+                    <button
+                      key={sub.title}
+                      disabled={gameState.gold < sub.cost}
+                      onClick={() => {
+                        playLootSound();
+                        setGameState(prev => ({ ...prev, gold: Math.max(0, prev.gold - sub.cost) }));
+                        
+                        // Unlock Cooperative Spirit badge
+                        localStorage.setItem(`monarch_badge_party_${playerName}`, "true");
+                        localStorage.setItem(`monarch_badge_party_at_${playerName}`, new Date().toLocaleDateString());
+                        
+                        triggerSystemToast(`👑 SOVEREIGN GIFT: bestowment of ${sub.title} successful!`);
+                        setShowGiftSubModal(false);
+                      }}
+                      className="w-full p-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 hover:border-amber-500 text-left transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:pointer-events-none text-slate-350"
+                    >
+                      <div className="flex justify-between items-center text-[9px] font-bold text-amber-400">
+                        <span>{sub.title}</span>
+                        <span>{sub.cost} GOLD</span>
+                      </div>
+                      <div className="text-[8px] text-slate-500 font-sans mt-0.5">{sub.detail}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-center text-[9px] text-slate-600 font-mono">
+                Costs in Gold are deducted from your balance.
               </div>
             </motion.div>
           </motion.div>
