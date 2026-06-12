@@ -3,9 +3,7 @@ import { auth, db } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider
+  createUserWithEmailAndPassword 
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { 
@@ -99,63 +97,22 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    try {
-      if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-         throw new Error("AUTHENTICATION_SYS_FAILURE: Sovereign Gateway is currently offline. Please wait for recalibration or refresh.");
-      }
+  const handleGoogleAuth = () => {
+    setError(null);
+    setAuthLoading(true);
 
-      setError(null);
-      setAuthLoading(true);
-      
-      const provider = new GoogleAuthProvider();
-      
-      // Attempting popup authentication as recommended for dimensional compatibility (WebViews)
-      const credential = await signInWithPopup(auth, provider);
-      
-      if (credential.user) {
-        const userDocRef = doc(db, "users", credential.user.uid);
-        const docSnap = await getDoc(userDocRef);
-        
-        if (!docSnap.exists()) {
-          // Initialize first-time Google user in the database
-          await setDoc(userDocRef, {
-            email: credential.user.email,
-            v3_reset: true,
-            updatedAt: serverTimestamp()
-          });
-        }
+    const userAgent = navigator.userAgent || window.navigator.userAgent || "";
+    const isMobileApp = (window as any).Capacitor || 
+                        userAgent.includes("Capacitor") ||
+                        userAgent.includes("MobileAuthSovereign") ||
+                        window.location.search.includes("platform=mobile") ||
+                        window.location.search.includes("platform=android");
 
-        // Get authentication ID token to pass to the mobile container
-        let idToken = "";
-        try {
-          idToken = await credential.user.getIdToken();
-        } catch (tokenErr) {
-          console.warn("Sovereign Auth Warning: Failed to retrieve ID token", tokenErr);
-        }
-
-        // Check if user is logging in from the mobile app container (via Capacitor, User-Agent, or platform params)
-        const userAgent = navigator.userAgent || window.navigator.userAgent || "";
-        const isMobileApp = (window as any).Capacitor || 
-                            userAgent.includes("Capacitor") ||
-                            userAgent.includes("MobileAuthSovereign") ||
-                            window.location.search.includes("platform=mobile") ||
-                            window.location.search.includes("platform=android");
-
-        if (isMobileApp) {
-          console.log("Sovereign Gateway: Redirecting to mobile deep link schema...");
-          const deepLink = idToken 
-            ? `monarch://auth-callback?token=${encodeURIComponent(idToken)}`
-            : "monarch://auth-callback";
-          window.location.href = deepLink;
-        }
-        // onSuccess will be triggered by onAuthStateChanged in App.tsx
-      }
-    } catch (err: any) {
-      console.error("Google Auth failure:", err);
-      setError(getFriendlyErrorMessage(err));
-    } finally {
-      setAuthLoading(false);
+    // Redirect directly to backend Google Auth system
+    if (isMobileApp) {
+      window.location.href = "/api/auth/google?platform=mobile";
+    } else {
+      window.location.href = "/api/auth/google";
     }
   };
 

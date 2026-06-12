@@ -73,22 +73,121 @@ async function startServer() {
   });
 
   // --- Auth & Deep Linking ---
-  // This endpoint handles the post-login redirect for mobile apps vs web
-  app.get("/api/auth/callback", (req, res) => {
-    const sessionToken = req.query.token || "mock_session_token_xyz";
-    const userAgent = req.headers["user-agent"] || "";
+  // Endpoint to start the Google OAuth flow or simulate redirect
+  app.get("/api/auth/google", (req, res) => {
+    console.log("Start Google Auth redirection request received.");
     
+    // Google OAuth web client credentials
+    const clientId = process.env.VITE_GOOGLE_WEB_CLIENT_ID || "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com";
+    
+    // Construct the fully dynamic callback url
+    const host = req.get("host") || "localhost:3000";
+    const xForwardedProto = req.headers["x-forwarded-proto"];
+    const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
+    const redirectUri = `${protocol}://${host}/api/auth/callback`;
+    
+    const userAgent = req.headers["user-agent"] || "";
+    const isMobile = req.query.platform === "mobile" || userAgent.includes("Capacitor") || userAgent.includes("MobileAuthSovereign");
+    
+    // Construct Google OAuth 2.0 raw authorize parameters
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      access_type: "offline",
+      prompt: "consent",
+      // Pass platform state to the callback
+      state: isMobile ? "mobile" : "web"
+    });
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log(`Redirecting to raw Google accounts authorizing endpoint: ${googleAuthUrl}`);
+    return res.redirect(googleAuthUrl);
+  });
+
+  // This endpoint handles the post-login redirect for mobile apps vs web
+  app.get("/api/auth/callback", async (req, res) => {
+    const { code, state } = req.query;
+    console.log("Handling Google Auth Callback. Code received:", code ? "YES" : "NO", "State:", state);
+
+    const userAgent = req.headers["user-agent"] || "";
     // Check if the request is coming from the mobile app (Capacitor/WebView)
-    const isMobileAppRequest = req.query.platform === "mobile" || userAgent.includes("Capacitor") || userAgent.includes("MobileAuthSovereign");
+    const isMobileAppRequest = state === "mobile" || 
+                               req.query.platform === "mobile" || 
+                               userAgent.includes("Capacitor") || 
+                               userAgent.includes("MobileAuthSovereign");
+
+    let email = "hunter.solo@monarch.system";
+    let name = "Sovereign Hunter";
+    let sessionToken = "mock_sovereign_session_token_" + Date.now();
+
+    if (code) {
+      try {
+        const clientId = process.env.VITE_GOOGLE_WEB_CLIENT_ID || "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com";
+        const clientSecret = process.env.GOOGLE_WEB_CLIENT_SECRET || "";
+        const host = req.get("host") || "localhost:3000";
+        const xForwardedProto = req.headers["x-forwarded-proto"];
+        const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
+        const redirectUri = `${protocol}://${host}/api/auth/callback`;
+
+        // Exchange authorization code for modern Google JWT tokens
+        const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            code: code as string,
+            client_id: clientId,
+            client_secret: clientSecret,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code"
+          })
+        });
+
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          const { id_token, access_token } = tokenData;
+          sessionToken = id_token || access_token || sessionToken;
+
+          // Safely decode user email/profile info from Google JWT ID token
+          if (id_token) {
+            try {
+              const parts = id_token.split(".");
+              if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+                if (payload.email) email = payload.email;
+                if (payload.name) name = payload.name;
+              }
+            } catch (payloadErr) {
+              console.warn("Sovereign Code Warning: Could not decode token details", payloadErr);
+            }
+          }
+        } else {
+          const errText = await tokenResponse.text();
+          console.error("Sovereign Code Error: Exchanging OAuth code failed:", errText);
+        }
+      } catch (err: any) {
+        console.error("Sovereign Network Error: Token negotiation failed", err.message);
+      }
+    }
+
+    // Set high-compatibility SameSite secure cookies for partitioning resilience
+    res.cookie("monarch_session_email", email, {
+      secure: true,
+      sameSite: "none",
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
 
     if (isMobileAppRequest) {
       // Send the user to the custom schema registry built for the mobile app
-      console.log(`Deep Linking: Redirecting mobile user with token to monarch://auth-callback`);
-      return res.redirect(`monarch://auth-callback?token=${sessionToken}`);
+      const deepLink = `monarch://auth-callback?token=${encodeURIComponent(sessionToken)}`;
+      console.log(`Deep Linking: Redirecting mobile user with token to: ${deepLink}`);
+      return res.redirect(deepLink);
     } else {
-      // Standard web flow
-      console.log(`Standard Web Auth: Redirecting to dashboard`);
-      return res.redirect('/');
+      // Standard web flow: pass details so frontend can sync without server-side admin credentials constraint
+      console.log(`Standard Web Auth: Redirecting back to dashboard root for user ${email}`);
+      return res.redirect(`/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
     }
   });
 

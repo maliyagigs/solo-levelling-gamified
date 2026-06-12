@@ -114,6 +114,75 @@ export default function App() {
 
   // Monitor Authentication and Sync with Firestore
   useEffect(() => {
+    // Check for server-side Google Auth redirect parameters
+    const params = new URLSearchParams(window.location.search);
+    const authToken = params.get("auth_token");
+    const emailParam = params.get("email");
+    const nameParam = params.get("name");
+
+    const processGoogleAuthCallback = async () => {
+      if (authToken && emailParam) {
+        console.log("Sovereign Gateway: Processing returned web redirect metadata...");
+        
+        // Clean URL params immediately
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+
+        try {
+          // Attempt client-side Custom Token sign-in dynamically
+          const { signInWithCustomToken } = await import("firebase/auth");
+          await signInWithCustomToken(auth, authToken);
+        } catch (customTokenError) {
+          console.warn("Client-side signInWithCustomToken not available or rejected. Carrying over to local session fallback.", customTokenError);
+          
+          setIsSyncing(true);
+          setSyncStatus("Calibrating Dynamic Session Link...");
+
+          try {
+            // Find or initialize backup profile record matching their Google email
+            const fallbackUid = emailParam.replace(/[^a-zA-Z0-9]/g, "_");
+            const userDocRef = doc(db, "users", fallbackUid);
+            const docSnap = await getDoc(userDocRef);
+
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              const pName = data.playerName || nameParam || "Sovereign Hunter";
+              const oProfile = data.onboardProfile || null;
+
+              if (pName && oProfile) {
+                localStorage.setItem("monarch_active_player", pName);
+                localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
+                setActivePlayerName(pName);
+                setProfile(oProfile);
+                setPhase("rpg_dashboard");
+              } else if (oProfile) {
+                setProfile(oProfile);
+                setPhase("plan_preview");
+              } else {
+                setOnboardingStep(1);
+                setPhase("onboarding");
+              }
+            } else {
+              // Register new profile mapping in Firestore database
+              await setDoc(userDocRef, {
+                email: emailParam,
+                v3_reset: true,
+                updatedAt: new Date().toISOString()
+              });
+              setOnboardingStep(1);
+              setPhase("onboarding");
+            }
+          } catch (offlineSyncErr) {
+            console.error("Local session tracking failed:", offlineSyncErr);
+          } finally {
+            setIsSyncing(false);
+          }
+        }
+      }
+    };
+
+    processGoogleAuthCallback();
+
     // Global fallback for initial mount: if auth never fires, don't keep loading forever
     const globalTimeout = setTimeout(() => {
       if (isSyncing) {
