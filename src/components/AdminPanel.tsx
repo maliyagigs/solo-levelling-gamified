@@ -15,7 +15,7 @@ import {
 import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { renderNeonWeaponPreview, Rotatable3DWeapon } from "./NeonWeaponInspector";
+import { renderNeonWeaponPreview, Rotatable3DWeapon, ALL_WEAPON_NAMES } from "./NeonWeaponInspector";
 import { 
   Shield, 
   User, 
@@ -130,7 +130,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   });
   const [passcode, setPasscode] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social" | "market">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social" | "market" | "gallery">("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [systemLogs, setSystemLogs] = useState<{ id: string; msg: string; type: string; time: string }[]>([]);
 
@@ -1165,7 +1165,8 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                 { id: "quests", label: "Crisis Quests", icon: Flame, color: "text-rose-400", count: quests.length },
                 { id: "gates", label: "Custom Dungeons", icon: Compass, color: "text-emerald-400", count: gates.length },
                 { id: "market", label: "System Black Market", icon: ShoppingBag, color: "text-amber-500", count: marketItems.length },
-                { id: "social", label: "Multiplayer Control", icon: MessageSquare, color: "text-indigo-400", count: messages.length + lobbies.length }
+                { id: "social", label: "Multiplayer Control", icon: MessageSquare, color: "text-indigo-400", count: messages.length + lobbies.length },
+                { id: "gallery", label: "Weapon Artifact Vault", icon: Sparkles, color: "text-purple-400", count: ALL_WEAPON_NAMES.length }
               ].map(tab => {
                 const Icon = tab.icon;
                 const isSel = activeTab === tab.id;
@@ -2447,6 +2448,62 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                           </div>
                         ))
                       )}
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* WEAPON ARTIFACT GALLERY */}
+            {activeTab === "gallery" && (
+              <div className="space-y-6">
+                <div className="bg-slate-900/60 border border-slate-900 p-8 rounded-3xl backdrop-blur-md relative overflow-hidden">
+                   {/* Background decorative elements */}
+                   <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/5 blur-[100px] pointer-events-none rounded-full" />
+                   <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-600/5 blur-[100px] pointer-events-none rounded-full" />
+                   
+                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                     <div>
+                       <h3 className="text-xs font-black text-purple-400 uppercase tracking-[0.3em] flex items-center gap-2 mb-1">
+                         <Sparkles className="w-4 h-4" />
+                         <span>Dimensional Artifact Vault</span>
+                       </h3>
+                       <p className="text-[10px] text-slate-500 font-medium">Visual inspection of all materialized class-S relics in the current timeline</p>
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                     {ALL_WEAPON_NAMES.map(weaponName => (
+                       <motion.div 
+                         key={weaponName} 
+                         initial={{ opacity: 0, scale: 0.9 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         whileHover={{ y: -5 }}
+                         onClick={() => setSelectedWeaponPreview(weaponName)}
+                         className="group relative bg-slate-950/80 border border-slate-900 p-6 rounded-2xl hover:border-purple-500/50 hover:bg-slate-900 transition-all cursor-pointer overflow-hidden aspect-square flex flex-col items-center justify-center shadow-xl hover:shadow-purple-900/10"
+                       >
+                         {/* Selection Highlight */}
+                         <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                         
+                         {/* Weapon Graphic Display */}
+                         <div className="w-24 h-24 mb-4 relative z-10 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
+                           {renderNeonWeaponPreview(weaponName, true)}
+                         </div>
+
+                         {/* Title Badge */}
+                         <div className="relative z-10 text-center">
+                           <span className="text-[9px] font-black text-slate-400 group-hover:text-white uppercase tracking-widest leading-tight transition-colors">
+                             {weaponName}
+                           </span>
+                           <div className="mt-1 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-1 h-1 rounded-full bg-purple-500 animate-pulse" />
+                              <span className="text-[7px] font-bold text-purple-400 uppercase tracking-tighter">Ready for Inspection</span>
+                           </div>
+                         </div>
+
+                         {/* Accent Corner Labels */}
+                         <div className="absolute top-3 right-3 text-[7px] font-mono text-slate-800 uppercase tracking-tighter group-hover:text-slate-700 transition-colors">RELIC_ID::{(weaponName.length * 133).toString(16).toUpperCase()}</div>
+                       </motion.div>
+                     ))}
                    </div>
                 </div>
               </div>

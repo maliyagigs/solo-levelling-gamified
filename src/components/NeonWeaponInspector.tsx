@@ -604,6 +604,24 @@ const VectorWeapons = {
   )
 };
 
+export const ALL_WEAPON_NAMES = [
+  "Rusty Dagger",
+  "Kasaka's Venom Fang",
+  "Baruka's Dagger",
+  "Demon King's Dagger",
+  "Shadow Reaper",
+  "Kamish's Fang",
+  "Knight Killer",
+  "Vulcan's Rage",
+  "Sovereign's Wrath",
+  "Monarch's Authority",
+  "Abyssal Void",
+  "Shadow Scythe",
+  "Hunter's bow",
+  "Knight's shield",
+  "Mage staff"
+];
+
 export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
   const getVectorGraphic = (id: string) => {
     if (!id) id = "generic_sword";
