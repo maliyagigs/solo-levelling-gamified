@@ -72,6 +72,26 @@ async function startServer() {
     });
   });
 
+  // --- Auth & Deep Linking ---
+  // This endpoint handles the post-login redirect for mobile apps vs web
+  app.get("/api/auth/callback", (req, res) => {
+    const sessionToken = req.query.token || "mock_session_token_xyz";
+    const userAgent = req.headers["user-agent"] || "";
+    
+    // Check if the request is coming from the mobile app (Capacitor/WebView)
+    const isMobileAppRequest = req.query.platform === "mobile" || userAgent.includes("Capacitor") || userAgent.includes("MobileAuthSovereign");
+
+    if (isMobileAppRequest) {
+      // Send the user to the custom schema registry built for the mobile app
+      console.log(`Deep Linking: Redirecting mobile user with token to monarch://auth-callback`);
+      return res.redirect(`monarch://auth-callback?token=${sessionToken}`);
+    } else {
+      // Standard web flow
+      console.log(`Standard Web Auth: Redirecting to dashboard`);
+      return res.redirect('/');
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

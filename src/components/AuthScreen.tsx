@@ -125,6 +125,30 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
             updatedAt: serverTimestamp()
           });
         }
+
+        // Get authentication ID token to pass to the mobile container
+        let idToken = "";
+        try {
+          idToken = await credential.user.getIdToken();
+        } catch (tokenErr) {
+          console.warn("Sovereign Auth Warning: Failed to retrieve ID token", tokenErr);
+        }
+
+        // Check if user is logging in from the mobile app container (via Capacitor, User-Agent, or platform params)
+        const userAgent = navigator.userAgent || window.navigator.userAgent || "";
+        const isMobileApp = (window as any).Capacitor || 
+                            userAgent.includes("Capacitor") ||
+                            userAgent.includes("MobileAuthSovereign") ||
+                            window.location.search.includes("platform=mobile") ||
+                            window.location.search.includes("platform=android");
+
+        if (isMobileApp) {
+          console.log("Sovereign Gateway: Redirecting to mobile deep link schema...");
+          const deepLink = idToken 
+            ? `monarch://auth-callback?token=${encodeURIComponent(idToken)}`
+            : "monarch://auth-callback";
+          window.location.href = deepLink;
+        }
         // onSuccess will be triggered by onAuthStateChanged in App.tsx
       }
     } catch (err: any) {
