@@ -77,6 +77,23 @@ export default function App() {
   });
 
   useEffect(() => {
+    const titles: Record<string, string> = {
+      authentication: "Authentication | Monarch",
+      onboarding: "Hunter Onboarding | Monarch",
+      plan_preview: "Strategic Plan | Monarch",
+      rpg_dashboard: `${activePlayerName} | Sovereign Dashboard`
+    };
+    
+    if (isAdminMode) {
+      document.title = "Sovereign Override: Master Deck";
+    } else if (isPartyMode) {
+      document.title = "Dimensional Hub: Multiplayer";
+    } else {
+      document.title = titles[phase] || "Monarch System";
+    }
+  }, [phase, activePlayerName, isAdminMode, isPartyMode]);
+
+  useEffect(() => {
     const checkRoutes = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;

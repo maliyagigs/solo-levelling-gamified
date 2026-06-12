@@ -14,8 +14,9 @@ import {
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
+import firebaseConfig from "../../firebase-applet-config.json";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { renderNeonWeaponPreview, Rotatable3DWeapon, ALL_WEAPON_NAMES } from "./NeonWeaponInspector";
+import { NeonWeaponPreview, Rotatable3DWeapon, ALL_WEAPON_NAMES } from "./NeonWeaponInspector";
 import { 
   Shield, 
   User, 
@@ -133,6 +134,29 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "players" | "announcements" | "quests" | "gates" | "social" | "market" | "gallery">("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [systemLogs, setSystemLogs] = useState<{ id: string; msg: string; type: string; time: string }[]>([]);
+  const [isDbConnected, setIsDbConnected] = useState<boolean | null>(null);
+  const [diagInfo, setDiagInfo] = useState<{latency: number, lastSync: Date} | null>(null);
+
+  // Connection Heartbeat
+  useEffect(() => {
+    const checkConn = async () => {
+      const start = Date.now();
+      try {
+        // Querying a small subset to verify read path
+        const q = query(collection(db, "leaderboard"), limit(1));
+        await getDocs(q);
+        setIsDbConnected(true);
+        setDiagInfo({ latency: Date.now() - start, lastSync: new Date() });
+      } catch (e) {
+        console.error("Master Deck Heartbeat Failed:", e);
+        setIsDbConnected(false);
+      }
+    };
+    
+    checkConn();
+    const interval = setInterval(checkConn, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   // Real-time states
   const [players, setPlayers] = useState<Player[]>([]);
@@ -872,7 +896,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   };
 
-   const handleGlobalReset = async () => {
+  const handleGlobalReset = async () => {
     try {
       if (players.length === 0) {
         showNotification("No players to reset.");
@@ -880,9 +904,13 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
       }
       if (!window.confirm("CRITICAL: Wipe ALL player progression? This cannot be undone.")) return;
       
-      addSystemLog("Initiating global player progression wipe...", "warning");
-      const promises = players.map(p => 
-        setDoc(doc(db, "leaderboard", p.id), {
+      setIsAdminAuthorized(false); // Temporary lock to prevent multiple clicks
+      addSystemLog("Initiating global player progression wipe via batch...", "warning");
+      
+      const batch = writeBatch(db);
+      players.forEach(p => {
+        const docRef = doc(db, "leaderboard", p.id);
+        batch.set(docRef, {
           level: 1,
           exp: 0,
           maxExp: 100,
@@ -907,13 +935,17 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
           dailyGatesCleared: 0,
           dailyFocusMinutes: 0,
           updatedAt: serverTimestamp() 
-        }) // No { merge: true } here to ensure full overwrite
-      );
-      await Promise.all(promises);
-      showNotification("SUCCESS: All players reset to default baseline.");
+        });
+      });
+      
+      await batch.commit();
+      setIsAdminAuthorized(true);
+      showNotification("SUCCESS: All players reset to default baseline via batch commit.");
       addSystemLog("Player progression global reset complete.", "success");
     } catch (err) {
+      setIsAdminAuthorized(true);
       handleFirestoreError(err, OperationType.WRITE, "leaderboard/resetAll");
+      showNotification("GLOBAL RESET FAILED: Check connection or balance.", "error");
     }
   };
 
@@ -1048,7 +1080,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
     <main role="main" id="admin_main_layout" className="min-h-[100dvh] bg-slate-950 text-slate-100 font-mono relative pb-20 selection:bg-purple-500/30 selection:text-purple-300 overflow-y-auto">
       
       {/* Absolute Header with back button */}
-      <nav aria-label="Admin Navigation" className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+      <nav aria-label="Admin Navigation" className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Shield className="w-6 h-6 text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.4)]" aria-hidden="true" />
           <div>
@@ -1056,18 +1088,41 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
               MONARCH MASTER DECK
               <span className="text-[10px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20">ADMIN MODE</span>
             </h1>
-            <p className="text-[9px] text-slate-500">Live Spacetime Database Synchronization Interface</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] text-slate-500">Live Spacetime Database Synchronization Interface</p>
+              <div className="w-1 h-1 rounded-full bg-slate-800" />
+              <span className="text-[8px] text-slate-600 font-mono">NODE: {firebaseConfig.projectId}</span>
+            </div>
           </div>
         </div>
         
-        <button 
-          aria-label="Exit Administration Deck"
-          onClick={onBackToApp} 
-          className="px-4 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 text-slate-300 transition-colors uppercase cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>Exit Deck</span>
-        </button>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex-1 md:flex-none flex items-center gap-3 bg-slate-950/80 px-4 py-1.5 rounded-xl border border-slate-900 shadow-inner">
+             <div className="flex flex-col items-end">
+                <span className="text-[7px] text-slate-500 uppercase font-black tracking-tighter">Connection Pulse</span>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${isDbConnected === true ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : isDbConnected === false ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-slate-700 animate-pulse'}`} />
+                  <span className={`text-[9px] font-black uppercase tracking-tighter ${isDbConnected === true ? 'text-emerald-400' : isDbConnected === false ? 'text-red-400' : 'text-slate-500'}`}>
+                    {isDbConnected === true ? `Secure (${diagInfo?.latency}ms)` : isDbConnected === false ? 'Disconnected' : 'Syncing...'}
+                  </span>
+                </div>
+             </div>
+             <div className="w-px h-6 bg-slate-900 mx-1" />
+             <div className="flex flex-col items-end">
+                <span className="text-[7px] text-slate-500 uppercase font-black tracking-tighter">Identity Uplink</span>
+                <span className="text-[9px] font-bold text-white max-w-[150px] truncate uppercase tracking-tighter">{auth.currentUser?.email || "Guest"}</span>
+             </div>
+          </div>
+
+          <button 
+            aria-label="Exit Administration Deck"
+            onClick={onBackToApp} 
+            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 text-slate-300 transition-colors uppercase cursor-pointer group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" aria-hidden="true" />
+            <span>Vault Exit</span>
+          </button>
+        </div>
       </nav>
 
       <AnimatePresence>
@@ -1175,6 +1230,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                     key={tab.id}
                     role="tab"
                     aria-selected={isSel}
+                    aria-label={`Switch to ${tab.label} sector`}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
                       isSel 
@@ -1813,7 +1869,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                     <span>{editingGateId ? `MODIFY ARCHETYPE GATE: ${editingGateId}` : "FORGE DYNAMIC SPACE TIME GATE"}</span>
                     {gateForm.lootItemName && (
                       <div className="ml-auto w-8 h-8 pointer-events-none transform scale-150 origin-right">
-                        {renderNeonWeaponPreview(gateForm.lootItemName, true)}
+                        <NeonWeaponPreview itemId={gateForm.lootItemName} animate />
                       </div>
                     )}
                   </h3>
@@ -1949,7 +2005,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                               onClick={() => setSelectedWeaponPreview(gate.lootItemName)}
                             >
                               <div className="absolute w-full h-full transform scale-150 pointer-events-none">
-                                {renderNeonWeaponPreview(gate.lootItemName)}
+                                <NeonWeaponPreview itemId={gate.lootItemName} />
                               </div>
                             </div>
                             <div>
@@ -2020,7 +2076,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                     <span>{editingMarketItemId ? `MODIFY MARKET LISTING: ${editingMarketItemId}` : "MATERIALIZE NEW MARKET ITEM"}</span>
                     {marketItemForm.type === "Weapon" && marketItemForm.name && (
                       <div className="ml-auto w-8 h-8 pointer-events-none transform scale-150 origin-right">
-                        {renderNeonWeaponPreview(marketItemForm.name, true)}
+                        <NeonWeaponPreview itemId={marketItemForm.name} animate />
                       </div>
                     )}
                   </h3>
@@ -2294,7 +2350,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             >
                                {item.type === "Weapon" ? (
                                  <div className="w-full h-full transform scale-[0.6] pointer-events-none">
-                                   {renderNeonWeaponPreview(item.name)}
+                                   <NeonWeaponPreview itemId={item.name} />
                                  </div>
                                ) : (
                                  <ShoppingBag className="w-5 h-5 text-amber-500/50" />
@@ -2486,7 +2542,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                          
                          {/* Weapon Graphic Display */}
                          <div className="w-24 h-24 mb-4 relative z-10 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
-                           {renderNeonWeaponPreview(weaponName, true)}
+                           <NeonWeaponPreview itemId={weaponName} animate={false} />
                          </div>
 
                          {/* Title Badge */}

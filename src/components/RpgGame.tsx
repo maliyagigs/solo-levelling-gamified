@@ -61,7 +61,7 @@ import {
 } from "../utils/audio";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 
-import { renderNeonWeaponPreview, Rotatable3DWeapon } from "./NeonWeaponInspector";
+import { NeonWeaponPreview, Rotatable3DWeapon } from "./NeonWeaponInspector";
 import { getWeaponColorClasses, CircularProgress, VerticalBar } from "./gameHelpers";
 import { SocialHub } from "./SocialHub";
 import { listenToFriendships } from "../utils/social";
@@ -3232,7 +3232,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                       >
                         <div className="flex items-center gap-3">
                           <div className="p-2 border border-cyan-500/30 rounded-lg bg-slate-950">
-                            {renderNeonWeaponPreview(getEquippedWeapon()!.id, false)}
+                            <NeonWeaponPreview itemId={getEquippedWeapon()!.id} animate={false} />
                           </div>
                           <div className="flex-1">
                             <div className="text-cyan-400 font-black text-sm tracking-widest uppercase truncate">{getEquippedWeapon()?.name}</div>
@@ -3994,7 +3994,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
                                 </span>
 
                                 <div className="w-12 h-12 flex items-center justify-center select-none pointer-events-none filter drop-shadow-[0_0_6px_rgba(6,182,212,0.15)]">
-                                  {renderNeonWeaponPreview(item.id, item.equipped)}
+                                  <NeonWeaponPreview itemId={item.id} animate={item.equipped} />
                                 </div>
 
                                 <span className="text-[10px] font-bold text-slate-350 truncate w-full text-center mt-1.5 px-1 group-hover:text-cyan-300">
@@ -4090,7 +4090,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
                             {/* Neon Outline Silhouette preview with colored shadow */}
                             <div className="w-16 h-16 rounded-xl bg-slate-900/60 p-1.5 flex items-center justify-center border border-slate-800/80 group-hover:border-slate-500/20 shadow-[0_0_15px_rgba(34,211,238,0.05)] select-none">
-                              {renderNeonWeaponPreview(weaponTemplate.id, false)}
+                              <NeonWeaponPreview itemId={weaponTemplate.id} animate={false} />
                             </div>
 
                             {/* Lock Icon Overlay if Locked */}

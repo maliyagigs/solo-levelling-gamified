@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, memo } from "react";
 
 // Extremely detailed menacing SVG representations of the weapons.
 const VectorWeapons = {
@@ -622,7 +621,7 @@ export const ALL_WEAPON_NAMES = [
   "Mage staff"
 ];
 
-export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
+export const NeonWeaponPreview = memo(({ itemId, animate = false }: { itemId: string; animate?: boolean }) => {
   const getVectorGraphic = (id: string) => {
     if (!id) id = "generic_sword";
     const lowerId = id.toString().toLowerCase();
@@ -665,10 +664,10 @@ export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
       {getVectorGraphic(itemId)}
     </div>
   );
-};
+});
 
-// Rotatable 3D Weapon inspector stage utilizing layered parallax Z-axial translation offsets (highly optimized for Android WebView performance)
-export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
+// Rotatable 3D Weapon inspector stage utilizing layered parallax Z-axial translation offsets (highly optimized for performance)
+export const Rotatable3DWeapon = memo(({ itemId, quality = "low" }: { itemId: string; quality?: "high" | "low" }) => {
   const rotationRef = useRef({ x: -10, y: 35, z: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -676,6 +675,7 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
   const autoSpinActive = useRef(true);
   const animationFrameRef = useRef<number | null>(null);
   const plateRef = useRef<HTMLDivElement>(null);
+  const rotationY = useRef(35); // Stable rotation value
 
   // High quality adaptive glow and color parameters for inherit weapon styling
   const WEAPON_THEMES: Record<string, {
@@ -843,7 +843,8 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
 
       if (!isDragging && autoSpinActive.current) {
         rotationRef.current.x = -10 + Math.sin(now * 0.001) * 8;
-        rotationRef.current.y = (rotationRef.current.y + delta * 25) % 360;
+        rotationY.current = (rotationY.current + delta * 25) % 360;
+        rotationRef.current.y = rotationY.current;
         rotationRef.current.z = Math.cos(now * 0.0007) * 4;
         updateTransforms();
       }
@@ -984,20 +985,20 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
           >
             {/* Ambient Back Glow - Immense Area */}
             <div className="absolute inset-0 w-full h-full flex items-center justify-center opacity-[0.5]" style={{ filter: theme.shadows.backGlow, transform: "translateZ(-20px)" }}>
-               {renderNeonWeaponPreview(itemId, false)}
+               <NeonWeaponPreview itemId={itemId} animate={false} />
             </div>
             
             {/* Micro-Facet Real 3D Extrusion (Volumetric slice stacking) */}
-            {Array.from({length: 41}).map((_, i) => {
-              const z = (i - 20) * 0.8; // fine step size
-              const isFront = i === 40;
+            {Array.from({length: quality === "high" ? 41 : 9}).map((_, i) => {
+              const maxLayers = quality === "high" ? 41 : 9;
+              const midPoint = Math.floor(maxLayers / 2);
+              const z = (i - midPoint) * (quality === "high" ? 0.8 : 2.5); 
+              const isFront = i === maxLayers - 1;
               const isBack = i === 0;
               const isSurface = isFront || isBack;
               
-              // Simulate highly realistic metallic shading across the Z-axis (darker in the middle, light catching edges)
-              // The faces (front and back) are bright, the sides are dark but picking up specular highlights
-              const brightness = isSurface ? 'brightness-[1.1] contrast-[1.1]' : 'brightness-[0.4] contrast-[1.5] saturate-50';
-              const edgeHighlight = (i === 1 || i === 39) ? 'brightness-[1.5] opacity-90' : '';
+              const brightness = isSurface ? 'brightness-[1.3] contrast-[1.1]' : 'brightness-[0.6] contrast-[1.5] saturate-50';
+              const edgeHighlight = (i === 1 || i === maxLayers - 2) ? 'brightness-[1.8] opacity-95' : '';
               
               return (
                 <div 
@@ -1008,23 +1009,23 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
                     filter: isSurface ? 'url(#global3DMetalBevel)' : 'none'
                   }}
                 >
-                   {renderNeonWeaponPreview(itemId, false)}
+                   <NeonWeaponPreview itemId={itemId} animate={false} />
                 </div>
               );
             })}
 
             {/* Sub-Surface Scattering / Volumetric Glow Core */}
             <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-70" style={{ filter: theme.shadows.midGlow, transform: "translateZ(18px)" }}>
-               {renderNeonWeaponPreview(itemId, false)}
+               <NeonWeaponPreview itemId={itemId} animate={false} />
             </div>
             
             {/* Front Specular Highlight */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center brightness-[1.2] contrast-[1.1] saturate-[1.2] mix-blend-overlay opacity-60" style={{ filter: theme.shadows.frontGlow, transform: "translateZ(20px)" }}>
-               {renderNeonWeaponPreview(itemId, false)}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center brightness-[1.4] contrast-[1.1] saturate-[1.2] mix-blend-overlay opacity-80" style={{ filter: theme.shadows.frontGlow, transform: "translateZ(20px)" }}>
+               <NeonWeaponPreview itemId={itemId} animate={false} />
             </div>
             {/* Soft Bloom */}
             <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-40" style={{ transform: "translateZ(22px)", filter: "drop-shadow(0 0 4px rgba(255,255,255,0.3))" }}>
-               {renderNeonWeaponPreview(itemId, false)}
+               <NeonWeaponPreview itemId={itemId} animate={false} />
             </div>
           </div>
 
@@ -1048,4 +1049,4 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       </span>
     </div>
   );
-};
+});

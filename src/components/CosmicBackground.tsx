@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 
-export default function CosmicBackground() {
+const CosmicBackground = memo(() => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -294,4 +294,6 @@ export default function CosmicBackground() {
       />
     </div>
   );
-}
+});
+
+export default CosmicBackground;
