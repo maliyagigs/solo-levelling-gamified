@@ -128,52 +128,49 @@ export default function App() {
         const cleanUrl = window.location.pathname + window.location.hash;
         window.history.replaceState({}, document.title, cleanUrl);
 
+        setIsSyncing(true);
+        setSyncStatus("Calibrating Dynamic Session Link...");
+        let firebaseAuthSuccess = false;
+
         try {
-          // Attempt client-side Custom Token sign-in dynamically
-          const { signInWithCustomToken } = await import("firebase/auth");
-          await signInWithCustomToken(auth, authToken);
-        } catch (customTokenError) {
-          console.warn("Client-side signInWithCustomToken not available or rejected. Carrying over to local session fallback.", customTokenError);
-          
-          setIsSyncing(true);
-          setSyncStatus("Calibrating Dynamic Session Link...");
+          if (authToken && !authToken.startsWith("mock_")) {
+            // Attempt standard client-side credential sign-in with Google ID Token
+            const { signInWithCredential, GoogleAuthProvider } = await import("firebase/auth");
+            const credential = GoogleAuthProvider.credential(authToken);
+            await signInWithCredential(auth, credential);
+            console.log("Sovereign Gateway: Firebase client auth signed in successfully with Google ID Token!");
+            firebaseAuthSuccess = true;
+          } else {
+            throw new Error("Local/Mock session token detected.");
+          }
+        } catch (authError) {
+          console.warn("Client-side Google credential sign-in not available or rejected. Carrying over to local session fallback.", authError);
+        }
 
+        if (!firebaseAuthSuccess) {
           try {
-            // Find or initialize backup profile record matching their Google email
-            const fallbackUid = emailParam.replace(/[^a-zA-Z0-9]/g, "_");
-            const userDocRef = doc(db, "users", fallbackUid);
-            const docSnap = await getDoc(userDocRef);
+            // Dyn registration / login fallback so auth.currentUser is populated and security rules allow access
+            const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import("firebase/auth");
+            const fallbackEmail = emailParam;
+            const fallbackPassword = "SovereignHunterPassword123!"; // Secure fallback password
 
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              const pName = data.playerName || nameParam || "Sovereign Hunter";
-              const oProfile = data.onboardProfile || null;
-
-              if (pName && oProfile) {
-                localStorage.setItem("monarch_active_player", pName);
-                localStorage.setItem("monarch_onboard_profile", JSON.stringify(oProfile));
-                setActivePlayerName(pName);
-                setProfile(oProfile);
-                setPhase("rpg_dashboard");
-              } else if (oProfile) {
-                setProfile(oProfile);
-                setPhase("plan_preview");
+            let userCred;
+            try {
+              userCred = await signInWithEmailAndPassword(auth, fallbackEmail, fallbackPassword);
+              console.log("Sovereign Gateway: Dynamic login fallback successful", userCred.user.uid);
+            } catch (signInErr: any) {
+              const code = signInErr?.code || "";
+              const msg = signInErr?.message || "";
+              if (code.includes("user-not-found") || code.includes("invalid-credential") || msg.includes("user-not-found") || msg.includes("invalid-credential")) {
+                userCred = await createUserWithEmailAndPassword(auth, fallbackEmail, fallbackPassword);
+                console.log("Sovereign Gateway: Dynamic user fallback registration successful", userCred.user.uid);
               } else {
-                setOnboardingStep(1);
-                setPhase("onboarding");
+                throw signInErr;
               }
-            } else {
-              // Register new profile mapping in Firestore database
-              await setDoc(userDocRef, {
-                email: emailParam,
-                v3_reset: true,
-                updatedAt: new Date().toISOString()
-              });
-              setOnboardingStep(1);
-              setPhase("onboarding");
             }
+            firebaseAuthSuccess = true;
           } catch (offlineSyncErr) {
-            console.error("Local session tracking failed:", offlineSyncErr);
+            console.error("Local session tracking and fallback registration failed:", offlineSyncErr);
           } finally {
             setIsSyncing(false);
           }

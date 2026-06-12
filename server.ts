@@ -80,16 +80,20 @@ async function startServer() {
     // Google OAuth web client credentials
     const clientId = process.env.VITE_GOOGLE_WEB_CLIENT_ID || "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com";
     
-    // Construct the fully dynamic callback url
-    const host = req.get("host") || "localhost:3000";
-    const xForwardedProto = req.headers["x-forwarded-proto"];
-    const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
-    const redirectUri = `${protocol}://${host}/api/auth/callback`;
+    // Construct the fully dynamic callback url using our robust APP_URL resolving pattern
+    let baseDomain = process.env.APP_URL;
+    if (baseDomain) {
+      if (baseDomain.endsWith("/")) {
+        baseDomain = baseDomain.slice(0, -1);
+      }
+    } else {
+      const host = req.get("host") || "localhost:3000";
+      const xForwardedProto = req.headers["x-forwarded-proto"];
+      const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
+      baseDomain = `${protocol}://${host}`;
+    }
+    const redirectUri = `${baseDomain}/api/auth/callback`;
     
-    const userAgent = req.headers["user-agent"] || "";
-    const isMobile = req.query.platform === "mobile" || userAgent.includes("Capacitor") || userAgent.includes("MobileAuthSovereign");
-    
-    // Construct Google OAuth 2.0 raw authorize parameters
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -97,8 +101,7 @@ async function startServer() {
       scope: "openid email profile",
       access_type: "offline",
       prompt: "consent",
-      // Pass platform state to the callback
-      state: isMobile ? "mobile" : "web"
+      state: "web"
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -106,17 +109,10 @@ async function startServer() {
     return res.redirect(googleAuthUrl);
   });
 
-  // This endpoint handles the post-login redirect for mobile apps vs web
+  // This endpoint handles the post-login redirect for the web app
   app.get("/api/auth/callback", async (req, res) => {
     const { code, state } = req.query;
     console.log("Handling Google Auth Callback. Code received:", code ? "YES" : "NO", "State:", state);
-
-    const userAgent = req.headers["user-agent"] || "";
-    // Check if the request is coming from the mobile app (Capacitor/WebView)
-    const isMobileAppRequest = state === "mobile" || 
-                               req.query.platform === "mobile" || 
-                               userAgent.includes("Capacitor") || 
-                               userAgent.includes("MobileAuthSovereign");
 
     let email = "hunter.solo@monarch.system";
     let name = "Sovereign Hunter";
@@ -126,10 +122,19 @@ async function startServer() {
       try {
         const clientId = process.env.VITE_GOOGLE_WEB_CLIENT_ID || "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com";
         const clientSecret = process.env.GOOGLE_WEB_CLIENT_SECRET || "";
-        const host = req.get("host") || "localhost:3000";
-        const xForwardedProto = req.headers["x-forwarded-proto"];
-        const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
-        const redirectUri = `${protocol}://${host}/api/auth/callback`;
+        
+        let baseDomain = process.env.APP_URL;
+        if (baseDomain) {
+          if (baseDomain.endsWith("/")) {
+            baseDomain = baseDomain.slice(0, -1);
+          }
+        } else {
+          const host = req.get("host") || "localhost:3000";
+          const xForwardedProto = req.headers["x-forwarded-proto"];
+          const protocol = req.secure || xForwardedProto === "https" ? "https" : "http";
+          baseDomain = `${protocol}://${host}`;
+        }
+        const redirectUri = `${baseDomain}/api/auth/callback`;
 
         // Exchange authorization code for modern Google JWT tokens
         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -179,16 +184,9 @@ async function startServer() {
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
-    if (isMobileAppRequest) {
-      // Send the user to the custom schema registry built for the mobile app
-      const deepLink = `monarch://auth-callback?token=${encodeURIComponent(sessionToken)}`;
-      console.log(`Deep Linking: Redirecting mobile user with token to: ${deepLink}`);
-      return res.redirect(deepLink);
-    } else {
-      // Standard web flow: pass details so frontend can sync without server-side admin credentials constraint
-      console.log(`Standard Web Auth: Redirecting back to dashboard root for user ${email}`);
-      return res.redirect(`/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
-    }
+    // Standard web flow: pass details so frontend can sync without server-side admin credentials constraint
+    console.log(`Standard Web Auth: Redirecting back to dashboard root for user ${email}`);
+    return res.redirect(`/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
   });
 
   // Vite middleware for development

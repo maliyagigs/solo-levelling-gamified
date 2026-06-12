@@ -3,7 +3,10 @@ import { auth, db } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signInWithRedirect,
+  GoogleAuthProvider
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { 
@@ -34,6 +37,9 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
     const code = err?.code || "";
     const msg = err?.message || "";
     
+    if (code.includes("unauthorized-domain") || msg.includes("unauthorized-domain")) {
+      return "Domain Authorization Required: This platform's domain (solo-levelling-gamified.vercel.app) has not been authorized in your Firebase Project Console yet. Ask the system administrator to go to Firebase Console -> Authentication -> Settings -> Authorized Domains, and add 'solo-levelling-gamified.vercel.app' as an authorized domain.";
+    }
     if (code.includes("invalid-credential") || msg.includes("invalid-credential") || code.includes("wrong-password")) {
       return "Access Denied: The credentials supplied do not match our database registries. Double-check your password. Or, if you are a new candidate user, please select the 'REGISTER' tab above to initialize your account first!";
     }
@@ -97,35 +103,89 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
     }
   };
 
-  const handleGoogleAuth = () => {
-    setError(null);
-    setAuthLoading(true);
+  const handleGoogleAuth = async () => {
+    try {
+      setError(null);
+      setAuthLoading(true);
 
-    const userAgent = navigator.userAgent || window.navigator.userAgent || "";
-    const isMobileApp = (window as any).Capacitor || 
-                        userAgent.includes("Capacitor") ||
-                        userAgent.includes("MobileAuthSovereign") ||
-                        window.location.search.includes("platform=mobile") ||
-                        window.location.search.includes("platform=android");
+      // Resolve base url
+      const currentHost = window.location.hostname;
+      const isLocalOrPreviewDev = currentHost === "localhost" || 
+                                  currentHost.includes("127.0.0.1") || 
+                                  currentHost.includes("run.app");
+      
+      const apiBaseUrl = isLocalOrPreviewDev 
+        ? window.location.origin 
+        : "https://solo-levelling-gamified.vercel.app";
 
-    // Resolve base url: Use current origin if we are in local development / Google AI Studio container
-    // Otherwise default to the production Vercel app domain to prevent file:// navigation errors inside WebViews
-    const currentHost = window.location.hostname;
-    const isLocalOrPreviewDev = currentHost === "localhost" || 
-                                currentHost.includes("127.0.0.1") || 
-                                currentHost.includes("run.app");
-    
-    const apiBaseUrl = isLocalOrPreviewDev 
-      ? window.location.origin 
-      : "https://solo-levelling-gamified.vercel.app";
-
-    const authPath = `${apiBaseUrl}/api/auth/google`;
-
-    // Redirect directly to backend Google Auth system
-    if (isMobileApp) {
-      window.location.href = `${authPath}?platform=mobile`;
-    } else {
-      window.location.href = authPath;
+      // Standard modern browser flow: Pure Google Client-Side Auth Popup
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      console.log("Sovereign Gateway: Launching native Google accounts popup window...");
+      const credential = await signInWithPopup(auth, provider);
+      
+      if (credential.user) {
+        console.log("Sovereign Gateway: Standard Google credential login fully verified!");
+        
+        // Write standard onboarding profile registry entry if this is a new candidate
+        const userDocRef = doc(db, "users", credential.user.uid);
+        const docSnap = await getDoc(userDocRef);
+        
+        if (!docSnap.exists()) {
+          await setDoc(userDocRef, {
+            email: credential.user.email,
+            v3_reset: true,
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        onSuccess();
+      }
+    } catch (err: any) {
+      console.error("Popup signature auth failed, negotiating secondary fallback...", err);
+      
+      const code = err?.code || "";
+      const msg = err?.message || "";
+      
+      if (code.includes("unauthorized-domain") || msg.includes("unauthorized-domain")) {
+        setError("Domain Authorization Required: This platform's domain (solo-levelling-gamified.vercel.app) is not authorized in your Firebase Project Console yet. Go to Firebase Console -> Authentication -> Settings -> Authorized Domains, and add 'solo-levelling-gamified.vercel.app' to resolve this.");
+        return;
+      }
+      
+      // Auto-trigger fallback redirect only for browser-partitioned or popup-blocked circumstances
+      if (
+        code.includes("popup-blocked") || 
+        code.includes("popup-closed-by-user") || 
+        msg.includes("webview") || 
+        msg.includes("partition") ||
+        msg.includes("storage-partition")
+      ) {
+        const currentHost = window.location.hostname;
+        const isLocalOrPreviewDev = currentHost === "localhost" || 
+                                    currentHost.includes("127.0.0.1") || 
+                                    currentHost.includes("run.app");
+        
+        if (!isLocalOrPreviewDev) {
+          console.log("Sovereign Gateway: Client-side redirect flow fallback initiated...");
+          try {
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            await signInWithRedirect(auth, provider);
+          } catch (redirectErr: any) {
+            console.error("Client-side direct authentication fallback aborted:", redirectErr);
+            setError(getFriendlyErrorMessage(redirectErr));
+          }
+        } else {
+          const apiBaseUrl = window.location.origin;
+          console.log("Redirecting to Google auth via endpoint fallback...");
+          window.location.href = `${apiBaseUrl}/api/auth/google`;
+        }
+      } else {
+        setError(getFriendlyErrorMessage(err));
+      }
+    } finally {
+      setAuthLoading(false);
     }
   };
 
