@@ -3,9 +3,11 @@ import { auth, db } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { 
   Lock, 
   Mail, 
@@ -14,7 +16,8 @@ import {
   UserPlus, 
   LogIn, 
   Fingerprint, 
-  ShieldCheck 
+  ShieldCheck,
+  Chrome
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -90,6 +93,45 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
       onSuccess();
     } catch (err: any) {
       console.error("Auth process failure:", err);
+      setError(getFriendlyErrorMessage(err));
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    try {
+      if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+         throw new Error("AUTHENTICATION_SYS_FAILURE: Sovereign Gateway is currently offline. Please wait for recalibration or refresh.");
+      }
+
+      setError(null);
+      setAuthLoading(true);
+      const provider = new GoogleAuthProvider();
+      
+      // Enforce the specific client ID for the Google Identity flow if desired
+      // provider.setCustomParameters({ 
+      //   client_id: "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com" 
+      // });
+      
+      const credential = await signInWithPopup(auth, provider);
+      
+      if (credential.user) {
+        const userDocRef = doc(db, "users", credential.user.uid);
+        const docSnap = await getDoc(userDocRef);
+        
+        if (!docSnap.exists()) {
+          // Initialize first-time Google user in the database
+          await setDoc(userDocRef, {
+            email: credential.user.email,
+            v3_reset: true,
+            updatedAt: serverTimestamp()
+          });
+          onSuccess(); // Inform top level if needed
+        }
+      }
+    } catch (err: any) {
+      console.error("Google Auth failure:", err);
       setError(getFriendlyErrorMessage(err));
     } finally {
       setAuthLoading(false);
@@ -199,6 +241,28 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
         </div>
 
         {/* Input credentials interaction form */}
+        <div className="mb-6 space-y-3">
+          <button
+            type="button"
+            disabled={authLoading}
+            onClick={handleGoogleAuth}
+            className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs uppercase p-4 h-12 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition shadow-md disabled:opacity-50 active:scale-98"
+          >
+            {authLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin text-slate-900" />
+            ) : (
+              <Chrome className="w-4 h-4 text-blue-500" />
+            )}
+            <span>Shadow Login with Google</span>
+          </button>
+          
+          <div className="flex items-center gap-4 my-2 px-1">
+            <div className="h-px bg-slate-800 flex-1" />
+            <span className="text-[10px] text-slate-600 font-mono uppercase">OR</span>
+            <div className="h-px bg-slate-800 flex-1" />
+          </div>
+        </div>
+
         <form onSubmit={handleEmailAuth} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[10px] text-slate-500 font-mono uppercase tracking-wider block" htmlFor="gateway_email">

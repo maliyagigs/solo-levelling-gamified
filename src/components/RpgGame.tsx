@@ -183,7 +183,7 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
 
   // Social Notification Listener
   useEffect(() => {
-    if (!playerName) return;
+    if (!playerName || !auth.currentUser) return;
     const unsub = listenToFriendships(playerName, (list) => {
        const pending = list.filter(f => f.status === 'pending' && f.requestedBy !== playerName);
        setFriendRequests(pending);
@@ -354,53 +354,57 @@ export default function RpgGame({ playerName, onboardProfile, onLogout }: RpgGam
     });
 
     // 4. Listen live to Player Leaderboard profile to merge stats (Level, Gold, Job, Rank)
-    const unsubPlayer = onSnapshot(doc(db, "leaderboard", playerName), (docSnap) => {
-      if (docSnap.exists()) {
-        const d = docSnap.data();
-        setGameState(prev => {
-          // Compare to prevent loop re-renders
-          if (
-            prev.level === d.level &&
-            prev.gold === d.gold &&
-            prev.job === d.job &&
-            prev.rank === d.rank
-          ) {
-            return prev;
-          }
-          triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly!`);
-          return {
-            ...prev,
-            level: d.level !== undefined && d.level !== null ? Number(d.level) : prev.level,
-            exp: d.exp !== undefined && d.exp !== null ? Number(d.exp) : prev.exp,
-            maxExp: d.maxExp !== undefined && d.maxExp !== null ? Number(d.maxExp) : prev.maxExp,
-            gold: d.gold !== undefined && d.gold !== null ? Number(d.gold) : prev.gold,
-            statPoints: d.statPoints !== undefined && d.statPoints !== null ? Number(d.statPoints) : prev.statPoints,
-            baseStats: d.baseStats ?? prev.baseStats,
-            job: d.job ?? prev.job,
-            rank: d.rank ?? prev.rank,
-            inventory: d.inventory ?? prev.inventory,
-            shadows: d.shadows ?? prev.shadows,
-            skills: d.skills ?? prev.skills,
-            quests: d.quests ?? prev.quests,
-            storyStep: d.storyStep !== undefined && d.storyStep !== null ? Number(d.storyStep) : prev.storyStep,
-            manaStaked: d.manaStaked !== undefined && d.manaStaked !== null ? Number(d.manaStaked) : prev.manaStaked,
-            boosterMultiplier: d.boosterMultiplier !== undefined && d.boosterMultiplier !== null ? Number(d.boosterMultiplier) : prev.boosterMultiplier,
-            sigils: d.sigils !== undefined && d.sigils !== null ? Number(d.sigils) : prev.sigils,
-            prestigePoints: d.prestigePoints !== undefined && d.prestigePoints !== null ? Number(d.prestigePoints) : prev.prestigePoints,
-            weeklyManaAccumulated: d.weeklyManaAccumulated !== undefined && d.weeklyManaAccumulated !== null ? Number(d.weeklyManaAccumulated) : prev.weeklyManaAccumulated,
-            weeklyExpAccumulated: d.weeklyExpAccumulated !== undefined && d.weeklyExpAccumulated !== null ? Number(d.weeklyExpAccumulated) : prev.weeklyExpAccumulated,
-            dailyManaAccumulated: d.dailyManaAccumulated !== undefined && d.dailyManaAccumulated !== null ? Number(d.dailyManaAccumulated) : prev.dailyManaAccumulated,
-            weeklyCyclesCompleted: d.weeklyCyclesCompleted !== undefined && d.weeklyCyclesCompleted !== null ? Number(d.weeklyCyclesCompleted) : prev.weeklyCyclesCompleted,
-            weeklyHistory: d.weeklyHistory ?? prev.weeklyHistory,
-            dailyGatesCleared: d.dailyGatesCleared !== undefined && d.dailyGatesCleared !== null ? Number(d.dailyGatesCleared) : prev.dailyGatesCleared,
-            dailyFocusMinutes: d.dailyFocusMinutes !== undefined && d.dailyFocusMinutes !== null ? Number(d.dailyFocusMinutes) : prev.dailyFocusMinutes
-          };
-        });
-      }
-    }, (err) => {
-      console.error("Player live-sync failed:", err);
-      handleFirestoreError(err, OperationType.GET, `leaderboard/${playerName}`);
-    });
+    // Only listen if user is authenticated and playerName is valid
+    let unsubPlayer = () => {};
+    if (auth.currentUser) {
+      unsubPlayer = onSnapshot(doc(db, "leaderboard", playerName), (docSnap) => {
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          setGameState(prev => {
+            // Compare to prevent loop re-renders
+            if (
+              prev.level === d.level &&
+              prev.gold === d.gold &&
+              prev.job === d.job &&
+              prev.rank === d.rank
+            ) {
+              return prev;
+            }
+            triggerSystemToast(`⚡ SYSTEM INTRUSION DETECTED: Master Overlord updated stats directly!`);
+            return {
+              ...prev,
+              level: d.level !== undefined && d.level !== null ? Number(d.level) : prev.level,
+              exp: d.exp !== undefined && d.exp !== null ? Number(d.exp) : prev.exp,
+              maxExp: d.maxExp !== undefined && d.maxExp !== null ? Number(d.maxExp) : prev.maxExp,
+              gold: d.gold !== undefined && d.gold !== null ? Number(d.gold) : prev.gold,
+              statPoints: d.statPoints !== undefined && d.statPoints !== null ? Number(d.statPoints) : prev.statPoints,
+              baseStats: d.baseStats ?? prev.baseStats,
+              job: d.job ?? prev.job,
+              rank: d.rank ?? prev.rank,
+              inventory: d.inventory ?? prev.inventory,
+              shadows: d.shadows ?? prev.shadows,
+              skills: d.skills ?? prev.skills,
+              quests: d.quests ?? prev.quests,
+              storyStep: d.storyStep !== undefined && d.storyStep !== null ? Number(d.storyStep) : prev.storyStep,
+              manaStaked: d.manaStaked !== undefined && d.manaStaked !== null ? Number(d.manaStaked) : prev.manaStaked,
+              boosterMultiplier: d.boosterMultiplier !== undefined && d.boosterMultiplier !== null ? Number(d.boosterMultiplier) : prev.boosterMultiplier,
+              sigils: d.sigils !== undefined && d.sigils !== null ? Number(d.sigils) : prev.sigils,
+              prestigePoints: d.prestigePoints !== undefined && d.prestigePoints !== null ? Number(d.prestigePoints) : prev.prestigePoints,
+              weeklyManaAccumulated: d.weeklyManaAccumulated !== undefined && d.weeklyManaAccumulated !== null ? Number(d.weeklyManaAccumulated) : prev.weeklyManaAccumulated,
+              weeklyExpAccumulated: d.weeklyExpAccumulated !== undefined && d.weeklyExpAccumulated !== null ? Number(d.weeklyExpAccumulated) : prev.weeklyExpAccumulated,
+              dailyManaAccumulated: d.dailyManaAccumulated !== undefined && d.dailyManaAccumulated !== null ? Number(d.dailyManaAccumulated) : prev.dailyManaAccumulated,
+              weeklyCyclesCompleted: d.weeklyCyclesCompleted !== undefined && d.weeklyCyclesCompleted !== null ? Number(d.weeklyCyclesCompleted) : prev.weeklyCyclesCompleted,
+              weeklyHistory: d.weeklyHistory ?? prev.weeklyHistory,
+              dailyGatesCleared: d.dailyGatesCleared !== undefined && d.dailyGatesCleared !== null ? Number(d.dailyGatesCleared) : prev.dailyGatesCleared,
+              dailyFocusMinutes: d.dailyFocusMinutes !== undefined && d.dailyFocusMinutes !== null ? Number(d.dailyFocusMinutes) : prev.dailyFocusMinutes
+            };
+          });
+        }
+      }, (err) => {
+        console.error("Player live-sync failed:", err);
+        handleFirestoreError(err, OperationType.GET, `leaderboard/${playerName}`);
+      });
+    }
 
     return () => {
       unsubAnn();

@@ -11,7 +11,7 @@ import {
   Gamepad2
 } from "lucide-react";
 import { ChatMessage, Friendship, sendChatMessage, listenToMessages, sendFriendRequest, acceptFriendRequest, listenToFriendships, deleteFriendship } from "../utils/social";
-import { fetchLeaderboard, LeaderboardUser } from "../utils/firebase";
+import { fetchLeaderboard, LeaderboardUser, auth } from "../utils/firebase";
 
 interface SocialHubProps {
   playerName: string;
@@ -120,7 +120,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   const [friendships, setFriendships] = useState<Friendship[]>([]);
 
   useEffect(() => {
-    if (socialTab === "leaderboard") {
+    if (socialTab === "leaderboard" && auth.currentUser) {
       const loadLeaderboard = async () => {
         setLoadingLeaderboard(true);
         const data = await fetchLeaderboard();
@@ -132,7 +132,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   }, [socialTab]);
 
   useEffect(() => {
-    if (socialTab === "chat" && !activeDmFriend) {
+    if (socialTab === "chat" && !activeDmFriend && auth.currentUser) {
       const unsub = listenToMessages("global", (msgs) => {
         setMessages(msgs);
       });
@@ -141,7 +141,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   }, [socialTab, activeDmFriend]);
 
   useEffect(() => {
-    if (activeDmFriend) {
+    if (activeDmFriend && auth.currentUser) {
       const channel = [playerName, activeDmFriend].sort().join("::");
       const unsub = listenToMessages(channel, (msgs) => {
         setDmMessages(msgs);
@@ -153,7 +153,7 @@ export const SocialHub: React.FC<SocialHubProps> = ({ playerName, onOpenPartyMod
   }, [activeDmFriend, playerName]);
 
   useEffect(() => {
-    if (!playerName) return;
+    if (!playerName || !auth.currentUser) return;
     const unsub = listenToFriendships(playerName, (list) => {
       setFriendships(list);
     });

@@ -18,7 +18,7 @@ const PlanPreview = lazy(() => import("./components/PlanPreview"));
 const RpgGame = lazy(() => import("./components/RpgGame"));
 const AdminPanel = lazy(() => import("./components/AdminPanel"));
 const PartyApp = lazy(() => import("./party/PartyApp"));
-const AuthScreen = lazy(() => import("./components/AuthScreen"));
+import AuthScreen from "./components/AuthScreen";
 
 type AppPhase = "authentication" | "onboarding" | "plan_preview" | "rpg_dashboard";
 

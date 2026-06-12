@@ -24,46 +24,9 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
 
-let db: any;
-try {
-  // Enable local cache persistence for ultra-fast, offline-first retrieval in Android WebViews
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  }, firebaseConfig.firestoreDatabaseId);
-} catch (e) {
-  console.warn("Firestore persistent cache setup failed or blocked in this environment (falling back)...", e);
-  try {
-    db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-  } catch (err) {
-    console.error("Critical: Firestore initialization failed (using dummy fallback):", err);
-    db = {} as any;
-  }
-}
-
-let auth: any;
-try {
-  // Safe priority persistence config avoids crashes in storage-blocked frames
-  auth = initializeAuth(app, {
-    persistence: [browserLocalPersistence, indexedDBLocalPersistence, inMemoryPersistence]
-  });
-} catch (e) {
-  console.warn("initializeAuth failed, trying standard getAuth:", e);
-  try {
-    auth = getAuth(app);
-  } catch (err) {
-    console.error("Critical: Firebase Auth initialization completely failed:", err);
-    auth = {
-      currentUser: null,
-      onAuthStateChanged: (cb: any) => {
-        cb(null);
-        return () => {};
-      },
-      signOut: async () => {}
-    } as any;
-  }
-}
+// Standard initialization for robustness
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const auth = getAuth(app);
 
 export { db, auth };
 
