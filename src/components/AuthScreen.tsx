@@ -107,13 +107,10 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
 
       setError(null);
       setAuthLoading(true);
+      
       const provider = new GoogleAuthProvider();
       
-      // Enforce the specific client ID for the Google Identity flow if desired
-      // provider.setCustomParameters({ 
-      //   client_id: "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com" 
-      // });
-      
+      // Attempting popup authentication as recommended for dimensional compatibility (WebViews)
       const credential = await signInWithPopup(auth, provider);
       
       if (credential.user) {
@@ -127,8 +124,8 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
             v3_reset: true,
             updatedAt: serverTimestamp()
           });
-          onSuccess(); // Inform top level if needed
         }
+        // onSuccess will be triggered by onAuthStateChanged in App.tsx
       }
     } catch (err: any) {
       console.error("Google Auth failure:", err);

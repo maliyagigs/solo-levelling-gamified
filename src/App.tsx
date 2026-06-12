@@ -313,7 +313,12 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await import("firebase/auth").then(m => m.signOut(auth));
+    try {
+      const { signOut } = await import("firebase/auth");
+      await signOut(auth);
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
     
     // Thoroughly wipe all monarch_ session data from local storage
     const keysToRemove: string[] = [];
@@ -327,7 +332,7 @@ export default function App() {
     
     setOnboardingStep(0);
     setProfile(null);
-    setPhase("onboarding");
+    setPhase("authentication");
   };
 
   const [syncStatus, setSyncStatus] = useState<string>("Initializing Spatial Gateway...");
