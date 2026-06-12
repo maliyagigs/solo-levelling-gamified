@@ -108,11 +108,24 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
                         window.location.search.includes("platform=mobile") ||
                         window.location.search.includes("platform=android");
 
+    // Resolve base url: Use current origin if we are in local development / Google AI Studio container
+    // Otherwise default to the production Vercel app domain to prevent file:// navigation errors inside WebViews
+    const currentHost = window.location.hostname;
+    const isLocalOrPreviewDev = currentHost === "localhost" || 
+                                currentHost.includes("127.0.0.1") || 
+                                currentHost.includes("run.app");
+    
+    const apiBaseUrl = isLocalOrPreviewDev 
+      ? window.location.origin 
+      : "https://solo-levelling-gamified.vercel.app";
+
+    const authPath = `${apiBaseUrl}/api/auth/google`;
+
     // Redirect directly to backend Google Auth system
     if (isMobileApp) {
-      window.location.href = "/api/auth/google?platform=mobile";
+      window.location.href = `${authPath}?platform=mobile`;
     } else {
-      window.location.href = "/api/auth/google";
+      window.location.href = authPath;
     }
   };
 
