@@ -114,77 +114,19 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
                                   currentHost.includes("127.0.0.1") || 
                                   currentHost.includes("run.app");
       
+      // Force fallback production to fully running Cloud Run Express backend for cross-site cookie and callback processing
       const apiBaseUrl = isLocalOrPreviewDev 
         ? window.location.origin 
-        : "https://solo-levelling-gamified.vercel.app";
+        : "https://ais-pre-2u6hnao5ptyt32t4dotmza-169390099867.asia-east1.run.app";
 
-      // Standard modern browser flow: Pure Google Client-Side Auth Popup
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
-      console.log("Sovereign Gateway: Launching native Google accounts popup window...");
-      const credential = await signInWithPopup(auth, provider);
-      
-      if (credential.user) {
-        console.log("Sovereign Gateway: Standard Google credential login fully verified!");
-        
-        // Write standard onboarding profile registry entry if this is a new candidate
-        const userDocRef = doc(db, "users", credential.user.uid);
-        const docSnap = await getDoc(userDocRef);
-        
-        if (!docSnap.exists()) {
-          await setDoc(userDocRef, {
-            email: credential.user.email,
-            v3_reset: true,
-            updatedAt: serverTimestamp()
-          });
-        }
-        
-        onSuccess();
-      }
+      const currentOrigin = window.location.origin;
+      const authUrl = `${apiBaseUrl}/api/auth/google?redirect_back=${encodeURIComponent(currentOrigin)}`;
+
+      console.log("Sovereign Gateway: Direct client-to-server Google OAuth flow initiated. Redirecting to:", authUrl);
+      window.location.href = authUrl;
     } catch (err: any) {
-      console.error("Popup signature auth failed, negotiating secondary fallback...", err);
-      
-      const code = err?.code || "";
-      const msg = err?.message || "";
-      
-      if (code.includes("unauthorized-domain") || msg.includes("unauthorized-domain")) {
-        setError("Domain Authorization Required: This platform's domain (solo-levelling-gamified.vercel.app) is not authorized in your Firebase Project Console yet. Go to Firebase Console -> Authentication -> Settings -> Authorized Domains, and add 'solo-levelling-gamified.vercel.app' to resolve this.");
-        return;
-      }
-      
-      // Auto-trigger fallback redirect only for browser-partitioned or popup-blocked circumstances
-      if (
-        code.includes("popup-blocked") || 
-        code.includes("popup-closed-by-user") || 
-        msg.includes("webview") || 
-        msg.includes("partition") ||
-        msg.includes("storage-partition")
-      ) {
-        const currentHost = window.location.hostname;
-        const isLocalOrPreviewDev = currentHost === "localhost" || 
-                                    currentHost.includes("127.0.0.1") || 
-                                    currentHost.includes("run.app");
-        
-        if (!isLocalOrPreviewDev) {
-          console.log("Sovereign Gateway: Client-side redirect flow fallback initiated...");
-          try {
-            const provider = new GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            await signInWithRedirect(auth, provider);
-          } catch (redirectErr: any) {
-            console.error("Client-side direct authentication fallback aborted:", redirectErr);
-            setError(getFriendlyErrorMessage(redirectErr));
-          }
-        } else {
-          const apiBaseUrl = window.location.origin;
-          console.log("Redirecting to Google auth via endpoint fallback...");
-          window.location.href = `${apiBaseUrl}/api/auth/google`;
-        }
-      } else {
-        setError(getFriendlyErrorMessage(err));
-      }
-    } finally {
+      console.error("Sovereign Gateway Error: Direct Google Auth redirect failed:", err);
+      setError("Strategic Fault: Failed to navigate to secure Google redirect endpoint.");
       setAuthLoading(false);
     }
   };

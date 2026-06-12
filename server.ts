@@ -75,7 +75,7 @@ async function startServer() {
   // --- Auth & Deep Linking ---
   // Endpoint to start the Google OAuth flow or simulate redirect
   app.get("/api/auth/google", (req, res) => {
-    console.log("Start Google Auth redirection request received.");
+    console.log("Start Google Auth redirection request received. Query params:", req.query);
     
     // Google OAuth web client credentials
     const clientId = process.env.VITE_GOOGLE_WEB_CLIENT_ID || "86371107307-o55p2sdi664cmiq2pei39fhlt0f6l2rc.apps.googleusercontent.com";
@@ -94,6 +94,14 @@ async function startServer() {
     }
     const redirectUri = `${baseDomain}/api/auth/callback`;
     
+    // Decode incoming redirect origin (useful for direct iframe/cross-domain callback mapping)
+    const redirectBack = (req.query.redirect_back as string) || "";
+    const stateObj = {
+      platform: "web",
+      redirect_back: redirectBack
+    };
+    const stateStr = Buffer.from(JSON.stringify(stateObj)).toString("base64");
+
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -101,7 +109,7 @@ async function startServer() {
       scope: "openid email profile",
       access_type: "offline",
       prompt: "consent",
-      state: "web"
+      state: stateStr
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -113,6 +121,19 @@ async function startServer() {
   app.get("/api/auth/callback", async (req, res) => {
     const { code, state } = req.query;
     console.log("Handling Google Auth Callback. Code received:", code ? "YES" : "NO", "State:", state);
+
+    let clientRedirectOrigin = "";
+    if (state) {
+      try {
+        const decodedState = JSON.parse(Buffer.from(state as string, "base64").toString("utf-8"));
+        if (decodedState.redirect_back) {
+          clientRedirectOrigin = decodedState.redirect_back;
+          console.log("Decoded redirect back origin from state:", clientRedirectOrigin);
+        }
+      } catch (err) {
+        console.warn("Could not decode state query parameter:", err);
+      }
+    }
 
     let email = "hunter.solo@monarch.system";
     let name = "Sovereign Hunter";
@@ -185,8 +206,12 @@ async function startServer() {
     });
 
     // Standard web flow: pass details so frontend can sync without server-side admin credentials constraint
-    console.log(`Standard Web Auth: Redirecting back to dashboard root for user ${email}`);
-    return res.redirect(`/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
+    const destinationUrl = clientRedirectOrigin 
+      ? `${clientRedirectOrigin}/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`
+      : `/?auth_token=${encodeURIComponent(sessionToken)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
+
+    console.log(`Standard Web Auth: Redirecting back to dashboard root at ${destinationUrl} for user ${email}`);
+    return res.redirect(destinationUrl);
   });
 
   // Vite middleware for development
