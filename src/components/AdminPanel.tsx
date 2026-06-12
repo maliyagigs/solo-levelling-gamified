@@ -15,7 +15,7 @@ import {
 import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { renderNeonWeaponPreview } from "./NeonWeaponInspector";
+import { renderNeonWeaponPreview, Rotatable3DWeapon } from "./NeonWeaponInspector";
 import { 
   Shield, 
   User, 
@@ -36,7 +36,8 @@ import {
   Radio,
   Activity,
   ShoppingBag,
-  Upload
+  Upload,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -240,6 +241,7 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [adminMsgInput, setAdminMsgInput] = useState("");
+  const [selectedWeaponPreview, setSelectedWeaponPreview] = useState<string | null>(null);
 
   const showNotification = (message: string, type: "success" | "error" = "success") => {
     setNotification({ message, type });
@@ -1941,14 +1943,22 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       {gates.map(gate => (
                         <div key={gate.id} className="p-4 bg-slate-950/40 border border-slate-900 rounded-xl flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-sm shadow-[0_0_10px_rgba(16,185,129,0.15)] overflow-hidden relative">
-                              <div className="absolute w-full h-full transform scale-150">
+                            <div 
+                              className="w-10 h-10 rounded-lg bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-sm shadow-[0_0_10px_rgba(16,185,129,0.15)] overflow-hidden relative cursor-pointer hover:border-emerald-400 transition-all"
+                              onClick={() => setSelectedWeaponPreview(gate.lootItemName)}
+                            >
+                              <div className="absolute w-full h-full transform scale-150 pointer-events-none">
                                 {renderNeonWeaponPreview(gate.lootItemName)}
                               </div>
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-slate-100">{gate.name}</h4>
+                                <h4 
+                                  className="text-xs font-bold text-slate-100 cursor-pointer hover:text-emerald-400 transition-colors"
+                                  onClick={() => setSelectedWeaponPreview(gate.lootItemName)}
+                                >
+                                  {gate.name}
+                                </h4>
                                 <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
                                   !gate.isActive 
                                     ? "border-slate-800 bg-slate-950 text-slate-600" 
@@ -1958,7 +1968,12 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                                 </span>
                               </div>
                               <span className="text-[9px] text-slate-455 block font-mono mt-0.5">
-                                Req: Lv {gate.minLevel} &middot; Loot Drop: <span className="text-amber-400 font-bold">{gate.lootItemName}</span>
+                                Req: Lv {gate.minLevel} &middot; Loot Drop: <span 
+                                  className="text-amber-400 font-bold cursor-pointer hover:text-amber-300 underline underline-offset-2 transition-colors"
+                                  onClick={() => setSelectedWeaponPreview(gate.lootItemName)}
+                                >
+                                  {gate.lootItemName}
+                                </span>
                               </span>
                             </div>
                           </div>
@@ -2272,9 +2287,12 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       {marketItems.map(item => (
                         <div key={item.id} className="bg-slate-950 border border-slate-900 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-600 shrink-0">
+                            <div 
+                              className={`w-10 h-10 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-600 shrink-0 ${item.type === "Weapon" ? "cursor-pointer hover:border-amber-500/50 hover:bg-slate-800/80 transition-all duration-300" : ""}`}
+                              onClick={() => item.type === "Weapon" && setSelectedWeaponPreview(item.name)}
+                            >
                                {item.type === "Weapon" ? (
-                                 <div className="w-full h-full transform scale-[0.6]">
+                                 <div className="w-full h-full transform scale-[0.6] pointer-events-none">
                                    {renderNeonWeaponPreview(item.name)}
                                  </div>
                                ) : (
@@ -2283,7 +2301,12 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-slate-100">{item.name}</h4>
+                                <h4 
+                                  className={`text-xs font-bold text-slate-100 ${item.type === "Weapon" ? "cursor-pointer hover:text-amber-400 transition-colors" : ""}`}
+                                  onClick={() => item.type === "Weapon" && setSelectedWeaponPreview(item.name)}
+                                >
+                                  {item.name}
+                                </h4>
                                 <span className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
                                   !item.isActive 
                                     ? "border-slate-800 bg-slate-950 text-slate-600" 
@@ -2431,6 +2454,58 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
           </div>
 
+        </div>
+      )}
+
+      {/* Dimensional Weapon Inspector Portal */}
+      {selectedWeaponPreview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-500">
+           <div className="relative w-full max-w-4xl h-[80vh] flex flex-col items-center justify-center p-8 bg-slate-900/40 border border-slate-800/50 rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+             {/* Background Effects */}
+             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.05)_0%,transparent_70%)] pointer-events-none" />
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+             
+             {/* Modal Header */}
+             <div className="absolute top-8 left-8 right-8 flex justify-between items-start z-10">
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tighter uppercase">{selectedWeaponPreview}</h2>
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-[0.3em] mt-1">Class-S Dimensional Relic Inspector</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedWeaponPreview(null)}
+                  className="p-3 bg-slate-950 hover:bg-red-950 border border-slate-800 hover:border-red-900/50 text-slate-400 hover:text-red-400 rounded-2xl transition-all shadow-2xl cursor-pointer group"
+                >
+                  <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
+                </button>
+             </div>
+
+             {/* Inspector Grid */}
+             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+                  style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+
+             {/* 3D Render Area */}
+             <div className="w-full h-full flex items-center justify-center">
+                <div className="w-[500px] h-[500px] transform scale-125">
+                   <Rotatable3DWeapon itemId={selectedWeaponPreview} />
+                </div>
+             </div>
+
+             {/* Dynamic Holographic Labels */}
+             <div className="absolute bottom-12 flex gap-12 text-center pointer-events-none">
+                <div className="space-y-1">
+                   <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Rotation Axis</div>
+                   <div className="text-[10px] font-mono text-amber-500/80">XYZ-SYNCHRONIZED</div>
+                </div>
+                <div className="space-y-1">
+                   <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Materiality</div>
+                   <div className="text-[10px] font-mono text-amber-500/80">NEON-CARBON-FIBER</div>
+                </div>
+                <div className="space-y-1">
+                   <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Render Engine</div>
+                   <div className="text-[10px] font-mono text-amber-500/80">QUANTUM-VOXEL-EXTRUSION</div>
+                </div>
+             </div>
+           </div>
         </div>
       )}
 

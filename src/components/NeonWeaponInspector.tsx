@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 // Extremely detailed menacing SVG representations of the weapons.
 const VectorWeapons = {
   rusty_dagger: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="rustyGrad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#451a03" />
@@ -43,7 +43,7 @@ const VectorWeapons = {
     </svg>
   ),
   kasaka_fang: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_20px_rgba(16,185,129,0.8)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="kasakaGrad" x1="0" y1="1" x2="1" y2="0">
           <stop offset="0%" stopColor="#064e3b" />
@@ -86,7 +86,7 @@ const VectorWeapons = {
     </svg>
   ),
   baruka_dagger: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_20px_rgba(56,189,248,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="iceGrad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#f0f9ff" />
@@ -120,7 +120,7 @@ const VectorWeapons = {
     </svg>
   ),
   demon_dagger: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(220,38,38,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="demonGrad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#450a0a" />
@@ -164,7 +164,7 @@ const VectorWeapons = {
     </svg>
   ),
   shadow_reaper: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(168,85,247,0.8)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <radialGradient id="reaperAura" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#7e22ce" />
@@ -185,7 +185,7 @@ const VectorWeapons = {
     </svg>
   ),
   kamish_fang: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(249,115,22,1)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="dragonFlame" x1="0" y1="1" x2="1" y2="0">
           <stop offset="0%" stopColor="#c2410c" />
@@ -220,7 +220,7 @@ const VectorWeapons = {
     </svg>
   ),
   vulcan_rage: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(249,115,22,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <radialGradient id="lavaCore" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#fef08a" />
@@ -250,7 +250,7 @@ const VectorWeapons = {
     </svg>
   ),
   igris_sword: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(225,29,72,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="igrisBlade" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#020617" />
@@ -299,7 +299,7 @@ const VectorWeapons = {
     </svg>
   ),
   sovereigns_wrath: (animate: boolean) => (
-    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_40px_rgba(236,72,153,1)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="wrathBladeL" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#1e1b4b" />
@@ -356,7 +356,7 @@ const VectorWeapons = {
     </svg>
   ),
   monarch_authority: (animate: boolean) => (
-    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-[0_0_40px_rgba(168,85,247,1)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <radialGradient id="authorityGlow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#e9d5ff" />
@@ -382,7 +382,7 @@ const VectorWeapons = {
     </svg>
   ),
   abyssal_void: (animate: boolean) => (
-    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(88,28,135,1)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <radialGradient id="voidCore" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#000000" />
@@ -420,7 +420,7 @@ const VectorWeapons = {
     </svg>
   ),  
   shadow_scythe: (animate: boolean) => (
-    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(147,51,234,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <radialGradient id="scytheAura" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#a855f7" />
@@ -462,7 +462,7 @@ const VectorWeapons = {
     </svg>
   ),
   hunters_bow: (animate: boolean) => (
-    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(14,165,233,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="bowMetal" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#cbd5e1" />
@@ -499,7 +499,7 @@ const VectorWeapons = {
     </svg>
   ),
   knights_shield: (animate: boolean) => (
-    <svg viewBox="0 0 160 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(59,130,246,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 160 200" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="shieldBase" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#94a3b8" />
@@ -547,7 +547,7 @@ const VectorWeapons = {
     </svg>
   ),
   mage_staff: (animate: boolean) => (
-    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-[0_0_35px_rgba(56,189,248,0.9)] ${animate ? "animate-pulse" : ""}`}>
+    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
       <defs>
         <linearGradient id="ancientWood" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#292524" />
@@ -627,7 +627,7 @@ export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
     
     // Default fallback - generic sword rather than an egg
     return (
-      <svg viewBox="0 0 100 200" className={`w-full h-full opacity-60 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] ${animate ? "animate-pulse" : ""}`}>
+      <svg viewBox="0 0 100 200" className={`w-full h-full opacity-60 drop-shadow-sm ${animate ? "animate-pulse" : ""}`}>
         {/* Simple Sword Base */}
         <path d="M45,30 L55,30 L50,10 Z" fill="#94a3b8" />
         <path d="M45,30 L55,30 L53,130 L47,130 Z" fill="#cbd5e1" />
@@ -678,11 +678,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(234, 179, 8, 0.4)",
       accentColor: "amber",
       shadows: {
-        backGlow: "drop-shadow(0 0 20px rgba(234,179,8,1)) drop-shadow(0 0 45px rgba(234,179,8,0.95)) drop-shadow(0 0 75px rgba(234,179,8,0.75)) drop-shadow(0 0 120px rgba(234,179,8,0.5))",
-        midGlow: "drop-shadow(0 0 12px rgba(234,179,8,1)) drop-shadow(0 0 25px rgba(234,179,8,0.85)) drop-shadow(0 0 50px rgba(234,179,8,0.55))",
-        frontGlow: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 15px rgba(234,179,8,1)) drop-shadow(0 0 30px rgba(234,179,8,0.85))"
+        backGlow: "drop-shadow(0 0 10px rgba(234,179,8,0.4)) drop-shadow(0 0 20px rgba(234,179,8,0.2))",
+        midGlow: "drop-shadow(0 0 5px rgba(234,179,8,0.5))",
+        frontGlow: "drop-shadow(0 0 2px rgba(255,255,255,0.4)) drop-shadow(0 0 8px rgba(234,179,8,0.6))"
       },
-      wireframeBorder: "border-amber-500/50 shadow-[inset_0_0_35px_rgba(234,179,8,0.45)]"
+      wireframeBorder: "border-amber-500/50 shadow-[inset_0_0_15px_rgba(234,179,8,0.2)]"
     },
     kasaka_fang: {
       color: "#22d3ee",
@@ -690,11 +690,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(34, 211, 238, 0.4)",
       accentColor: "cyan",
       shadows: {
-        backGlow: "drop-shadow(0 0 20px rgba(34,211,238,1)) drop-shadow(0 0 45px rgba(34,211,238,0.95)) drop-shadow(0 0 75px rgba(34,211,238,0.75)) drop-shadow(0 0 120px rgba(34,211,238,0.5))",
-        midGlow: "drop-shadow(0 0 12px rgba(34,211,238,1)) drop-shadow(0 0 25px rgba(34,211,238,0.85)) drop-shadow(0 0 50px rgba(34,211,238,0.55))",
-        frontGlow: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 15px rgba(34,211,238,1)) drop-shadow(0 0 30px rgba(34,211,238,0.85))"
+        backGlow: "drop-shadow(0 0 10px rgba(34,211,238,0.4)) drop-shadow(0 0 20px rgba(34,211,238,0.2))",
+        midGlow: "drop-shadow(0 0 5px rgba(34,211,238,0.5))",
+        frontGlow: "drop-shadow(0 0 2px rgba(255,255,255,0.4)) drop-shadow(0 0 8px rgba(34,211,238,0.6))"
       },
-      wireframeBorder: "border-cyan-500/50 shadow-[inset_0_0_35px_rgba(34,211,238,0.45)]"
+      wireframeBorder: "border-cyan-500/50 shadow-[inset_0_0_15px_rgba(34,211,238,0.2)]"
     },
     igris_sword: {
       color: "#f43f5e",
@@ -702,11 +702,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(244, 63, 94, 0.4)",
       accentColor: "rose",
       shadows: {
-        backGlow: "drop-shadow(0 0 20px rgba(244,63,94,1)) drop-shadow(0 0 45px rgba(244,63,94,0.95)) drop-shadow(0 0 75px rgba(244,63,94,0.75)) drop-shadow(0 0 120px rgba(244,63,94,0.5))",
-        midGlow: "drop-shadow(0 0 12px rgba(244,63,94,1)) drop-shadow(0 0 25px rgba(244,63,94,0.85)) drop-shadow(0 0 50px rgba(244,63,94,0.55))",
-        frontGlow: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 15px rgba(244,63,94,1)) drop-shadow(0 0 30px rgba(244,63,94,0.85))"
+        backGlow: "drop-shadow(0 0 10px rgba(244,63,94,0.4)) drop-shadow(0 0 20px rgba(244,63,94,0.2))",
+        midGlow: "drop-shadow(0 0 5px rgba(244,63,94,0.5))",
+        frontGlow: "drop-shadow(0 0 2px rgba(255,255,255,0.4)) drop-shadow(0 0 8px rgba(244,63,94,0.6))"
       },
-      wireframeBorder: "border-rose-500/50 shadow-[inset_0_0_35px_rgba(244,63,94,0.45)]"
+      wireframeBorder: "border-rose-500/50 shadow-[inset_0_0_15px_rgba(244,63,94,0.2)]"
     },
     demon_dagger: {
       color: "#818cf8",
@@ -714,11 +714,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(129, 140, 248, 0.4)",
       accentColor: "indigo",
       shadows: {
-        backGlow: "drop-shadow(0 0 20px rgba(129,140,248,1)) drop-shadow(0 0 45px rgba(129,140,248,0.95)) drop-shadow(0 0 75px rgba(129,140,248,0.75)) drop-shadow(0 0 120px rgba(129,140,248,0.5))",
-        midGlow: "drop-shadow(0 0 12px rgba(129,140,248,1)) drop-shadow(0 0 25px rgba(129,140,248,0.85)) drop-shadow(0 0 50px rgba(129,140,248,0.55))",
-        frontGlow: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 15px rgba(129,140,248,1)) drop-shadow(0 0 30px rgba(129,140,248,0.85))"
+        backGlow: "drop-shadow(0 0 10px rgba(129,140,248,0.4)) drop-shadow(0 0 20px rgba(129,140,248,0.2))",
+        midGlow: "drop-shadow(0 0 5px rgba(129,140,248,0.5))",
+        frontGlow: "drop-shadow(0 0 2px rgba(255,255,255,0.4)) drop-shadow(0 0 8px rgba(129,140,248,0.6))"
       },
-      wireframeBorder: "border-indigo-500/50 shadow-[inset_0_0_35px_rgba(129,140,248,0.45)]"
+      wireframeBorder: "border-indigo-500/50 shadow-[inset_0_0_15px_rgba(129,140,248,0.2)]"
     },
     kamish_fang: {
       color: "#db2777",
@@ -726,11 +726,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(219, 39, 119, 0.4)",
       accentColor: "purple",
       shadows: {
-        backGlow: "drop-shadow(0 0 20px rgba(219, 39, 119, 1)) drop-shadow(0 0 45px rgba(219, 39, 119, 0.95)) drop-shadow(0 0 75px rgba(219, 39, 119, 0.75)) drop-shadow(0 0 120px rgba(219, 39, 119, 0.5))",
-        midGlow: "drop-shadow(0 0 12px rgba(219, 39, 119, 1)) drop-shadow(0 0 25px rgba(219, 39, 119, 0.85)) drop-shadow(0 0 50px rgba(219, 39, 119, 0.55))",
-        frontGlow: "drop-shadow(0 0 6px #ffffff) drop-shadow(0 0 15px rgba(219, 39, 119, 1)) drop-shadow(0 0 30px rgba(219, 39, 119, 0.85))"
+        backGlow: "drop-shadow(0 0 10px rgba(219, 39, 119, 0.4)) drop-shadow(0 0 20px rgba(219, 39, 119, 0.2))",
+        midGlow: "drop-shadow(0 0 5px rgba(219, 39, 119, 0.5))",
+        frontGlow: "drop-shadow(0 0 2px rgba(255,255,255,0.4)) drop-shadow(0 0 8px rgba(219, 39, 119, 0.6))"
       },
-      wireframeBorder: "border-fuchsia-500/50 shadow-[inset_0_0_35px_rgba(219,39,119,0.45)]"
+      wireframeBorder: "border-fuchsia-500/50 shadow-[inset_0_0_15px_rgba(219,39,119,0.2)]"
     },
     sovereigns_wrath: {
       color: "#ec4899",
@@ -738,11 +738,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(236, 72, 153, 0.4)",
       accentColor: "pink",
       shadows: {
-        backGlow: "drop-shadow(0 0 25px rgba(236, 72, 153, 1)) drop-shadow(0 0 55px rgba(236, 72, 153, 0.95)) drop-shadow(0 0 90px rgba(236, 72, 153, 0.82)) drop-shadow(0 0 145px rgba(236, 72, 153, 0.6))",
-        midGlow: "drop-shadow(0 0 15px rgba(236, 72, 153, 1)) drop-shadow(0 0 30px rgba(236, 72, 153, 0.85)) drop-shadow(0 0 60px rgba(236, 72, 153, 0.55))",
-        frontGlow: "drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 20px rgba(236, 72, 153, 1)) drop-shadow(0 0 35px rgba(236, 72, 153, 0.85))"
+        backGlow: "drop-shadow(0 0 12px rgba(236, 72, 153, 0.4)) drop-shadow(0 0 25px rgba(236, 72, 153, 0.2))",
+        midGlow: "drop-shadow(0 0 6px rgba(236, 72, 153, 0.5))",
+        frontGlow: "drop-shadow(0 0 3px rgba(255,255,255,0.4)) drop-shadow(0 0 10px rgba(236, 72, 153, 0.6))"
       },
-      wireframeBorder: "border-pink-500/50 shadow-[inset_0_0_35px_rgba(236,72,153,0.45)]"
+      wireframeBorder: "border-pink-500/50 shadow-[inset_0_0_15px_rgba(236,72,153,0.2)]"
     },
     baruka_dagger: {
       color: "#38bdf8",
@@ -750,11 +750,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(56, 189, 248, 0.4)",
       accentColor: "sky",
       shadows: {
-        backGlow: "drop-shadow(0 0 30px rgba(56,189,248,1)) drop-shadow(0 0 60px rgba(56,189,248,0.95)) drop-shadow(0 0 100px rgba(56,189,248,0.75)) drop-shadow(0 0 150px rgba(56,189,248,0.5))",
-        midGlow: "drop-shadow(0 0 18px rgba(56,189,248,1)) drop-shadow(0 0 35px rgba(56,189,248,0.85)) drop-shadow(0 0 65px rgba(56,189,248,0.55))",
-        frontGlow: "drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 22px rgba(56,189,248,1)) drop-shadow(0 0 45px rgba(56,189,248,0.85))"
+        backGlow: "drop-shadow(0 0 12px rgba(56,189,248,0.4)) drop-shadow(0 0 25px rgba(56,189,248,0.2))",
+        midGlow: "drop-shadow(0 0 6px rgba(56,189,248,0.5))",
+        frontGlow: "drop-shadow(0 0 3px rgba(255,255,255,0.4)) drop-shadow(0 0 10px rgba(56,189,248,0.6))"
       },
-      wireframeBorder: "border-sky-500/50 shadow-[inset_0_0_35px_rgba(56,189,248,0.45)]"
+      wireframeBorder: "border-sky-500/50 shadow-[inset_0_0_15px_rgba(56,189,248,0.2)]"
     },
     vulcan_rage: {
       color: "#f97316",
@@ -762,11 +762,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(249, 115, 22, 0.4)",
       accentColor: "orange",
       shadows: {
-        backGlow: "drop-shadow(0 0 30px rgba(249,115,22,1)) drop-shadow(0 0 60px rgba(249,115,22,0.95)) drop-shadow(0 0 100px rgba(249,115,22,0.75)) drop-shadow(0 0 150px rgba(249,115,22,0.5))",
-        midGlow: "drop-shadow(0 0 18px rgba(249,115,22,1)) drop-shadow(0 0 35px rgba(249,115,22,0.85)) drop-shadow(0 0 65px rgba(249,115,22,0.55))",
-        frontGlow: "drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 22px rgba(249,115,22,1)) drop-shadow(0 0 45px rgba(249,115,22,0.85))"
+        backGlow: "drop-shadow(0 0 12px rgba(249,115,22,0.4)) drop-shadow(0 0 25px rgba(249,115,22,0.2))",
+        midGlow: "drop-shadow(0 0 6px rgba(249,115,22,0.5))",
+        frontGlow: "drop-shadow(0 0 3px rgba(255,255,255,0.4)) drop-shadow(0 0 10px rgba(249,115,22,0.6))"
       },
-      wireframeBorder: "border-orange-500/50 shadow-[inset_0_0_35px_rgba(249,115,22,0.45)]"
+      wireframeBorder: "border-orange-500/50 shadow-[inset_0_0_15px_rgba(249,115,22,0.2)]"
     },
     shadow_reaper: {
       color: "#a855f7",
@@ -774,11 +774,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(168, 85, 247, 0.4)",
       accentColor: "purple",
       shadows: {
-        backGlow: "drop-shadow(0 0 30px rgba(168,85,247,1)) drop-shadow(0 0 60px rgba(168,85,247,0.95)) drop-shadow(0 0 100px rgba(168,85,247,0.75)) drop-shadow(0 0 150px rgba(168,85,247,0.5))",
-        midGlow: "drop-shadow(0 0 18px rgba(168,85,247,1)) drop-shadow(0 0 35px rgba(168,85,247,0.85)) drop-shadow(0 0 65px rgba(168,85,247,0.55))",
-        frontGlow: "drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 22px rgba(168,85,247,1)) drop-shadow(0 0 45px rgba(168,85,247,0.85))"
+        backGlow: "drop-shadow(0 0 12px rgba(168,85,247,0.4)) drop-shadow(0 0 25px rgba(168,85,247,0.2))",
+        midGlow: "drop-shadow(0 0 6px rgba(168,85,247,0.5))",
+        frontGlow: "drop-shadow(0 0 3px rgba(255,255,255,0.4)) drop-shadow(0 0 10px rgba(168,85,247,0.6))"
       },
-      wireframeBorder: "border-purple-500/50 shadow-[inset_0_0_35px_rgba(168,85,247,0.45)]"
+      wireframeBorder: "border-purple-500/50 shadow-[inset_0_0_15px_rgba(168,85,247,0.2)]"
     },
     monarch_authority: {
       color: "#fbbf24",
@@ -786,11 +786,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(251, 191, 36, 0.4)",
       accentColor: "amber",
       shadows: {
-        backGlow: "drop-shadow(0 0 35px rgba(251,191,36,1)) drop-shadow(0 0 70px rgba(251,191,36,0.95)) drop-shadow(0 0 120px rgba(251,191,36,0.75))",
-        midGlow: "drop-shadow(0 0 20px rgba(251,191,36,1)) drop-shadow(0 0 40px rgba(251,191,36,0.85))",
-        frontGlow: "drop-shadow(0 0 12px #ffffff) drop-shadow(0 0 26px rgba(251,191,36,1))"
+        backGlow: "drop-shadow(0 0 15px rgba(251,191,36,0.4)) drop-shadow(0 0 30px rgba(251,191,36,0.2))",
+        midGlow: "drop-shadow(0 0 8px rgba(251,191,36,0.5))",
+        frontGlow: "drop-shadow(0 0 4px rgba(255,255,255,0.4)) drop-shadow(0 0 12px rgba(251,191,36,0.6))"
       },
-      wireframeBorder: "border-yellow-500/50 shadow-[inset_0_0_35px_rgba(251,191,36,0.45)]"
+      wireframeBorder: "border-yellow-500/50 shadow-[inset_0_0_15px_rgba(251,191,36,0.2)]"
     },
     abyssal_void: {
       color: "#ec4899",
@@ -798,11 +798,11 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       glowColorLight: "rgba(236, 72, 153, 0.4)",
       accentColor: "pink",
       shadows: {
-        backGlow: "drop-shadow(0 0 35px rgba(236,72,153,1)) drop-shadow(0 0 70px rgba(236,72,153,0.95)) drop-shadow(0 0 120px rgba(236,72,153,0.75))",
-        midGlow: "drop-shadow(0 0 20px rgba(236,72,153,1)) drop-shadow(0 0 40px rgba(236,72,153,0.85))",
-        frontGlow: "drop-shadow(0 0 12px #ffffff) drop-shadow(0 0 30px rgba(236,72,153,1))"
+        backGlow: "drop-shadow(0 0 15px rgba(236,72,153,0.4)) drop-shadow(0 0 30px rgba(236,72,153,0.2))",
+        midGlow: "drop-shadow(0 0 8px rgba(236,72,153,0.5))",
+        frontGlow: "drop-shadow(0 0 4px rgba(255,255,255,0.4)) drop-shadow(0 0 12px rgba(236,72,153,0.6))"
       },
-      wireframeBorder: "border-pink-500/50 shadow-[inset_0_0_35px_rgba(236,72,153,0.45)]"
+      wireframeBorder: "border-pink-500/50 shadow-[inset_0_0_15px_rgba(236,72,153,0.2)]"
     }
   };
 
@@ -908,12 +908,12 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
       <svg width="0" height="0" className="absolute pointer-events-none">
         <defs>
           <filter id="global3DMetalBevel" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur" />
-            <feSpecularLighting in="blur" surfaceScale="5.0" specularConstant="1.6" specularExponent="35" lightingColor="#ffffff" result="specOut">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+            <feSpecularLighting in="blur" surfaceScale="2.0" specularConstant="0.8" specularExponent="20" lightingColor="#ffffff" result="specOut">
               <fePointLight x="-50" y="-100" z="200" />
             </feSpecularLighting>
             <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut" />
-            <feDiffuseLighting in="blur" surfaceScale="3" diffuseConstant="1.2" lightingColor="#e2e8f0" result="diffOut">
+            <feDiffuseLighting in="blur" surfaceScale="1.5" diffuseConstant="1.1" lightingColor="#e2e8f0" result="diffOut">
               <fePointLight x="150" y="200" z="50" />
             </feDiffuseLighting>
             <feComposite in="diffOut" in2="SourceAlpha" operator="in" result="diffOut" />
@@ -965,7 +965,7 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
             }}
           >
             {/* Ambient Back Glow - Immense Area */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center opacity-[0.95]" style={{ filter: theme.shadows.backGlow, transform: "translateZ(-20px)" }}>
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center opacity-[0.5]" style={{ filter: theme.shadows.backGlow, transform: "translateZ(-20px)" }}>
                {renderNeonWeaponPreview(itemId, false)}
             </div>
             
@@ -978,13 +978,13 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
               
               // Simulate highly realistic metallic shading across the Z-axis (darker in the middle, light catching edges)
               // The faces (front and back) are bright, the sides are dark but picking up specular highlights
-              const brightness = isSurface ? 'brightness-[1.8] contrast-[1.3]' : 'brightness-[0.25] contrast-[2.5] saturate-50';
-              const edgeHighlight = (i === 1 || i === 39) ? 'brightness-[3.0] opacity-100' : '';
+              const brightness = isSurface ? 'brightness-[1.1] contrast-[1.1]' : 'brightness-[0.4] contrast-[1.5] saturate-50';
+              const edgeHighlight = (i === 1 || i === 39) ? 'brightness-[1.5] opacity-90' : '';
               
               return (
                 <div 
                   key={z} 
-                  className={`absolute inset-0 w-full h-full flex items-center justify-center transform-gpu ${brightness} ${edgeHighlight} ${isSurface ? 'drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]' : 'opacity-[0.98]'}`} 
+                  className={`absolute inset-0 w-full h-full flex items-center justify-center transform-gpu ${brightness} ${edgeHighlight} ${isSurface ? 'drop-shadow-sm' : 'opacity-[0.98]'}`} 
                   style={{ 
                     transform: `translateZ(${z}px)`,
                     filter: isSurface ? 'url(#global3DMetalBevel)' : 'none'
@@ -996,16 +996,16 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
             })}
 
             {/* Sub-Surface Scattering / Volumetric Glow Core */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-100" style={{ filter: theme.shadows.midGlow, transform: "translateZ(18px)" }}>
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-70" style={{ filter: theme.shadows.midGlow, transform: "translateZ(18px)" }}>
                {renderNeonWeaponPreview(itemId, false)}
             </div>
             
-            {/* Intense Front Specular Highlight / Neon Core */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center brightness-[2.5] contrast-[1.8] saturate-[2.5] mix-blend-overlay" style={{ filter: theme.shadows.frontGlow, transform: "translateZ(20px)" }}>
+            {/* Front Specular Highlight */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center brightness-[1.2] contrast-[1.1] saturate-[1.2] mix-blend-overlay opacity-60" style={{ filter: theme.shadows.frontGlow, transform: "translateZ(20px)" }}>
                {renderNeonWeaponPreview(itemId, false)}
             </div>
-            {/* Bloom Bleed */}
-            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-color-dodge opacity-90" style={{ transform: "translateZ(22px)", filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8))" }}>
+            {/* Soft Bloom */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-40" style={{ transform: "translateZ(22px)", filter: "drop-shadow(0 0 4px rgba(255,255,255,0.3))" }}>
                {renderNeonWeaponPreview(itemId, false)}
             </div>
           </div>
