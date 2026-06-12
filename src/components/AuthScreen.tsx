@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth, db } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { 
@@ -32,6 +32,26 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && typeof navigator !== "undefined") {
+      const ua = navigator.userAgent || "";
+      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      const isMobileWidth = window.innerWidth < 1024;
+      return isMobileUA || isMobileWidth;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const ua = navigator.userAgent || "";
+      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      const isMobileWidth = window.innerWidth < 1024;
+      setIsMobile(isMobileUA || isMobileWidth);
+    };
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const getFriendlyErrorMessage = (err: any) => {
     const code = err?.code || "";
@@ -234,27 +254,29 @@ export default function AuthScreen({ onSuccess }: AuthScreenProps) {
         </div>
 
         {/* Input credentials interaction form */}
-        <div className="mb-6 space-y-3">
-          <button
-            type="button"
-            disabled={authLoading}
-            onClick={handleGoogleAuth}
-            className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs uppercase p-4 h-12 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition shadow-md disabled:opacity-50 active:scale-98"
-          >
-            {authLoading ? (
-              <RefreshCw className="w-4 h-4 animate-spin text-slate-900" />
-            ) : (
-              <Chrome className="w-4 h-4 text-blue-500" />
-            )}
-            <span>Shadow Login with Google</span>
-          </button>
-          
-          <div className="flex items-center gap-4 my-2 px-1">
-            <div className="h-px bg-slate-800 flex-1" />
-            <span className="text-[10px] text-slate-600 font-mono uppercase">OR</span>
-            <div className="h-px bg-slate-800 flex-1" />
+        {!isMobile && (
+          <div className="mb-6 space-y-3">
+            <button
+              type="button"
+              disabled={authLoading}
+              onClick={handleGoogleAuth}
+              className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs uppercase p-4 h-12 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition shadow-md disabled:opacity-50 active:scale-98"
+            >
+              {authLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-900" />
+              ) : (
+                <Chrome className="w-4 h-4 text-blue-500" />
+              )}
+              <span>Shadow Login with Google</span>
+            </button>
+            
+            <div className="flex items-center gap-4 my-2 px-1">
+              <div className="h-px bg-slate-800 flex-1" />
+              <span className="text-[10px] text-slate-600 font-mono uppercase">OR</span>
+              <div className="h-px bg-slate-800 flex-1" />
+            </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={handleEmailAuth} className="space-y-4">
           <div className="space-y-1.5">
