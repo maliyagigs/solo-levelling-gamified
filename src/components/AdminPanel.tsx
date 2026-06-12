@@ -15,6 +15,7 @@ import {
 import { db, handleFirestoreError, OperationType, auth } from "../utils/firebase";
 import { safeLocalStorage as localStorage } from "../utils/storage";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { renderNeonWeaponPreview } from "./NeonWeaponInspector";
 import { 
   Shield, 
   User, 
@@ -1807,6 +1808,11 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                   <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <Compass className="w-4 h-4 text-emerald-400" />
                     <span>{editingGateId ? `MODIFY ARCHETYPE GATE: ${editingGateId}` : "FORGE DYNAMIC SPACE TIME GATE"}</span>
+                    {gateForm.lootItemName && (
+                      <div className="ml-auto w-8 h-8 pointer-events-none transform scale-150 origin-right">
+                        {renderNeonWeaponPreview(gateForm.lootItemName, true)}
+                      </div>
+                    )}
                   </h3>
 
                   <form onSubmit={handleCreateGate} className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -1935,8 +1941,10 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                       {gates.map(gate => (
                         <div key={gate.id} className="p-4 bg-slate-950/40 border border-slate-900 rounded-xl flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-sm shadow-[0_0_10px_rgba(16,185,129,0.15)]">
-                              ⚡
+                            <div className="w-10 h-10 rounded-lg bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-sm shadow-[0_0_10px_rgba(16,185,129,0.15)] overflow-hidden relative">
+                              <div className="absolute w-full h-full transform scale-150">
+                                {renderNeonWeaponPreview(gate.lootItemName)}
+                              </div>
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
@@ -1994,6 +2002,11 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                   <h3 className="text-xs font-black text-amber-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <ShoppingBag className="w-4 h-4 text-amber-500" />
                     <span>{editingMarketItemId ? `MODIFY MARKET LISTING: ${editingMarketItemId}` : "MATERIALIZE NEW MARKET ITEM"}</span>
+                    {marketItemForm.type === "Weapon" && marketItemForm.name && (
+                      <div className="ml-auto w-8 h-8 pointer-events-none transform scale-150 origin-right">
+                        {renderNeonWeaponPreview(marketItemForm.name, true)}
+                      </div>
+                    )}
                   </h3>
                   
                   <form onSubmit={handleCreateMarketItem} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2260,7 +2273,13 @@ export default function AdminPanel({ onBackToApp }: AdminPanelProps) {
                         <div key={item.id} className="bg-slate-950 border border-slate-900 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div className="flex items-start gap-4">
                             <div className="w-10 h-10 rounded bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-600 shrink-0">
-                               <ShoppingBag className="w-5 h-5 text-amber-500/50" />
+                               {item.type === "Weapon" ? (
+                                 <div className="w-full h-full transform scale-[0.6]">
+                                   {renderNeonWeaponPreview(item.name)}
+                                 </div>
+                               ) : (
+                                 <ShoppingBag className="w-5 h-5 text-amber-500/50" />
+                               )}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">

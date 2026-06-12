@@ -85,6 +85,40 @@ const VectorWeapons = {
       <circle cx="70" cy="10" r="2" fill="#34d399" className="animate-bounce" />
     </svg>
   ),
+  baruka_dagger: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_20px_rgba(56,189,248,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="iceGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f0f9ff" />
+          <stop offset="40%" stopColor="#bae6fd" />
+          <stop offset="60%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0284c7" />
+        </linearGradient>
+        <filter id="frostGlow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Ice Crystal Blade - Angular and Sharp */}
+      <polygon points="50,10 65,50 63,110 50,125 37,110 35,50" fill="url(#iceGrad)" filter="url(#frostGlow)" />
+      {/* Frosty sheer reflection */}
+      <polygon points="50,15 60,50 58,105 50,115" fill="#ffffff" opacity="0.7" />
+      <polygon points="50,15 40,50 42,105 50,115" fill="#38bdf8" opacity="0.4" />
+      {/* Frost Guard */}
+      <polygon points="30,120 70,120 75,130 50,140 25,130" fill="#082f49" stroke="#7dd3fc" strokeWidth="2" />
+      {/* Wrapped Handle in White Leather */}
+      <rect x="42" y="135" width="16" height="40" fill="#f8fafc" />
+      <path d="M42,140 L58,145 M42,150 L58,155 M42,160 L58,165" stroke="#94a3b8" strokeWidth="2" />
+      {/* Frozen Pommel Crystal */}
+      <polygon points="50,185 40,175 60,175" fill="#e0f2fe" stroke="#0284c7" strokeWidth="1" filter="url(#frostGlow)" className="animate-ping" />
+      {/* Little floating ice dust */}
+      <circle cx="20" cy="40" r="1.5" fill="#ffffff" className="animate-pulse" />
+      <circle cx="80" cy="70" r="2" fill="#bae6fd" className="animate-pulse" />
+    </svg>
+  ),
   demon_dagger: (animate: boolean) => (
     <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(220,38,38,0.9)] ${animate ? "animate-pulse" : ""}`}>
       <defs>
@@ -127,6 +161,92 @@ const VectorWeapons = {
       
       {/* Claw Pommel */}
       <path d="M35,170 L45,195 L50,185 L55,195 L65,170 Z" fill="url(#demonSteel)" stroke="#ef4444" strokeWidth="1" />
+    </svg>
+  ),
+  shadow_reaper: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_25px_rgba(168,85,247,0.8)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="reaperAura" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#7e22ce" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+      {/* Shadow background */}
+      <circle cx="50" cy="50" r="45" fill="url(#reaperAura)" opacity="0.5" className="animate-pulse" />
+      {/* Dagger modeled as a mini curving scythe / krambit style */}
+      <path d="M20,60 C30,10 70,5 90,30 C70,10 40,20 30,60 Z" fill="#0f172a" />
+      <path d="M18,58 C28,12 65,8 80,28 C62,15 42,22 33,56 Z" fill="#c084fc" opacity="0.8" />
+      <path d="M15,55 C25,15 60,10 75,25 C55,15 45,25 35,50 Z" fill="#e9d5ff" />
+      {/* Hilt */}
+      <path d="M20,60 L45,75 M30,45 L50,60" stroke="#581c87" strokeWidth="3" />
+      <rect x="35" y="60" width="12" height="40" transform="rotate(-30 41 80)" fill="#020617" />
+      <circle cx="68" cy="115" r="8" fill="#020617" stroke="#9333ea" strokeWidth="2" />
+      <circle cx="68" cy="115" r="4" fill="#d8b4fe" className="animate-ping" />
+    </svg>
+  ),
+  kamish_fang: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(249,115,22,1)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <linearGradient id="dragonFlame" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="#c2410c" />
+          <stop offset="30%" stopColor="#ea580c" />
+          <stop offset="70%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+        <filter id="kamishGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Immense aura of the Dragon's wrath */}
+      <circle cx="50" cy="50" r="45" fill="#f97316" filter="url(#kamishGlow)" opacity="0.3" className="animate-ping" />
+      {/* Huge, brutal dragon tooth curved blade */}
+      <path d="M35,110 C20,30 50,0 65,0 C55,40 60,80 55,110 Z" fill="url(#dragonFlame)" filter="url(#kamishGlow)" />
+      {/* Glowing superheated core within the tooth */}
+      <path d="M42,90 C35,40 50,15 58,5" fill="none" stroke="#fef08a" strokeWidth="3" strokeLinecap="round" className="animate-pulse" />
+      {/* Scaled obsidian guard */}
+      <path d="M25,115 Q50,105 75,115 L70,135 Q50,120 30,135 Z" fill="#020617" />
+      <path d="M25,115 Q50,105 75,115" fill="none" stroke="#fb923c" strokeWidth="2" filter="url(#kamishGlow)" />
+      {/* Dragon-scale Grip */}
+      <path d="M40,125 L60,125 L55,185 L45,185 Z" fill="#292524" />
+      <path d="M41,135 L59,145 M41,150 L59,160 M41,165 L59,175" stroke="#f97316" strokeWidth="2" />
+      {/* Eye of Kamish Pommel */}
+      <circle cx="50" cy="190" r="7" fill="#fbbf24" stroke="#c2410c" strokeWidth="2" filter="url(#kamishGlow)" />
+      <circle cx="50" cy="190" r="2" fill="#000000" />
+    </svg>
+  ),
+  vulcan_rage: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_30px_rgba(249,115,22,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="lavaCore" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="40%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#7f1d1d" />
+        </radialGradient>
+        <filter id="lavaGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Demon king Vulcan's heavy magma club/mace */}
+      <ellipse cx="50" cy="40" rx="35" ry="40" fill="url(#lavaCore)" filter="url(#lavaGlow)" className="animate-pulse" />
+      {/* Cracks showing lava */}
+      <path d="M30,20 L40,35 L35,50 M65,25 L55,40 L60,55 M45,60 L50,75 L45,85 M55,30 L45,45" stroke="#fef08a" strokeWidth="1" fill="none" filter="url(#lavaGlow)" />
+      {/* Spikes jutting out */}
+      <polygon points="15,40 5,30 20,25" fill="#450a0a" />
+      <polygon points="85,40 95,30 80,25" fill="#450a0a" />
+      <polygon points="30,5 25,-5 40,10" fill="#450a0a" />
+      <polygon points="70,5 75,-5 60,10" fill="#450a0a" />
+      {/* Heavy obsidian shaft */}
+      <path d="M40,75 L60,75 L55,190 L45,190 Z" fill="#292524" />
+      <path d="M42,90 L58,95 M43,120 L57,125 M44,150 L56,155 M45,180 L55,185" stroke="#b91c1c" strokeWidth="3" />
     </svg>
   ),
   igris_sword: (animate: boolean) => (
@@ -176,48 +296,6 @@ const VectorWeapons = {
       {/* Weighted Spiked Pommel */}
       <path d="M35,185 L65,185 L50,205 Z" fill="url(#igrisGold)" />
       <circle cx="50" cy="188" r="4" fill="#e11d48" filter="url(#bloodLightning)" />
-    </svg>
-  ),
-  shadow_scythe: (animate: boolean) => (
-    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(147,51,234,0.9)] ${animate ? "animate-pulse" : ""}`}>
-      <defs>
-        <radialGradient id="scytheAura" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="50%" stopColor="#4c1d95" />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        <filter id="soulGlow">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      
-      {/* Massive Dark Aura */}
-      <ellipse cx="120" cy="60" rx="80" ry="60" fill="url(#scytheAura)" opacity="0.5" className="animate-pulse" />
-      
-      {/* Obsidian Staff */}
-      <path d="M115,10 L85,200" stroke="#020617" strokeWidth="10" strokeLinecap="round" />
-      {/* Glowing bindings */}
-      <path d="M115,10 L85,200" stroke="#c084fc" strokeWidth="2" strokeDasharray="15 15" opacity="0.9" filter="url(#soulGlow)" />
-      
-      {/* Immense Soul-Reaping Blade */}
-      <path d="M110,40 C160,0 210,30 200,80 C150,40 120,60 95,95 Z" fill="#4c1d95" />
-      <path d="M107,37 C155,-5 205,25 195,75 C145,35 115,55 92,92 Z" fill="#0f172a" opacity="0.9" />
-      {/* Razor Edge of Void */}
-      <path d="M105,35 C150,-10 200,20 190,70" fill="none" stroke="#d8b4fe" strokeWidth="2" filter="url(#soulGlow)" />
-      
-      {/* Skull Nexus (where blade meets staff) */}
-      <path d="M90,45 C80,35 115,30 120,50 C125,70 90,75 80,60 Z" fill="#1e293b" stroke="#7e22ce" strokeWidth="2" />
-      {/* Glowing amethyst eyes */}
-      <circle cx="102" cy="48" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
-      <circle cx="112" cy="52" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
-      
-      {/* Ethereal soul wisps draining from the blade */}
-      <path d="M150,40 Q160,20 180,25" fill="none" stroke="#c084fc" strokeWidth="1.5" opacity="0.7" filter="url(#soulGlow)" className="animate-pulse" />
-      <path d="M170,55 Q185,45 195,60" fill="none" stroke="#d8b4fe" strokeWidth="1" opacity="0.8" filter="url(#soulGlow)" className="animate-pulse" />
     </svg>
   ),
   sovereigns_wrath: (animate: boolean) => (
@@ -275,6 +353,112 @@ const VectorWeapons = {
         <circle cx="150" cy="80" r="2.5" fill="#f5f3ff" filter="url(#galaxyGlow)" className="animate-ping" />
         <circle cx="100" cy="40" r="4" fill="#fbcfe8" filter="url(#galaxyGlow)" className="animate-ping" />
       </g>
+    </svg>
+  ),
+  monarch_authority: (animate: boolean) => (
+    <svg viewBox="0 0 100 240" className={`w-full h-full drop-shadow-[0_0_40px_rgba(168,85,247,1)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="authorityGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#e9d5ff" />
+          <stop offset="40%" stopColor="#c084fc" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+      {/* Majestic spear / staff of raw dominance */}
+      <rect x="45" y="60" width="10" height="180" fill="#020617" />
+      <path d="M45,60 L55,60" fill="none" stroke="#d8b4fe" strokeWidth="10" strokeDasharray="15 30" opacity="0.6" />
+      <path d="M40,65 L60,65 M40,85 L60,85 M40,210 L60,210" stroke="#e879f9" strokeWidth="3" />
+      
+      {/* Floating spearhead wings */}
+      <path d="M30,70 C10,40 50,20 50,0 M70,70 C90,40 50,20 50,0" fill="none" stroke="#d8b4fe" strokeWidth="3" filter="drop-shadow(0 0 5px #c084fc)" />
+      <path d="M20,60 C0,30 50,10 50,0 M80,60 C100,30 50,10 50,0" fill="none" stroke="#c084fc" strokeWidth="1" />
+      
+      {/* Main Core diamond spear tip */}
+      <polygon points="50,10 65,40 50,60 35,40" fill="#a855f7" filter="drop-shadow(0 0 10px #e9d5ff)" className="animate-pulse" />
+      <polygon points="50,15 58,40 50,55 42,40" fill="#faf5ff" opacity="0.9" />
+      {/* Halo Behind Tip */}
+      <ellipse cx="50" cy="35" rx="35" ry="10" fill="url(#authorityGlow)" opacity="0.6" className="animate-ping" />
+      <ellipse cx="50" cy="35" rx="45" ry="5" fill="url(#authorityGlow)" opacity="0.4" className="animate-pulse" />
+    </svg>
+  ),
+  abyssal_void: (animate: boolean) => (
+    <svg viewBox="0 0 100 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(88,28,135,1)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="voidCore" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000000" />
+          <stop offset="70%" stopColor="#2e1065" />
+          <stop offset="100%" stopColor="#000000" />
+        </radialGradient>
+        <filter id="voidGlow">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Swirling black hole core aura */}
+      <circle cx="50" cy="50" r="45" fill="#4c1d95" opacity="0.3" filter="url(#voidGlow)" className="animate-ping" />
+      <ellipse cx="50" cy="50" rx="30" ry="10" fill="#1e1b4b" transform="rotate(45 50 50)" filter="url(#voidGlow)" />
+      <ellipse cx="50" cy="50" rx="30" ry="10" fill="#1e1b4b" transform="rotate(-45 50 50)" filter="url(#voidGlow)" />
+      
+      {/* A spatial tear acting as a blade */}
+      <path d="M40,110 C20,50 60,-10 65,0 C50,20 65,80 60,110 Z" fill="url(#voidCore)" filter="drop-shadow(0 0 10px #581c87)" />
+      <path d="M48,100 C32,50 58,-5 62,5" fill="none" stroke="#c084fc" strokeWidth="2" strokeDasharray="3 6" opacity="0.8" className="animate-pulse" />
+      
+      {/* Broken space hilt */}
+      <path d="M20,115 L80,105 L70,125 L30,135 Z" fill="#0f172a" stroke="#7e22ce" strokeWidth="2" />
+      
+      {/* Void Grip */}
+      <path d="M42,125 L58,122 L55,185 L45,185 Z" fill="#000000" />
+      {/* Rings of distorted gravity around grip */}
+      <ellipse cx="50" cy="140" rx="12" ry="3" fill="none" stroke="#a855f7" strokeWidth="1" filter="url(#voidGlow)" />
+      <ellipse cx="50" cy="160" rx="12" ry="3" fill="none" stroke="#a855f7" strokeWidth="1" filter="url(#voidGlow)" />
+      
+      {/* Void gem */}
+      <circle cx="50" cy="190" r="8" fill="#000000" stroke="#7e22ce" strokeWidth="3" filter="url(#voidGlow)" className="animate-ping" />
+    </svg>
+  ),  
+  shadow_scythe: (animate: boolean) => (
+    <svg viewBox="0 0 200 200" className={`w-full h-full drop-shadow-[0_0_35px_rgba(147,51,234,0.9)] ${animate ? "animate-pulse" : ""}`}>
+      <defs>
+        <radialGradient id="scytheAura" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#a855f7" />
+          <stop offset="50%" stopColor="#4c1d95" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+        <filter id="soulGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      
+      {/* Massive Dark Aura */}
+      <ellipse cx="120" cy="60" rx="80" ry="60" fill="url(#scytheAura)" opacity="0.5" className="animate-pulse" />
+      
+      {/* Obsidian Staff */}
+      <path d="M115,10 L85,200" stroke="#020617" strokeWidth="10" strokeLinecap="round" />
+      {/* Glowing bindings */}
+      <path d="M115,10 L85,200" stroke="#c084fc" strokeWidth="2" strokeDasharray="15 15" opacity="0.9" filter="url(#soulGlow)" />
+      
+      {/* Immense Soul-Reaping Blade */}
+      <path d="M110,40 C160,0 210,30 200,80 C150,40 120,60 95,95 Z" fill="#4c1d95" />
+      <path d="M107,37 C155,-5 205,25 195,75 C145,35 115,55 92,92 Z" fill="#0f172a" opacity="0.9" />
+      {/* Razor Edge of Void */}
+      <path d="M105,35 C150,-10 200,20 190,70" fill="none" stroke="#d8b4fe" strokeWidth="2" filter="url(#soulGlow)" />
+      
+      {/* Skull Nexus (where blade meets staff) */}
+      <path d="M90,45 C80,35 115,30 120,50 C125,70 90,75 80,60 Z" fill="#1e293b" stroke="#7e22ce" strokeWidth="2" />
+      {/* Glowing amethyst eyes */}
+      <circle cx="102" cy="48" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
+      <circle cx="112" cy="52" r="3" fill="#c084fc" filter="url(#soulGlow)" className="animate-ping" />
+      
+      {/* Ethereal soul wisps draining from the blade */}
+      <path d="M150,40 Q160,20 180,25" fill="none" stroke="#c084fc" strokeWidth="1.5" opacity="0.7" filter="url(#soulGlow)" className="animate-pulse" />
+      <path d="M170,55 Q185,45 195,60" fill="none" stroke="#d8b4fe" strokeWidth="1" opacity="0.8" filter="url(#soulGlow)" className="animate-pulse" />
     </svg>
   ),
   hunters_bow: (animate: boolean) => (
@@ -421,31 +605,46 @@ const VectorWeapons = {
 };
 
 export const renderNeonWeaponPreview = (itemId: string, animate = false) => {
-  const baseId = itemId.split("_")[0];
-  
   const getVectorGraphic = (id: string) => {
-    switch(id) {
-      case "rusty_dagger": return VectorWeapons.rusty_dagger(animate);
-      case "kasaka_fang":
-      case "baruka_dagger": return VectorWeapons.kasaka_fang(animate);
-      case "demon_dagger":
-      case "shadow_reaper": return VectorWeapons.demon_dagger(animate);
-      case "igris_sword":
-      case "vulcan_rage": return VectorWeapons.igris_sword(animate);
-      case "sovereigns_wrath":
-      case "monarch_authority":
-      case "abyssal_void": return VectorWeapons.sovereigns_wrath(animate);
-      case "shadow_scythe": return VectorWeapons.shadow_scythe(animate);
-      case "hunters_bow": return VectorWeapons.hunters_bow(animate);
-      case "knights_shield": return VectorWeapons.knights_shield(animate);
-      case "mage_staff": return VectorWeapons.mage_staff(animate);
-      default: return VectorWeapons.kasaka_fang(animate);
-    }
+    if (!id) id = "generic_sword";
+    const lowerId = id.toString().toLowerCase();
+    
+    if (lowerId.includes("rusty")) return VectorWeapons.rusty_dagger(animate);
+    if (lowerId.includes("kasaka") || lowerId.includes("venom")) return VectorWeapons.kasaka_fang(animate);
+    if (lowerId.includes("baruka") || lowerId.includes("ice")) return VectorWeapons.baruka_dagger(animate);
+    if (lowerId.includes("demon") || lowerId.includes("blood")) return VectorWeapons.demon_dagger(animate);
+    if (lowerId.includes("reaper")) return VectorWeapons.shadow_reaper(animate);
+    if (lowerId.includes("kamish") || lowerId.includes("dragon")) return VectorWeapons.kamish_fang(animate);
+    if (lowerId.includes("igris") || lowerId.includes("knight") || lowerId.includes("sword")) return VectorWeapons.igris_sword(animate);
+    if (lowerId.includes("vulcan") || lowerId.includes("rage") || lowerId.includes("mace") || lowerId.includes("club")) return VectorWeapons.vulcan_rage(animate);
+    if (lowerId.includes("sovereign") || lowerId.includes("wrath") || lowerId.includes("blade")) return VectorWeapons.sovereigns_wrath(animate);
+    if (lowerId.includes("monarch") || lowerId.includes("authority") || lowerId.includes("spear")) return VectorWeapons.monarch_authority(animate);
+    if (lowerId.includes("void") || lowerId.includes("abyssal")) return VectorWeapons.abyssal_void(animate);
+    if (lowerId.includes("scythe")) return VectorWeapons.shadow_scythe(animate);
+    if (lowerId.includes("bow")) return VectorWeapons.hunters_bow(animate);
+    if (lowerId.includes("shield")) return VectorWeapons.knights_shield(animate);
+    if (lowerId.includes("staff") || lowerId.includes("mage")) return VectorWeapons.mage_staff(animate);
+    
+    // Default fallback - generic sword rather than an egg
+    return (
+      <svg viewBox="0 0 100 200" className={`w-full h-full opacity-60 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] ${animate ? "animate-pulse" : ""}`}>
+        {/* Simple Sword Base */}
+        <path d="M45,30 L55,30 L50,10 Z" fill="#94a3b8" />
+        <path d="M45,30 L55,30 L53,130 L47,130 Z" fill="#cbd5e1" />
+        <path d="M50,10 L50,130" stroke="#f8fafc" strokeWidth="1" opacity="0.6" />
+        {/* Guard */}
+        <polygon points="30,130 70,130 65,140 35,140" fill="#334155" />
+        {/* Handle */}
+        <rect x="44" y="140" width="12" height="35" fill="#475569" />
+        {/* Pommel */}
+        <circle cx="50" cy="180" r="6" fill="#334155" />
+      </svg>
+    );
   }
 
   return (
     <div className={`w-full h-full relative flex items-center justify-center select-none ${animate ? "animate-pulse" : ""}`}>
-      {getVectorGraphic(baseId)}
+      {getVectorGraphic(itemId)}
     </div>
   );
 };
@@ -607,8 +806,8 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
     }
   };
 
-  const baseId = itemId.split("_")[0];
-  const theme = WEAPON_THEMES[baseId] || WEAPON_THEMES.rusty_dagger;
+  const baseId = Object.keys(WEAPON_THEMES).find(k => itemId.toLowerCase().includes(k)) || "rusty_dagger";
+  const theme = WEAPON_THEMES[baseId];
 
   const updateTransforms = () => {
     if (plateRef.current) {
@@ -705,6 +904,24 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between pointer-events-auto">
+      {/* Hidden SVG Filter Definition for the Metallic Bevel */}
+      <svg width="0" height="0" className="absolute pointer-events-none">
+        <defs>
+          <filter id="global3DMetalBevel" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur" />
+            <feSpecularLighting in="blur" surfaceScale="5.0" specularConstant="1.6" specularExponent="35" lightingColor="#ffffff" result="specOut">
+              <fePointLight x="-50" y="-100" z="200" />
+            </feSpecularLighting>
+            <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut" />
+            <feDiffuseLighting in="blur" surfaceScale="3" diffuseConstant="1.2" lightingColor="#e2e8f0" result="diffOut">
+              <fePointLight x="150" y="200" z="50" />
+            </feDiffuseLighting>
+            <feComposite in="diffOut" in2="SourceAlpha" operator="in" result="diffOut" />
+            <feBlend mode="screen" in="specOut" in2="SourceGraphic" result="lit1" />
+            <feBlend mode="multiply" in="diffOut" in2="lit1" result="lit2" />
+          </filter>
+        </defs>
+      </svg>
       {/* Helper instructions overlay */}
       <div className="absolute top-2 right-2 flex items-center gap-2 z-30 select-none">
         <button 
@@ -733,22 +950,62 @@ export const Rotatable3DWeapon = ({ itemId }: { itemId: string }) => {
         {/* Main 3D rotatable staging plate */}
         <div 
           ref={plateRef}
-          className="relative w-full h-full max-w-[280px] max-h-[280px] flex items-center justify-center will-change-transform"
+          className="relative w-full h-full max-w-[450px] max-h-[450px] flex items-center justify-center will-change-transform"
           style={{ 
             transformStyle: "preserve-3d",
             transform: `rotateX(${rotationRef.current.x}deg) rotateY(${rotationRef.current.y}deg) rotateZ(${rotationRef.current.z}deg)`
           }}
         >
-          {/* Main Geometry Layer in high-definition correct color */}
+          {/* High-Resolution Voxel/Layer Extrusion for Real 3D Structure */}
           <div 
-            className="absolute inset-0 pointer-events-none flex items-center justify-center"
+            className="absolute inset-0 pointer-events-none flex items-center justify-center scale-[1.7]"
             style={{ 
-              transform: "translateZ(10px)", 
+              transform: "translateZ(0px)", 
               transformStyle: "preserve-3d",
-              backfaceVisibility: "hidden",
             }}
           >
-            <div className="w-full h-full flex items-center justify-center relative">
+            {/* Ambient Back Glow - Immense Area */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center opacity-[0.95]" style={{ filter: theme.shadows.backGlow, transform: "translateZ(-20px)" }}>
+               {renderNeonWeaponPreview(itemId, false)}
+            </div>
+            
+            {/* Micro-Facet Real 3D Extrusion (Volumetric slice stacking) */}
+            {Array.from({length: 41}).map((_, i) => {
+              const z = (i - 20) * 0.8; // fine step size
+              const isFront = i === 40;
+              const isBack = i === 0;
+              const isSurface = isFront || isBack;
+              
+              // Simulate highly realistic metallic shading across the Z-axis (darker in the middle, light catching edges)
+              // The faces (front and back) are bright, the sides are dark but picking up specular highlights
+              const brightness = isSurface ? 'brightness-[1.8] contrast-[1.3]' : 'brightness-[0.25] contrast-[2.5] saturate-50';
+              const edgeHighlight = (i === 1 || i === 39) ? 'brightness-[3.0] opacity-100' : '';
+              
+              return (
+                <div 
+                  key={z} 
+                  className={`absolute inset-0 w-full h-full flex items-center justify-center transform-gpu ${brightness} ${edgeHighlight} ${isSurface ? 'drop-shadow-[0_0_2px_rgba(255,255,255,0.9)]' : 'opacity-[0.98]'}`} 
+                  style={{ 
+                    transform: `translateZ(${z}px)`,
+                    filter: isSurface ? 'url(#global3DMetalBevel)' : 'none'
+                  }}
+                >
+                   {renderNeonWeaponPreview(itemId, false)}
+                </div>
+              );
+            })}
+
+            {/* Sub-Surface Scattering / Volumetric Glow Core */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-screen opacity-100" style={{ filter: theme.shadows.midGlow, transform: "translateZ(18px)" }}>
+               {renderNeonWeaponPreview(itemId, false)}
+            </div>
+            
+            {/* Intense Front Specular Highlight / Neon Core */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center brightness-[2.5] contrast-[1.8] saturate-[2.5] mix-blend-overlay" style={{ filter: theme.shadows.frontGlow, transform: "translateZ(20px)" }}>
+               {renderNeonWeaponPreview(itemId, false)}
+            </div>
+            {/* Bloom Bleed */}
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center mix-blend-color-dodge opacity-90" style={{ transform: "translateZ(22px)", filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8))" }}>
                {renderNeonWeaponPreview(itemId, false)}
             </div>
           </div>
